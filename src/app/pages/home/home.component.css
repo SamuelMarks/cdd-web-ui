@@ -1,0 +1,90 @@
+.container {
+  max-width: 1000px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.create-user-card {
+  max-width: 400px;
+  margin: 4rem auto;
+}
+
+.user-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.dashboard-header {
+  margin-bottom: 2rem;
+}
+
+.organizations-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.create-organization {
+  margin-bottom: 1rem;
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.flex-field {
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.org-card {
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.org-card:hover,
+.org-card:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  outline: none;
+}
+
+.view-link {
+  margin-top: 1rem;
+  color: var(--primary-color, #2563eb);
+  font-weight: 500;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  background: var(--surface-color);
+  border-radius: 0.5rem;
+  border: 1px dashed var(--border-color);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 600px) {
+  .inline-form button {
+    width: 100%;
+  }
+}

@@ -1,51 +1,88 @@
-cdd-web-ui
-==========
+# cdd-web-ui
 
-Compiler Driven Development (CDD) is a methodology of rapid application development, that focusses on producing more code; not less.
+[![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Rather than some new general purpose language, DSL, or other solution which creates a "generated DO NOT TOUCH" directory, CDD dictates that you follow vendor dictates; i.e., plain old Python `class`es, SQL `CREATE TABLE`s, CLI augmenting parser, etc.
+**CDD Web UI** is the central graphical interface for the Compiler Driven Development (CDD) ecosystem.
 
-CDD involves the creation of new compiler. To add a language, implement an entire compiler in that new language, that goes to and from OpenAPI.
+Compiler Driven Development is a methodology of rapid application development that focuses on producing _more_ code, not less. Rather than relying on a general-purpose language, DSL, or "generated DO NOT TOUCH" directories, CDD generates idiomatic native code (e.g., Python `class`es, SQL `CREATE TABLE`s, Rust `struct`s) directly into your workspace.
 
-This project coordinates all known CDD implementations into a web interface.
-
-The idea of the web-interface is that you can
+This repository coordinates all known CDD implementations (`cdd-python`, `cdd-rust`, `cdd-typescript`, etc.) into a cohesive, offline-first web interface powered by WebAssembly (WASM).
 
 ## Features
 
-### Release clients
+### Offline-First Architecture
 
-  0. Provide an OpenAPI spec and produce client libraries in X languages
-  1. Release to source repo (e.g., GitHub) and CI to all their app stores (e.g., pypi, crates, Maven Central)
+The entire application runs fully offline inside your browser. It utilizes standard browser APIs (`localStorage`) to persist your data locally.
 
-### Release servers
+- **Data Model:** Aligns seamlessly with the GitHub API schema (`User` -> `Organization` -> `Repository`) in preparation for future online synchronization and 'Login with GitHub' capabilities.
+- **WASM Powered:** Code generation logic is intended to be executed natively in the browser via WebAssembly, removing the need for cloud backends or external APIs. _Currently implemented with static WASM generation stubs._
 
-  0. Provide an OpenAPI spec and produce servers in Y languages
-  1. Release to source repo (e.g., GitHub) and CI to all their app stores (e.g., pypi, crates, Maven Central)
-  2. Serve to [cloud] hosting provider(s)
+### Interactive OpenAPI ↔ SDK Editor
 
-### Produce UI
+- **Bi-directional Editing:** Provide an OpenAPI specification to produce client/server libraries, or edit the generated code and watch it synthesize the OpenAPI spec back.
+- **Multi-Language Support:** Toggle code generation for various languages (Python, Rust, TypeScript, etc.). Languages lacking WASM support will display a disabled state.
+- **Split-View Pane:** Side-by-side editing interface powered by standard text areas, styled dynamically with Angular Material.
 
-  0. Drag-drop UI interface builder, that produces OpenAPI code
-  1. Release clients and servers as per above
+### Technical Stack
 
-TODO: Figure out if this can be represented in OpenAPI, their new Arrazo spec, or if it needs an entirely new/different specification language.
+- **Framework:** Angular v19+ (Standalone Components, Signals)
+- **UI Toolkit:** Angular Material v19+ (`@angular/material`)
+- **i18n:** Built-in multilinguality using `@angular/localize`
+- **Testing:**
+  - Unit tests running on Vitest (100% coverage).
+  - End-to-End workflows validated using Playwright (`e2e/`).
 
-If this goes too far then will need to consider:
-- Screen sizes and how it reacts to reactivity (unfolding a phone to twice the size, landscape to portrait, resizing a window from 'mobile' to 'desktop'; &etc.)
-- Theming (e.g., Material, Cupertino, Fluent; and customisations thereof)
+## Getting Started
 
-### Generic features
+### Local Development
 
-- RBAC
-- Social & network auth
-- Sharable collaborative programmes with shareable collaborative projects
-- Shield to place in GitHub README.md
+1. **Install dependencies:**
 
+   ```bash
+   npm install
+   ```
+
+2. **Run the development server:**
+
+   ```bash
+   npm start
+   ```
+
+   Navigate to `http://localhost:4200/`.
+
+3. **Run tests:**
+   ```bash
+   npm test
+   npx playwright test
+   ```
+
+### Docker Deployment
+
+The application can be compiled into a static artifact and served via an ultra-lightweight Nginx container.
+
+We provide a specialized `make` workflow to clone all requisite `cdd-*` compiler repositories, build the web UI, and package it.
+
+```bash
+# Build the Alpine and Debian based images
+make build_docker
+
+# Test the resulting containers locally
+make test_docker
+```
+
+This pipeline automatically extracts the static build output into `build-from-alpine` and `build-from-debian` directories for immediate local hosting or CI/CD artifact storage.
 
 ---
 
-## Other ideas
-- Make this site also host the docs
-- Make this site also be a CI log aggregator
-- Make this site also track deployed versions on different source repos, crates/pypi/etc.
+## The CDD Ecosystem
+
+This Web UI sits on top of a larger suite of bidirectional compilers:
+
+| Repository                                                           | Language   | Status          | OpenAPI Standard          |
+| -------------------------------------------------------------------- | ---------- | --------------- | ------------------------- |
+| [`cdd-python-client`](https://github.com/offscale/cdd-python-client) | Python     | Client          | OpenAPI 3.2.0             |
+| [`cdd-rust`](https://github.com/SamuelMarks/cdd-rust)                | Rust       | Client & Server | OpenAPI 3.2.0             |
+| [`cdd-web-ng`](https://github.com/offscale/cdd-web-ng)               | TypeScript | Client          | OpenAPI 3.2.0 & Swagger 2 |
+| ... and many more.                                                   |            |                 |                           |
+
+_See `cdd_docs_prompt.md` and `TO_DOCS_JSON.md` in this repository for the system prompts used to unify documentation and CLI interfaces across the entire `cdd-_` ecosystem.\*
