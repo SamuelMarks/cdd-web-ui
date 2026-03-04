@@ -1,3 +1,4 @@
+import '@angular/compiler';
 import '@angular/localize/init';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { OrganizationComponent } from './organization.component';
@@ -91,5 +92,14 @@ describe('OrganizationComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Organization not found');
+  });
+
+  it('should trigger onCreateRepository on form submit', () => {
+    storage.organizations.set([{ id: '123', login: 'org1', userId: 1 }]);
+    component.repositoryForm.setValue({ name: 'test-repo' });
+    fixture.detectChanges();
+    const spy = vi.spyOn(storage, 'createRepository').mockImplementation(() => ({}) as never);
+    component.onCreateRepository();
+    expect(spy).toHaveBeenCalledWith('prog-1', 'test-repo');
   });
 });

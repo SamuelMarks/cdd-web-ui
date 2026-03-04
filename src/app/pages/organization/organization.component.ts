@@ -41,11 +41,14 @@ import { MatInputModule } from '@angular/material/input';
 
         <mat-card class="create-repository" appearance="outlined">
           <mat-card-content>
-            <h3 i18n="@@createNewRepositoryHeading">Create New Repository</h3>
+            <h3 id="create-repo-title" i18n="@@createNewRepositoryHeading">
+              Create New Repository
+            </h3>
             <form
               [formGroup]="repositoryForm"
               (ngSubmit)="onCreateRepository()"
               class="inline-form"
+              aria-labelledby="create-repo-title"
             >
               <mat-form-field appearance="outline" class="flex-field" subscriptSizing="dynamic">
                 <mat-label i18n="@@repositoryNameLabel">Repository Name</mat-label>
@@ -85,6 +88,8 @@ import { MatInputModule } from '@angular/material/input';
                   [routerLink]="['/repository', repo.id]"
                   appearance="outlined"
                   tabindex="0"
+                  role="link"
+                  [attr.aria-label]="'Go to repository ' + repo.name"
                 >
                   <mat-card-header>
                     <mat-card-title>{{ repo.name }}</mat-card-title>

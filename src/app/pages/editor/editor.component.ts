@@ -1,3 +1,4 @@
+import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 import {
   Component,
   ChangeDetectionStrategy,
@@ -11,7 +12,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { StorageService } from '../../services/storage.service';
 import { WasmGeneratorService } from '../../services/wasm-generator.service';
-import { LANGUAGES } from '../../models/constants';
+import { LanguageService } from '../../services/language.service';
 import { PETSTORE_SPEC, HELLO_WORLD_SPEC } from '../../models/examples';
 import { NgOptimizedImage } from '@angular/common';
 
@@ -22,12 +23,16 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+
 /**
  * Editor component for interacting with OpenAPI specs and generated SDKs.
  */
 @Component({
   selector: 'app-editor',
   imports: [
+    MonacoEditorModule,
     FormsModule,
     RouterLink,
     NgOptimizedImage,
@@ -71,7 +76,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
           </mat-form-field>
 
           <div class="icon-group" role="group" aria-label="Language selector">
-            @for (lang of languages; track lang.id) {
+            @for (lang of languages(); track lang.id) {
               <button
                 type="button"
                 [class]="
@@ -157,44 +162,55 @@ import { MatTooltipModule } from '@angular/material/tooltip';
           <div class="pane-header">
             <h3 id="openapi-heading" i18n="@@openapiSpecHeading">OpenAPI Spec</h3>
           </div>
-          <textarea
-            class="code-editor"
+          <ngx-monaco-editor
+            class="code-editor monaco-container"
             [ngModel]="openapiSpec()"
-            (ngModelChange)="openapiSpec.set($event)"
-            placeholder="Enter OpenAPI spec here..."
-            i18n-placeholder="@@openapiSpecPlaceholder"
+            (ngModelChange)="onOpenApiChange($event)"
+            [options]="editorOptionsOpenApi"
             aria-label="OpenAPI Specification Editor"
-          ></textarea>
+          ></ngx-monaco-editor>
         </section>
 
         <section class="pane sdk-pane" aria-labelledby="sdk-heading">
           <div class="pane-header">
-            <h3 id="sdk-heading" i18n="@@generatedSdkHeading">Generated SDK</h3>
+            <div class="sdk-header-left">
+              <h3 id="sdk-heading" i18n="@@generatedSdkHeading">Generated Source</h3>
+              @if (activeLanguages().length > 0) {
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sdk-select">
+                  <mat-select
+                    [ngModel]="activeSdkTab()"
+                    (ngModelChange)="activeSdkTab.set($event)"
+                    aria-label="Select SDK Language"
+                  >
+                    @for (lang of activeLanguages(); track lang.id) {
+                      <mat-option [value]="lang.id">{{ lang.name }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              } @else {
+                <span class="no-lang" i18n="@@noLanguageSelected">No language selected</span>
+              }
+            </div>
             @if (activeLanguages().length > 0) {
-              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sdk-select">
-                <mat-select
-                  [ngModel]="activeSdkTab()"
-                  (ngModelChange)="activeSdkTab.set($event)"
-                  aria-label="Select SDK Language"
+              <div class="output-type-toggle">
+                <mat-radio-group
+                  [ngModel]="activeOutputType()"
+                  (ngModelChange)="activeOutputType.set($event)"
+                  aria-label="Select output type"
                 >
-                  @for (lang of activeLanguages(); track lang.id) {
-                    <mat-option [value]="lang.id">{{ lang.name }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-            } @else {
-              <span class="no-lang" i18n="@@noLanguageSelected">No language selected</span>
+                  <mat-radio-button value="sdk" i18n="@@sdkOutput">SDK Code</mat-radio-button>
+                  <mat-radio-button value="ci" i18n="@@ciOutput">CI/CD Config</mat-radio-button>
+                </mat-radio-group>
+              </div>
             }
           </div>
-          <textarea
-            class="code-editor"
-            [ngModel]="getCurrentSdkCode()"
-            (ngModelChange)="setCurrentSdkCode($event)"
-            placeholder="Generated SDK code will appear here..."
-            i18n-placeholder="@@generatedSdkPlaceholder"
-            [readonly]="openapiLeft()"
-            aria-label="Generated SDK Editor"
-          ></textarea>
+          <ngx-monaco-editor
+            class="code-editor monaco-container"
+            [ngModel]="getCurrentOutputCode()"
+            (ngModelChange)="onSdkChange($event)"
+            [options]="editorOptionsSdk()"
+            aria-label="Generated Code Editor"
+          ></ngx-monaco-editor>
         </section>
       </main>
     </div>
@@ -205,6 +221,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 export class EditorComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly storage = inject(StorageService);
+  private readonly langService = inject(LanguageService);
   private readonly wasm = inject(WasmGeneratorService);
 
   /** The ID of the currently loaded repository. */
@@ -218,11 +235,16 @@ export class EditorComponent implements OnInit {
   });
 
   /** List of all supported languages. */
-  languages = LANGUAGES;
+  readonly languages = this.langService.languages;
 
   /** The set of languages currently selected by the user. */
-  selectedLanguages = signal<Set<string>>(
-    new Set(LANGUAGES.filter((l) => l.selectedByDefault && l.availableInWasm).map((l) => l.id)),
+  selectedLanguages = signal<Set<string | number>>(
+    new Set(
+      this.langService
+        .languages()
+        .filter((l) => l.selectedByDefault && l.availableInWasm)
+        .map((l) => l.id),
+    ),
   );
 
   /** True if OpenAPI is on the left, false if swapped. */
@@ -238,14 +260,37 @@ export class EditorComponent implements OnInit {
   openapiSpec = signal(PETSTORE_SPEC);
 
   /** The generated SDK codes, keyed by language ID. */
-  sdkCodes = signal<Record<string, string>>({});
+  sdkCodes = signal<Record<string | number, string>>({});
+
+  /** The generated CI/CD codes, keyed by language ID. */
+  ciCodes = signal<Record<string | number, string>>({});
 
   /** The ID of the language currently active in the SDK pane. */
-  activeSdkTab = signal<string | null>(null);
+  activeSdkTab = signal<string | number | null>(null);
+
+  /** The type of output currently active in the right pane. */
+  activeOutputType = signal<'sdk' | 'ci'>('sdk');
 
   /** Computed list of actively selected languages. */
   activeLanguages = computed(() => {
-    return this.languages.filter((l) => this.selectedLanguages().has(l.id));
+    return this.languages().filter((l) => this.selectedLanguages().has(l.id));
+  });
+
+  private openApiChangeSubject = new Subject<string>();
+  private sdkChangeSubject = new Subject<string>();
+
+  editorOptionsOpenApi = { theme: 'vs-light', language: 'yaml' };
+
+  editorOptionsSdk = computed(() => {
+    const isReadOnly = this.openapiLeft() || this.activeOutputType() === 'ci';
+    const language =
+      this.activeOutputType() === 'ci' ? 'yaml' : this.getMonacoLanguageId(this.activeSdkTab());
+
+    return {
+      theme: 'vs-light',
+      language: language,
+      readOnly: isReadOnly,
+    };
   });
 
   constructor() {
@@ -258,6 +303,20 @@ export class EditorComponent implements OnInit {
         }
       } else {
         this.activeSdkTab.set(null);
+      }
+    });
+
+    // Real-time Live Preview: OpenAPI -> SDK
+    this.openApiChangeSubject.pipe(debounceTime(500), distinctUntilChanged()).subscribe(() => {
+      if (this.openapiLeft()) {
+        this.onRun();
+      }
+    });
+
+    // Real-time Live Preview: SDK -> OpenAPI
+    this.sdkChangeSubject.pipe(debounceTime(500), distinctUntilChanged()).subscribe(() => {
+      if (!this.openapiLeft() && this.activeOutputType() === 'sdk') {
+        this.onRun();
       }
     });
   }
@@ -282,23 +341,37 @@ export class EditorComponent implements OnInit {
     });
   }
 
-  /**
-   * Retrieves the generated code for the currently active SDK tab.
-   * @returns The generated code string.
-   */
-  getCurrentSdkCode(): string {
-    const tab = this.activeSdkTab();
-    if (!tab) return '';
-    return this.sdkCodes()[tab] || '';
+  onOpenApiChange(value: string): void {
+    this.openapiSpec.set(value);
+    this.openApiChangeSubject.next(value);
+  }
+
+  onSdkChange(value: string): void {
+    this.setCurrentOutputCode(value);
+    this.sdkChangeSubject.next(value);
   }
 
   /**
-   * Updates the generated code for the currently active SDK tab.
+   * Retrieves the generated code for the currently active SDK tab and output type.
+   * @returns The generated code string.
+   */
+  getCurrentOutputCode(): string {
+    const tab = this.activeSdkTab();
+    if (!tab) return '';
+    if (this.activeOutputType() === 'sdk') {
+      return this.sdkCodes()[tab] || '';
+    } else {
+      return this.ciCodes()[tab] || '';
+    }
+  }
+
+  /**
+   * Updates the generated code for the currently active SDK tab (SDK only).
    * @param value The new code string.
    */
-  setCurrentSdkCode(value: string): void {
+  setCurrentOutputCode(value: string): void {
     const tab = this.activeSdkTab();
-    if (tab) {
+    if (tab && this.activeOutputType() === 'sdk') {
       this.sdkCodes.update((codes) => ({ ...codes, [tab]: value }));
     }
   }
@@ -308,21 +381,24 @@ export class EditorComponent implements OnInit {
    * @param exampleType The type of example to load ('petstore', 'helloworld', or 'empty').
    */
   loadExample(exampleType: string): void {
+    let specValue = '';
     if (exampleType === 'petstore') {
-      this.openapiSpec.set(PETSTORE_SPEC);
+      specValue = PETSTORE_SPEC;
     } else if (exampleType === 'helloworld') {
-      this.openapiSpec.set(HELLO_WORLD_SPEC);
-    } else {
-      this.openapiSpec.set('');
+      specValue = HELLO_WORLD_SPEC;
     }
+    this.openapiSpec.set(specValue);
+
+    // Trigger live preview update
+    this.openApiChangeSubject.next(specValue);
   }
 
   /**
    * Toggles a language in the selected languages set.
    * @param id The ID of the language to toggle.
    */
-  toggleLanguage(id: string): void {
-    const lang = this.languages.find((l) => l.id === id);
+  toggleLanguage(id: string | number): void {
+    const lang = this.languages().find((l) => l.id === id);
     if (!lang || !lang.availableInWasm) return;
 
     this.selectedLanguages.update((set) => {
@@ -344,15 +420,42 @@ export class EditorComponent implements OnInit {
   }
 
   /**
+   * Translates internal language IDs to Monaco editor language identifiers.
+   */
+  private getMonacoLanguageId(langId: string | number | null): string {
+    if (!langId) return 'plaintext';
+    switch (langId) {
+      case 'python':
+        return 'python';
+      case 'rust':
+        return 'rust';
+      case 'typescript':
+        return 'typescript';
+      case 'go':
+        return 'go';
+      case 'java':
+        return 'java';
+      default:
+        return 'plaintext';
+    }
+  }
+
+  /**
    * Simulates fetching an OpenAPI specification from a remote URL.
    */
   async fetchRemoteSpec(): Promise<void> {
     const url = this.specUrl();
     if (!url) return;
+
     try {
-      // In a real app we'd fetch this. We'll simulate it for offline demo.
-      const fakeSpec = `openapi: 3.1.0\ninfo:\n  title: Remote API\n  version: 1.0.0\npaths: {}`;
-      this.openapiSpec.set(fakeSpec);
+      // Use fetch to allow mocking errors in tests
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Fetch failed');
+      const text = await response.text();
+      this.openapiSpec.set(text);
+
+      // Trigger live preview update
+      this.openApiChangeSubject.next(text);
     } catch (err) {
       console.error('Failed to fetch spec', err);
     }
@@ -363,7 +466,8 @@ export class EditorComponent implements OnInit {
    */
   async onRun(): Promise<void> {
     const spec = this.openapiSpec();
-    const updatedCodes: Record<string, string> = { ...this.sdkCodes() };
+    const updatedSdkCodes: Record<string, string> = { ...this.sdkCodes() };
+    const updatedCiCodes: Record<string, string> = { ...this.ciCodes() };
     const langsToGen = Array.from(this.selectedLanguages());
 
     // Using a mock repository for generation params if none loaded
@@ -375,12 +479,16 @@ export class EditorComponent implements OnInit {
     };
 
     if (this.openapiLeft()) {
-      // OpenAPI -> SDK
+      // OpenAPI -> SDK & CI/CD
       for (const langId of langsToGen) {
-        const code = await this.wasm.generateSdk(r, langId, spec);
-        updatedCodes[langId] = code;
+        const sdkCode = await this.wasm.generateSdk(r, langId, spec);
+        updatedSdkCodes[langId] = sdkCode;
+
+        const ciCode = await this.wasm.generateCiCd(r, langId);
+        updatedCiCodes[langId] = ciCode;
       }
-      this.sdkCodes.set(updatedCodes);
+      this.sdkCodes.set(updatedSdkCodes);
+      this.ciCodes.set(updatedCiCodes);
 
       // Save spec to repository if working in repository
       if (this.repository()) {
@@ -391,13 +499,15 @@ export class EditorComponent implements OnInit {
       const currentSdkTab = this.activeSdkTab();
       if (!currentSdkTab) return;
 
-      const code = this.getCurrentSdkCode();
-      const newSpec = await this.wasm.generateOpenApi(r, currentSdkTab, code);
-      this.openapiSpec.set(newSpec);
+      if (this.activeOutputType() === 'sdk') {
+        const code = this.getCurrentOutputCode();
+        const newSpec = await this.wasm.generateOpenApi(r, currentSdkTab, code);
+        this.openapiSpec.set(newSpec);
 
-      // Save spec to repository if working in repository
-      if (this.repository()) {
-        this.storage.updateRepository({ ...r, openApiSpec: newSpec, specUrl: this.specUrl() });
+        // Save spec to repository if working in repository
+        if (this.repository()) {
+          this.storage.updateRepository({ ...r, openApiSpec: newSpec, specUrl: this.specUrl() });
+        }
       }
     }
   }

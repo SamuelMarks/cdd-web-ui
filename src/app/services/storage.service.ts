@@ -1,8 +1,11 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { User, Organization, Repository } from '../models/types';
+import { ApiService } from './api.service';
+import { BackendConfigService } from './backend-config.service';
 
 /**
- * Service to manage local storage persistence for users, organizations, and repositories.
+ * Service to manage local storage persistence for users, organizations, and repositories,
+ * with cloud synchronization capability when online mode is active.
  */
 @Injectable({
   providedIn: 'root',
@@ -14,6 +17,9 @@ export class StorageService {
   private readonly ORGS_KEY = 'cdd_organizations';
   /** The local storage key for the repositories array. */
   private readonly REPOS_KEY = 'cdd_repositories';
+
+  private readonly api = inject(ApiService);
+  private readonly config = inject(BackendConfigService);
 
   /** Current active user signal. */
   readonly user = signal<User | null>(this.loadFromStorage<User>(this.USER_KEY));
@@ -63,6 +69,14 @@ export class StorageService {
     const newUser: User = { id: crypto.randomUUID(), login, name: login };
     this.user.set(newUser);
     this.saveToStorage(this.USER_KEY, newUser);
+
+    if (this.config.isOnline()) {
+      this.api.register({ username: login, email: `${login}@example.com` }).subscribe({
+        next: (res) => localStorage.setItem('cdd_token', res.token),
+        error: (err) => console.error('Background cloud sync failed for user creation:', err),
+      });
+    }
+
     return newUser;
   }
 
@@ -80,6 +94,21 @@ export class StorageService {
     const updated = [...this.organizations(), newOrg];
     this.organizations.set(updated);
     this.saveToStorage(this.ORGS_KEY, updated);
+
+    if (this.config.isOnline()) {
+      const token = localStorage.getItem('cdd_token') || '';
+      this.api
+        .createOrg({ login, description: 'Created via offline-first StorageService' }, token)
+        .subscribe({
+          next: (serverOrg) => {
+            // Replace local org ID with server org ID
+            this.updateOrganizationId(newOrg.id, serverOrg.id);
+          },
+          error: (err) =>
+            console.error('Background cloud sync failed for organization creation:', err),
+        });
+    }
+
     return newOrg;
   }
 
@@ -89,7 +118,7 @@ export class StorageService {
    * @param name - The name of the repository.
    * @returns The created Repository object.
    */
-  createRepository(organizationId: string, name: string): Repository {
+  createRepository(organizationId: string | number, name: string): Repository {
     const org = this.organizations().find((o) => o.id === organizationId);
     const full_name = org ? `${org.login}/${name}` : name;
 
@@ -97,6 +126,28 @@ export class StorageService {
     const updated = [...this.repositories(), newRepo];
     this.repositories.set(updated);
     this.saveToStorage(this.REPOS_KEY, updated);
+
+    if (this.config.isOnline() && typeof organizationId === 'number') {
+      const token = localStorage.getItem('cdd_token') || '';
+      this.api
+        .createRepo(
+          {
+            organization_id: organizationId,
+            name,
+            description: 'Created via offline-first StorageService',
+          },
+          token,
+        )
+        .subscribe({
+          next: (serverRepo) => {
+            // Replace local repo ID with server repo ID
+            this.updateRepositoryId(newRepo.id, serverRepo.id);
+          },
+          error: (err) =>
+            console.error('Background cloud sync failed for repository creation:', err),
+        });
+    }
+
     return newRepo;
   }
 
@@ -115,7 +166,40 @@ export class StorageService {
    * @param organizationId - The organization ID.
    * @returns An array of Repositories.
    */
-  getOrganizationRepositories(organizationId: string): Repository[] {
+  getOrganizationRepositories(organizationId: string | number): Repository[] {
     return this.repositories().filter((r) => r.organizationId === organizationId);
+  }
+
+  /**
+   * Updates a local organization ID with a server-assigned ID.
+   * @param oldId The local offline ID.
+   * @param newId The new server ID.
+   */
+  private updateOrganizationId(oldId: string | number, newId: string | number): void {
+    const updatedOrgs = this.organizations().map((org) =>
+      org.id === oldId ? { ...org, id: newId } : org,
+    );
+    this.organizations.set(updatedOrgs);
+    this.saveToStorage(this.ORGS_KEY, updatedOrgs);
+
+    // Cascade update to repositories
+    const updatedRepos = this.repositories().map((repo) =>
+      repo.organizationId === oldId ? { ...repo, organizationId: newId } : repo,
+    );
+    this.repositories.set(updatedRepos);
+    this.saveToStorage(this.REPOS_KEY, updatedRepos);
+  }
+
+  /**
+   * Updates a local repository ID with a server-assigned ID.
+   * @param oldId The local offline ID.
+   * @param newId The new server ID.
+   */
+  private updateRepositoryId(oldId: string | number, newId: string | number): void {
+    const updatedRepos = this.repositories().map((repo) =>
+      repo.id === oldId ? { ...repo, id: newId } : repo,
+    );
+    this.repositories.set(updatedRepos);
+    this.saveToStorage(this.REPOS_KEY, updatedRepos);
   }
 }

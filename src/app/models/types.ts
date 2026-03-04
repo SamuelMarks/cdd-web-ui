@@ -8,7 +8,7 @@
  */
 export interface User {
   /** The unique identifier for the user. Offline UUID, maps to GitHub user node_id/id online. */
-  id: string;
+  id: string | number;
   /** The GitHub username or login name. */
   login: string;
   /** The display name of the user. */
@@ -22,13 +22,13 @@ export interface User {
  */
 export interface Organization {
   /** The unique identifier for the organization. Offline UUID, maps to GitHub org node_id/id online. */
-  id: string;
+  id: string | number;
   /** The GitHub organization name or slug. */
   login: string;
   /** A brief description of the organization. */
   description?: string;
   /** The ID of the user who created or owns the organization. */
-  userId: string;
+  userId: string | number;
 }
 
 /**
@@ -36,13 +36,13 @@ export interface Organization {
  */
 export interface Repository {
   /** The unique identifier for the repository. Offline UUID, maps to GitHub repo node_id/id online. */
-  id: string;
+  id: string | number;
   /** The name of the repository. */
   name: string;
   /** The full name of the repository, typically in the format 'owner/repo'. */
   full_name?: string;
   /** The ID of the organization that owns this repository. */
-  organizationId: string;
+  organizationId: string | number;
   /** A brief description of the repository. */
   description?: string;
   /** The OpenAPI specification content as a string. */
@@ -56,7 +56,7 @@ export interface Repository {
  */
 export interface LanguageConfig {
   /** The unique identifier for the language. */
-  id: string;
+  id: string | number;
   /** The display name of the language. */
   name: string;
   /** The repository URL or identifier for the language generator. */
@@ -67,4 +67,20 @@ export interface LanguageConfig {
   selectedByDefault: boolean;
   /** The URL to the language's icon or logo. */
   iconUrl: string;
+}
+
+/**
+ * Authentication response.
+ */
+export interface AuthResponse {
+  /** JWT token or access token */
+  token: string;
+}
+
+/**
+ * GitHub login payload.
+ */
+export interface GithubLoginPayload {
+  /** OAuth code returned from GitHub */
+  code: string;
 }

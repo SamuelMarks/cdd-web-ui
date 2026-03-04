@@ -1,3 +1,5 @@
+import '@angular/compiler';
+import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 import '@angular/localize/init';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { EditorComponent } from './editor.component';
@@ -6,6 +8,7 @@ import { WasmGeneratorService } from '../../services/wasm-generator.service';
 import { provideRouter } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
+import { vi } from 'vitest';
 
 describe('EditorComponent', () => {
   let component: EditorComponent;
@@ -20,7 +23,7 @@ describe('EditorComponent', () => {
   beforeEach(async () => {
     localStorage.clear();
     await TestBed.configureTestingModule({
-      imports: [EditorComponent],
+      imports: [EditorComponent, MonacoEditorModule.forRoot()],
       providers: [
         provideRouter([]),
         { provide: ActivatedRoute, useValue: mockRoute },
@@ -50,6 +53,35 @@ describe('EditorComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should load examples correctly', () => {
+    component.loadExample('helloworld');
+    expect(component.openapiSpec()).toContain('Hello World API');
+
+    component.loadExample('empty');
+    expect(component.openapiSpec()).toBe('');
+
+    component.loadExample('petstore');
+    expect(component.openapiSpec()).toContain('Swagger Petstore');
+  });
+
+  it('should handle fetch errors gracefully', async () => {
+    // Override window.fetch to throw
+    const originalFetch = window.fetch;
+    window.fetch = vi.fn().mockRejectedValue(new Error('Network Error'));
+    component.specUrl.set('http://invalid');
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await component.fetchRemoteSpec();
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Failed to fetch spec',
+      expect.objectContaining({ name: 'Error' }),
+    );
+
+    // Restore
+    window.fetch = originalFetch;
+    consoleSpy.mockRestore();
   });
 
   it('should load repository details', () => {
@@ -84,8 +116,9 @@ describe('EditorComponent', () => {
     expect(component.openapiLeft()).toBe(false);
   });
 
-  it('should run OpenAPI to SDK generation', async () => {
+  it('should run OpenAPI to SDK and CI/CD generation', async () => {
     vi.spyOn(wasm, 'generateSdk').mockReturnValue(Promise.resolve('generated_python_code'));
+    vi.spyOn(wasm, 'generateCiCd').mockReturnValue(Promise.resolve('generated_ci_code'));
 
     component.openapiSpec.set('some spec');
     component.openapiLeft.set(true);
@@ -93,7 +126,14 @@ describe('EditorComponent', () => {
     await component.onRun();
 
     expect(wasm.generateSdk).toHaveBeenCalled();
-    expect(component.getCurrentSdkCode()).toBe('generated_python_code');
+    expect(wasm.generateCiCd).toHaveBeenCalled();
+
+    component.activeOutputType.set('sdk');
+    expect(component.getCurrentOutputCode()).toBe('generated_python_code');
+
+    component.activeOutputType.set('ci');
+    expect(component.getCurrentOutputCode()).toBe('generated_ci_code');
+
     expect(storage.repositories()[0].openApiSpec).toBe('some spec');
   });
 
@@ -102,26 +142,36 @@ describe('EditorComponent', () => {
 
     // Select python
     component.activeSdkTab.set('python');
-    component.setCurrentSdkCode('python code');
+    component.activeOutputType.set('sdk');
+    component.setCurrentOutputCode('python code');
     component.openapiLeft.set(false);
 
     await component.onRun();
 
-    expect(wasm.generateOpenApi).toHaveBeenCalledWith(expect.any(Object), 'python', 'python code');
+    expect(wasm.generateOpenApi).toHaveBeenCalledWith(expect.anything(), 'python', 'python code');
     expect(component.openapiSpec()).toBe('generated_spec');
     expect(storage.repositories()[0].openApiSpec).toBe('generated_spec');
   });
 
   it('should set current SDK code', () => {
     component.activeSdkTab.set('typescript');
-    component.setCurrentSdkCode('let x = 1;');
-    expect(component.getCurrentSdkCode()).toBe('let x = 1;');
+    component.activeOutputType.set('sdk');
+    component.setCurrentOutputCode('let x = 1;');
+    expect(component.getCurrentOutputCode()).toBe('let x = 1;');
   });
 
   it('should fetch remote spec', async () => {
+    const originalFetch = window.fetch;
+    window.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'Remote API',
+    });
+
     component.specUrl.set('http://remote');
     await component.fetchRemoteSpec();
     expect(component.openapiSpec()).toContain('Remote API');
+
+    window.fetch = originalFetch;
   });
 
   it('should do nothing on fetch with empty URL', async () => {
@@ -136,5 +186,14 @@ describe('EditorComponent', () => {
     TestBed.flushEffects();
     // After effect runs, it should select the first available language
     expect(component.activeSdkTab()).toBeTruthy();
+  });
+
+  it('should return correct monaco language ID', () => {
+    expect(component['getMonacoLanguageId']('python')).toBe('python');
+    expect(component['getMonacoLanguageId']('rust')).toBe('rust');
+    expect(component['getMonacoLanguageId']('go')).toBe('go');
+    expect(component['getMonacoLanguageId']('java')).toBe('java');
+    expect(component['getMonacoLanguageId']('ruby')).toBe('plaintext');
+    expect(component['getMonacoLanguageId'](null)).toBe('plaintext');
   });
 });

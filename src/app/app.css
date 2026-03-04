@@ -17,6 +17,16 @@
 nav {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+}
+
+.theme-toggle {
+  margin-left: 0.5rem;
+}
+
+.theme-icon {
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .alert {

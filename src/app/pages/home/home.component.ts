@@ -28,14 +28,21 @@ import { MatIconModule } from '@angular/material/icon';
       @if (!storage.user()) {
         <mat-card class="create-user-card" appearance="outlined">
           <mat-card-header>
-            <mat-card-title i18n="@@welcomeDashboardTitle">CDD Dashboard</mat-card-title>
+            <mat-card-title id="create-user-title" i18n="@@welcomeDashboardTitle"
+              >CDD Dashboard</mat-card-title
+            >
             <mat-card-subtitle i18n="@@welcomeDashboardSubtitle"
               >Create a user to save your repositories and API specifications.</mat-card-subtitle
             >
           </mat-card-header>
 
           <mat-card-content>
-            <form [formGroup]="userForm" (ngSubmit)="onCreateUser()" class="user-form">
+            <form
+              [formGroup]="userForm"
+              (ngSubmit)="onCreateUser()"
+              class="user-form"
+              aria-labelledby="create-user-title"
+            >
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label i18n="@@userNameLabel">Username / Login</mat-label>
                 <input
@@ -67,7 +74,28 @@ import { MatIconModule } from '@angular/material/icon';
       } @else {
         <div class="dashboard">
           <header class="dashboard-header">
-            <h2 i18n="@@welcomeUser">Welcome, {{ storage.user()?.login }}!</h2>
+            <div class="header-content">
+              <h2 i18n="@@welcomeUser">Welcome, {{ storage.user()?.login }}!</h2>
+            </div>
+
+            <mat-card class="rbac-status" appearance="outlined">
+              <mat-card-header>
+                <mat-card-title i18n="@@rbacOverviewTitle">Access & Roles Overview</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <p i18n="@@rbacDescription">
+                  Role-Based Access Control (RBAC) enforces strict organization ownership limits
+                  locally for this session.
+                </p>
+                <div class="rbac-details">
+                  <span class="badge owner" i18n="@@rbacOwnerBadge">Owner</span>
+                  <span class="detail-text" i18n="@@rbacOwnerText"
+                    >Full access to {{ storage.organizations().length }} managed
+                    organizations.</span
+                  >
+                </div>
+              </mat-card-content>
+            </mat-card>
           </header>
 
           <div class="organizations-section">
@@ -75,11 +103,14 @@ import { MatIconModule } from '@angular/material/icon';
 
             <mat-card class="create-organization" appearance="outlined">
               <mat-card-content>
-                <h4 i18n="@@createNewOrganizationHeading">Create New Organization</h4>
+                <h4 id="create-org-title" i18n="@@createNewOrganizationHeading">
+                  Create New Organization
+                </h4>
                 <form
                   [formGroup]="organizationForm"
                   (ngSubmit)="onCreateOrganization()"
                   class="inline-form"
+                  aria-labelledby="create-org-title"
                 >
                   <mat-form-field appearance="outline" class="flex-field" subscriptSizing="dynamic">
                     <mat-label i18n="@@organizationNameLabel">Organization Name</mat-label>
@@ -118,10 +149,15 @@ import { MatIconModule } from '@angular/material/icon';
                       [routerLink]="['/organization', org.id]"
                       appearance="outlined"
                       tabindex="0"
+                      role="link"
+                      [attr.aria-label]="'Go to organization ' + org.login"
                       (keydown.enter)="navigateToOrganization(org.id)"
                     >
                       <mat-card-header>
                         <mat-card-title>{{ org.login }}</mat-card-title>
+                        <mat-card-subtitle class="role-subtitle" i18n="@@roleOwnerSubtitle"
+                          >Role: Owner</mat-card-subtitle
+                        >
                       </mat-card-header>
                       <mat-card-content>
                         <p class="view-link" i18n="@@viewRepositoriesLink">View Repositories →</p>
@@ -178,7 +214,7 @@ export class HomeComponent {
    * Navigates to the selected organization.
    * @param id The ID of the organization to navigate to.
    */
-  navigateToOrganization(id: string): void {
+  navigateToOrganization(id: string | number): void {
     // handled natively by routerLink on the card, but useful for keydown.enter
     // To strictly follow best practices, if we have routerLink, we might just let it handle it.
   }

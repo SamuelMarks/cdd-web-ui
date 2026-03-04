@@ -22,6 +22,57 @@
 
 .dashboard-header {
   margin-bottom: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.header-content h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 500;
+}
+
+.rbac-status {
+  flex: 1;
+  min-width: 300px;
+  max-width: 500px;
+  background-color: var(--surface-color);
+  border-left: 4px solid var(--primary-color);
+}
+
+.rbac-status p {
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.rbac-details {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge.owner {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.detail-text {
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .organizations-section {
@@ -66,6 +117,12 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   outline: none;
+}
+
+.role-subtitle {
+  color: var(--primary-color) !important;
+  font-weight: 500;
+  margin-top: 0.25rem !important;
 }
 
 .view-link {
