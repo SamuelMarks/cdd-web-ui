@@ -1,0 +1,7 @@
+{
+  "typescript": true,
+  "python": true,
+  "java": false,
+  "go": false,
+  "rust": true
+}

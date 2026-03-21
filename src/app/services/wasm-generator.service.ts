@@ -1,10 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { Repository } from '../models/types';
 import { LanguageService } from './language.service';
+import { CddWasmSdk, Ecosystem } from 'cdd-ctl-wasm-sdk';
 
 /**
- * A service that simulates the generation of SDK code from OpenAPI specifications,
- * and OpenAPI specifications from SDK code using offline WASM.
+ * A service that generates SDK code from OpenAPI specifications,
+ * and simulates OpenAPI specifications from SDK code using offline WASM.
  */
 @Injectable({
   providedIn: 'root',
@@ -32,42 +33,35 @@ export class WasmGeneratorService {
     }
 
     try {
-      // Attempt to actually load and invoke the WebAssembly binary
       const response = await fetch(`/assets/wasm/cdd-${languageId}.wasm`);
       if (!response.ok) throw new Error('WASM binary not found');
 
-      const buffer = await response.arrayBuffer();
-      // This is a standard WASM instantiation template.
-      // Depending on the exact ABI (e.g. WASI), imports may vary.
-      const wasmModule = await WebAssembly.instantiate(buffer, {
-        wasi_snapshot_preview1: {
-          fd_write: /* v8 ignore next */ () => 0,
-          environ_get: /* v8 ignore next */ () => 0,
-          environ_sizes_get: /* v8 ignore next */ () => 0,
-          proc_exit: /* v8 ignore next */ () => 0,
-        },
-        env: {
-          memory: new WebAssembly.Memory({ initial: 256 }),
-        },
+      const wasmBinary = await response.arrayBuffer();
+      const ecosystemName = lang.repo as Ecosystem;
+
+      const generatedFiles = await CddWasmSdk.fromOpenApi({
+        ecosystem: ecosystemName,
+        target: 'to_sdk',
+        specContent: specContent || '{}',
+        wasmBinary: wasmBinary,
+        printStdout: false
       });
 
-      // In a real integration, we would pass specContent to the WASM module's exported function
-      // and read the resulting string from memory. For safety in this environment, if it loads,
-      // we assume success and return a mock generated output representing what the WASM would output.
+      if (generatedFiles.length === 0) {
+        return `/* WASM executed successfully but generated no files. */\n`;
+      }
 
-      const specInfo = this.extractInfoFromSpec(specContent);
-      const apiName = specInfo.title ? specInfo.title.replace(/\s+/g, '') : 'GeneratedApi';
-
-      return (
-        `/* Successfully invoked cdd-${languageId}.wasm for ${apiName} */\n` +
-        this.getMockOutput(languageId as string, apiName)
-      );
+      const decoder = new TextDecoder();
+      return generatedFiles
+        .map((file) => `// File: ${file.path}\n${decoder.decode(file.content)}`)
+        .join('\n\n');
     } catch (err) {
       console.warn(`WASM execution failed for ${languageId}:`, err);
-      // Fallback if the WASM module is invalid or not actually compiled correctly
+      const specInfo = this.extractInfoFromSpec(specContent);
+      const apiName = specInfo.title ? specInfo.title.replace(/\s+/g, '') : 'GeneratedApi';
       return (
         `/* Failed to execute WASM for ${lang?.name || languageId}. Fallback mock activated. */\n` +
-        this.getMockOutput(languageId as string, 'GeneratedApi')
+        this.getMockOutput(languageId as string, apiName)
       );
     }
   }
@@ -221,7 +215,7 @@ export class ${apiName}Client {
       return { title: parsed.info?.title || 'Unknown API' };
     } catch {
       // Very basic yaml/text parser
-      const titleMatch = spec.match(/title:\s*['"]?([^'"]+)['"]?/i);
+      const titleMatch = spec.match(/title:\s*['"]?([^'"\n\r]+)['"]?/i);
       if (titleMatch && titleMatch[1]) {
         return { title: titleMatch[1] };
       }

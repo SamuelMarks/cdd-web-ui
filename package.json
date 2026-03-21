@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "preinstall": "test -d ../cdd-ctl || git clone https://github.com/SamuelMarks/cdd-ctl ../cdd-ctl"
   },
   "private": true,
   "packageManager": "npm@11.11.0",
@@ -21,6 +22,7 @@
     "@angular/material": "^21.2.0",
     "@angular/platform-browser": "^21.2.0",
     "@angular/router": "^21.2.0",
+    "cdd-ctl-wasm-sdk": "file:../cdd-ctl/cdd-ctl-wasm-sdk",
     "monaco-editor": "^0.55.1",
     "ngx-monaco-editor-v2": "^21.1.4",
     "rxjs": "~7.8.0",

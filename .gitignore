@@ -60,3 +60,6 @@ Thumbs.db
 
 # Vitest
 /coverage
+
+# WASM binaries
+public/assets/wasm/*.wasm

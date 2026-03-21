@@ -87,7 +87,7 @@ describe('WasmGeneratorService', () => {
       window.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
       const code = await service.generateSdk(dummyRepo, 'python', '{}');
       expect(code).toContain('Fallback mock activated');
-      expect(code).toContain('GeneratedApiClient');
+      expect(code).toContain('UnknownAPIClient');
     });
   });
 

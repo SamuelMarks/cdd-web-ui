@@ -17,7 +17,7 @@ import { routes } from './app.routes';
 import { LanguageService } from './services/language.service';
 
 const monacoConfig = {
-  baseUrl: '/assets', // configure base path for monaco editor
+  baseUrl: '/assets/vs', // configure base path for monaco editor
   defaultOptions: { scrollBeyondLastLine: false }, // pass default options to be used
 };
 
