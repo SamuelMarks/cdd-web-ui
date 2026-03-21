@@ -184,6 +184,29 @@ describe('StorageService', () => {
     service.createUser('Test User');
     const org = service.createOrganization('New Org');
     configSpy.isOnline.set(true);
-    // removed repo error test as it might not be implemented in service
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    apiSpy.createRepo.mockReturnValue(throwError(() => new Error('Error')));
+    consoleSpy.mockClear();
+    service.createRepository(123, 'Err Repo');
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Background cloud sync failed for repository creation:',
+      expect.any(Error),
+    );
+  });
+
+  it('should throw if creating org without user', () => {
+    service.user.set(null);
+    expect(() => service.createOrganization('org')).toThrow('User required');
+  });
+
+  it('should update organization id and cascade to some repos', () => {
+    service.createUser('alice');
+    const org = service.createOrganization('my-org');
+    service.createRepository(org.id, 'repo1');
+    service.createRepository('other-org', 'repo2');
+    service['updateOrganizationId'](org.id, 'new-id');
+    const repos = service.repositories();
+    expect(repos.find((r) => r.name === 'repo1')!.organizationId).toBe('new-id');
+    expect(repos.find((r) => r.name === 'repo2')!.organizationId).toBe('other-org');
   });
 });

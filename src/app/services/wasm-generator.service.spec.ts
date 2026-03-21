@@ -6,12 +6,27 @@ import { Repository } from '../models/types';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { LanguageService } from './language.service';
 import { vi } from 'vitest';
+import { CddWasmSdk } from 'cdd-ctl-wasm-sdk';
 
 describe('WasmGeneratorService', () => {
   let service: WasmGeneratorService;
   let originalFetch: typeof fetch;
 
   beforeEach(() => {
+    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockImplementation((opts: any) => {
+      if (opts.ecosystem === 'cdd-go' || opts.ecosystem === 'go') return Promise.resolve([]);
+      if (opts.ecosystem === 'cdd-python' && opts.specContent === 'success-spec') {
+        const encoder = new TextEncoder();
+        return Promise.resolve([
+          {
+            path: 'test.py',
+            content: encoder.encode('Generated content for success'),
+          },
+        ]);
+      }
+      return Promise.reject(new Error('WASM error'));
+    });
+
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [WasmGeneratorService, LanguageService],
@@ -70,7 +85,12 @@ describe('WasmGeneratorService', () => {
       );
 
       const code = await service.generateSdk(dummyRepo, 'go', '{}');
-      expect(code).toContain('/* Generated code for go */');
+      expect(code).toContain('/* WASM executed successfully but generated no files. */');
+    });
+
+    it('should handle successful wasm generation', async () => {
+      const code = await service.generateSdk(dummyRepo, 'python', 'success-spec');
+      expect(code).toContain('Generated content for success');
     });
 
     it('should return disabled message for unsupported languages', async () => {
@@ -147,5 +167,32 @@ describe('WasmGeneratorService', () => {
       const spec = await service.generateOpenApi(dummyRepo, 'unsupported-lang', '{}');
       expect(spec).toContain('is disabled due to lack of WASM support');
     });
+  });
+
+  it('should cover wasi stubs in generateOpenApi', async () => {
+    const originalInstantiate = window.WebAssembly.instantiate;
+    window.WebAssembly.instantiate = vi.fn().mockImplementation((buf, imports) => {
+      imports.wasi_snapshot_preview1.fd_write();
+      imports.wasi_snapshot_preview1.environ_get();
+      imports.wasi_snapshot_preview1.environ_sizes_get();
+      imports.wasi_snapshot_preview1.proc_exit();
+      return Promise.resolve();
+    });
+
+    const originalFetch = window.fetch;
+    window.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
+    });
+
+    await service.generateOpenApi({ id: 'proj-1' } as any, 'python', 'code');
+
+    window.WebAssembly.instantiate = originalInstantiate;
+    window.fetch = originalFetch;
+  });
+
+  it('should generate generic stub for unknown language', () => {
+    const stub = service['getMockOutput']('php', 'API');
+    expect(stub).toContain('Generated code for php');
   });
 });

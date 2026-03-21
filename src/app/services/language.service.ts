@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, catchError, of } from 'rxjs';
 import { LanguageConfig } from '../models/types';
 
+/** The initial predefined list of supported languages. */
 const INITIAL_LANGUAGES: LanguageConfig[] = [
   {
     id: 'typescript',
@@ -46,18 +47,26 @@ const INITIAL_LANGUAGES: LanguageConfig[] = [
   },
 ];
 
+/**
+ * Service to manage the available programming languages and their WebAssembly support state.
+ */
 @Injectable({ providedIn: 'root' })
 export class LanguageService {
+  /** The HTTP client instance for making requests. */
   private http = inject(HttpClient);
 
+  /** A reactive signal containing the current supported languages. */
   languages = signal<LanguageConfig[]>(INITIAL_LANGUAGES);
 
+  /**
+   * Fetches the WebAssembly support configuration from the server
+   * and updates the available languages accordingly.
+   * @returns A Promise that resolves when the support map is loaded.
+   */
   async loadWasmSupport(): Promise<void> {
     try {
       const supportMap = await firstValueFrom(
-        this.http
-          .get<Record<string, boolean>>('/assets/wasm-support.json')
-          .pipe(catchError(() => of(null))),
+        this.http.get<Record<string, boolean>>('/assets/wasm-support.json'),
       );
 
       if (supportMap) {
@@ -69,7 +78,6 @@ export class LanguageService {
         );
       }
     } catch (e) {
-      /* v8 ignore next 2 */
       console.warn('Failed to load WASM support config', e);
     }
   }

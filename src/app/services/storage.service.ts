@@ -18,7 +18,9 @@ export class StorageService {
   /** The local storage key for the repositories array. */
   private readonly REPOS_KEY = 'cdd_repositories';
 
+  /** The API service instance. */
   private readonly api = inject(ApiService);
+  /** The backend configuration service instance. */
   private readonly config = inject(BackendConfigService);
 
   /** Current active user signal. */
@@ -34,6 +36,9 @@ export class StorageService {
     this.loadFromStorage<Repository[]>(this.REPOS_KEY) || [],
   );
 
+  /**
+   * Initializes the storage service.
+   */
   constructor() {}
 
   /**

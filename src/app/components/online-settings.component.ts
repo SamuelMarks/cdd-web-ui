@@ -22,15 +22,16 @@ import { ApiService } from '../services/api.service';
     MatIconModule,
   ],
   template: `
-    <h2 mat-dialog-title id="dialog-title">Online Mode Settings</h2>
+    <h2 mat-dialog-title id="dialog-title" i18n="@@onlineSettingsTitle">Online Mode Settings</h2>
     <mat-dialog-content>
       @if (config.isOnline()) {
-        <p>Currently Online: {{ config.backendUrl() }}</p>
+        <p i18n="@@currentlyOnline">Currently Online: {{ config.backendUrl() }}</p>
         <button
           mat-flat-button
           color="warn"
           (click)="goOffline()"
           aria-label="Disconnect and go offline"
+          i18n="@@goOffline"
         >
           Go Offline
         </button>
@@ -42,15 +43,16 @@ import { ApiService } from '../services/api.service';
           aria-labelledby="dialog-title"
         >
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Backend URL</mat-label>
+            <mat-label i18n="@@backendUrlLabel">Backend URL</mat-label>
             <input
               matInput
               formControlName="url"
               placeholder="http://localhost:8080"
+              i18n-placeholder="@@backendUrlPlaceholder"
               aria-label="Backend URL"
             />
             @if (urlForm.get('url')?.hasError('required')) {
-              <mat-error>URL is required</mat-error>
+              <mat-error i18n="@@urlRequiredError">URL is required</mat-error>
             }
           </mat-form-field>
           <button
@@ -59,6 +61,7 @@ import { ApiService } from '../services/api.service';
             type="submit"
             [disabled]="urlForm.invalid"
             aria-label="Connect to backend"
+            i18n="@@connectBtn"
           >
             Connect
           </button>
@@ -67,7 +70,7 @@ import { ApiService } from '../services/api.service';
 
       @if (config.isOnline()) {
         <div class="auth-section">
-          <h3 id="auth-heading">Authentication</h3>
+          <h3 id="auth-heading" i18n="@@authHeading">Authentication</h3>
           <form
             [formGroup]="authForm"
             (ngSubmit)="onLogin()"
@@ -75,11 +78,11 @@ import { ApiService } from '../services/api.service';
             aria-labelledby="auth-heading"
           >
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Username</mat-label>
+              <mat-label i18n="@@usernameLabel">Username</mat-label>
               <input matInput formControlName="username" aria-label="Username" />
             </mat-form-field>
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Password</mat-label>
+              <mat-label i18n="@@passwordLabel">Password</mat-label>
               <input matInput type="password" formControlName="password" aria-label="Password" />
             </mat-form-field>
             <div class="actions">
@@ -89,6 +92,7 @@ import { ApiService } from '../services/api.service';
                 type="submit"
                 [disabled]="authForm.invalid"
                 aria-label="Login"
+                i18n="@@loginBtn"
               >
                 Login
               </button>
@@ -99,6 +103,7 @@ import { ApiService } from '../services/api.service';
                 (click)="onRegister()"
                 [disabled]="authForm.invalid"
                 aria-label="Register new user"
+                i18n="@@registerBtn"
               >
                 Register
               </button>
@@ -107,7 +112,7 @@ import { ApiService } from '../services/api.service';
 
           <div class="oauth-section">
             <div class="divider">
-              <span>OR</span>
+              <span i18n="@@orDivider">OR</span>
             </div>
             <button
               mat-flat-button
@@ -116,7 +121,8 @@ import { ApiService } from '../services/api.service';
               aria-label="Login with GitHub"
             >
               <!-- Using standard text icon if SVG isn't immediately available, or we could just use a mat-icon text fallback. -->
-              <mat-icon class="github-icon">code</mat-icon> Login with GitHub
+              <mat-icon class="github-icon" aria-hidden="true">code</mat-icon>
+              <span i18n="@@loginWithGithubBtn">Login with GitHub</span>
             </button>
           </div>
 
@@ -130,7 +136,7 @@ import { ApiService } from '../services/api.service';
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close aria-label="Close dialog">Close</button>
+      <button mat-button mat-dialog-close aria-label="Close dialog" i18n="@@closeBtn">Close</button>
     </mat-dialog-actions>
   `,
   styles: [
@@ -202,8 +208,11 @@ import { ApiService } from '../services/api.service';
 export class OnlineSettingsComponent {
   /** Access to backend config state. */
   readonly config = inject(BackendConfigService);
+  /** Form builder instance for reactive forms. */
   private readonly fb = inject(FormBuilder);
+  /** Reference to the dialog instance. */
   private readonly dialogRef = inject(MatDialogRef<OnlineSettingsComponent>);
+  /** API service for backend communication. */
   private readonly api = inject(ApiService);
 
   /** Signal for error message. */

@@ -16,6 +16,9 @@ export class BackendConfigService {
   /** Computed signal indicating whether the application is currently in online mode. */
   readonly isOnline = computed(() => this.backendUrl() !== null);
 
+  /**
+   * Initializes the backend configuration service.
+   */
   constructor() {}
 
   /**

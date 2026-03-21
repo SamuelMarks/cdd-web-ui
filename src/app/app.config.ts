@@ -16,11 +16,19 @@ import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 import { routes } from './app.routes';
 import { LanguageService } from './services/language.service';
 
+/**
+ * Configuration options for the Monaco editor.
+ */
 const monacoConfig = {
   baseUrl: '/assets/vs', // configure base path for monaco editor
   defaultOptions: { scrollBeyondLastLine: false }, // pass default options to be used
 };
 
+/**
+ * Factory function to initialize WebAssembly support.
+ * @param languageService The language service to use.
+ * @returns A function that initializes WASM support.
+ */
 export function initWasmSupport(languageService: LanguageService) {
   return () => languageService.loadWasmSupport();
 }

@@ -50,7 +50,6 @@ import { MatIconModule } from '@angular/material/icon';
                   formControlName="login"
                   placeholder="e.g. octocat"
                   i18n-placeholder="@@userNamePlaceholder"
-                  aria-label="Enter your username"
                 />
                 @if (userForm.get('login')?.hasError('required')) {
                   <mat-error i18n="@@userNameRequiredError">Username is required</mat-error>
@@ -119,7 +118,6 @@ import { MatIconModule } from '@angular/material/icon';
                       formControlName="login"
                       placeholder="e.g. acmecorp"
                       i18n-placeholder="@@organizationNamePlaceholder"
-                      aria-label="Enter organization name"
                     />
                   </mat-form-field>
                   <button
@@ -144,25 +142,23 @@ import { MatIconModule } from '@angular/material/icon';
               } @else {
                 <div class="grid">
                   @for (org of storage.organizations(); track org.id) {
-                    <mat-card
-                      class="org-card hoverable"
+                    <a
                       [routerLink]="['/organization', org.id]"
-                      appearance="outlined"
-                      tabindex="0"
-                      role="link"
+                      class="card-link"
                       [attr.aria-label]="'Go to organization ' + org.login"
-                      (keydown.enter)="navigateToOrganization(org.id)"
                     >
-                      <mat-card-header>
-                        <mat-card-title>{{ org.login }}</mat-card-title>
-                        <mat-card-subtitle class="role-subtitle" i18n="@@roleOwnerSubtitle"
-                          >Role: Owner</mat-card-subtitle
-                        >
-                      </mat-card-header>
-                      <mat-card-content>
-                        <p class="view-link" i18n="@@viewRepositoriesLink">View Repositories →</p>
-                      </mat-card-content>
-                    </mat-card>
+                      <mat-card class="org-card hoverable" appearance="outlined">
+                        <mat-card-header>
+                          <mat-card-title>{{ org.login }}</mat-card-title>
+                          <mat-card-subtitle class="role-subtitle" i18n="@@roleOwnerSubtitle"
+                            >Role: Owner</mat-card-subtitle
+                          >
+                        </mat-card-header>
+                        <mat-card-content>
+                          <p class="view-link" i18n="@@viewRepositoriesLink">View Repositories →</p>
+                        </mat-card-content>
+                      </mat-card>
+                    </a>
                   }
                 </div>
               }
@@ -178,6 +174,7 @@ import { MatIconModule } from '@angular/material/icon';
 export class HomeComponent {
   /** The storage service for accessing user data. */
   readonly storage = inject(StorageService);
+  /** Form builder instance for reactive forms. */
   private readonly fb = inject(FormBuilder);
 
   /** Form group for user creation. */

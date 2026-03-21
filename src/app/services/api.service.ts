@@ -95,7 +95,9 @@ export interface SecretPayload {
   providedIn: 'root',
 })
 export class ApiService {
+  /** The HTTP client instance. */
   private readonly http = inject(HttpClient);
+  /** The backend configuration service instance. */
   private readonly config = inject(BackendConfigService);
 
   /**

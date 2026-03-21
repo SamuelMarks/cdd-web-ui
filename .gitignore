@@ -63,3 +63,6 @@ Thumbs.db
 
 # WASM binaries
 public/assets/wasm/*.wasm
+/documentation
+/parse-coverage*.mjs
+/update.patch

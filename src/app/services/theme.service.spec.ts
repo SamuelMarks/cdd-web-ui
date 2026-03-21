@@ -2,6 +2,7 @@ import '@angular/compiler';
 import '@angular/localize/init';
 import { TestBed } from '@angular/core/testing';
 import { ThemeService } from './theme.service';
+import { PLATFORM_ID } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { vi } from 'vitest';
 
@@ -41,6 +42,19 @@ describe('ThemeService', () => {
   it('should be created', () => {
     service = TestBed.inject(ThemeService);
     expect(service).toBeTruthy();
+  });
+
+  it('should default to light theme on non-browser platform', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        ThemeService,
+        { provide: DOCUMENT, useValue: documentMock },
+        { provide: PLATFORM_ID, useValue: 'server' },
+      ],
+    });
+    service = TestBed.inject(ThemeService);
+    expect(service.isDarkTheme()).toBe(false);
   });
 
   it('should initialize with light theme by default', () => {
@@ -118,5 +132,17 @@ describe('ThemeService', () => {
     TestBed.configureTestingModule({ providers: [ThemeService] });
     const s = TestBed.inject(ThemeService);
     expect(s.isDarkTheme()).toBe(false);
+  });
+
+  it('should not throw on non-browser platform when toggling', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [ThemeService, { provide: PLATFORM_ID, useValue: 'server' }],
+    });
+    const srv = TestBed.inject(ThemeService);
+    TestBed.flushEffects();
+    srv.toggleTheme();
+    TestBed.flushEffects();
+    expect(srv).toBeTruthy();
   });
 });

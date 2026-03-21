@@ -79,7 +79,9 @@ describe('OnlineSettingsComponent', () => {
 
   it('should call setOnlineMode on valid URL submit', () => {
     component.urlForm.setValue({ url: 'http://test.com' });
-    component.onSetUrl();
+    fixture.debugElement.nativeElement
+      .querySelector('form.url-form')
+      .dispatchEvent(new Event('submit'));
     expect(configSpy.setOnlineMode).toHaveBeenCalledWith('http://test.com');
     fixture.detectChanges();
     expect(component.successMsg()).toBe('Connected!');
@@ -96,10 +98,36 @@ describe('OnlineSettingsComponent', () => {
   });
 
   it('should go offline', () => {
-    component.goOffline();
+    configSpy.isOnline.set(true);
+    fixture.detectChanges();
+    fixture.debugElement.nativeElement.querySelector('button[color="warn"]').click();
     expect(configSpy.setOfflineMode).toHaveBeenCalled();
     fixture.detectChanges();
     expect(component.successMsg()).toBe('Now offline.');
+  });
+
+  it('should not call setOnlineMode on invalid URL submit', () => {
+    component.urlForm.setValue({ url: '' });
+    component.onSetUrl();
+    expect(configSpy.setOnlineMode).not.toHaveBeenCalled();
+  });
+
+  it('should not call api.login on invalid form', () => {
+    component.authForm.setValue({ username: '', password: '' });
+    configSpy.isOnline.set(true);
+    fixture.detectChanges();
+    fixture.debugElement.nativeElement
+      .querySelector('form.auth-form')
+      .dispatchEvent(new Event('submit'));
+    expect(apiSpy.login).not.toHaveBeenCalled();
+  });
+
+  it('should not call api.register on invalid form', () => {
+    component.authForm.setValue({ username: '', password: '' });
+    configSpy.isOnline.set(true);
+    fixture.detectChanges();
+    fixture.debugElement.nativeElement.querySelector('button[color="accent"]').click();
+    expect(apiSpy.register).not.toHaveBeenCalled();
   });
 
   it('should call api.login and store token on successful login', () => {
@@ -140,7 +168,9 @@ describe('OnlineSettingsComponent', () => {
 
   it('should handle github login success', () => {
     apiSpy.loginGithub.mockReturnValue(of({ token: 'gh-token' }));
-    component.onGithubLogin();
+    configSpy.isOnline.set(true);
+    fixture.detectChanges();
+    fixture.debugElement.nativeElement.querySelector('button.github-btn').click();
     expect(apiSpy.loginGithub).toHaveBeenCalled();
     expect(localStorage.getItem('cdd_token')).toBe('gh-token');
     fixture.detectChanges();

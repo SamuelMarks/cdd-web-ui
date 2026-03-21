@@ -57,7 +57,6 @@ import { MatInputModule } from '@angular/material/input';
                   formControlName="name"
                   placeholder="e.g. user-api"
                   i18n-placeholder="@@repositoryNamePlaceholder"
-                  aria-label="Enter repository name"
                 />
               </mat-form-field>
               <button
@@ -83,22 +82,21 @@ import { MatInputModule } from '@angular/material/input';
           } @else {
             <div class="grid">
               @for (repo of repositories(); track repo.id) {
-                <mat-card
-                  class="repo-card hoverable"
+                <a
                   [routerLink]="['/repository', repo.id]"
-                  appearance="outlined"
-                  tabindex="0"
-                  role="link"
+                  class="card-link"
                   [attr.aria-label]="'Go to repository ' + repo.name"
                 >
-                  <mat-card-header>
-                    <mat-card-title>{{ repo.name }}</mat-card-title>
-                    <mat-card-subtitle>{{ repo.full_name }}</mat-card-subtitle>
-                  </mat-card-header>
-                  <mat-card-content>
-                    <p class="view-link" i18n="@@openEditorLink">Open Editor →</p>
-                  </mat-card-content>
-                </mat-card>
+                  <mat-card class="repo-card hoverable" appearance="outlined">
+                    <mat-card-header>
+                      <mat-card-title>{{ repo.name }}</mat-card-title>
+                      <mat-card-subtitle>{{ repo.full_name }}</mat-card-subtitle>
+                    </mat-card-header>
+                    <mat-card-content>
+                      <p class="view-link" i18n="@@openEditorLink">Open Editor →</p>
+                    </mat-card-content>
+                  </mat-card>
+                </a>
               }
             </div>
           }
@@ -116,8 +114,11 @@ import { MatInputModule } from '@angular/material/input';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OrganizationComponent implements OnInit {
+  /** The current activated route. */
   private readonly route = inject(ActivatedRoute);
+  /** The storage service for managing data. */
   private readonly storage = inject(StorageService);
+  /** Form builder instance for reactive forms. */
   private readonly fb = inject(FormBuilder);
 
   /** The ID of the currently viewed organization. */

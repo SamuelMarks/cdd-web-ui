@@ -52,6 +52,11 @@ describe('OrganizationComponent', () => {
     expect(compiled.querySelector('h2')?.textContent).toContain('Organization: Test Prog');
   });
 
+  it('should return empty repositories if no org id', () => {
+    component.organizationId.set(null);
+    expect(component.repositories()).toEqual([]);
+  });
+
   it('should create a repository', () => {
     component.repositoryForm.patchValue({ name: 'New Repository' });
     component.onCreateRepository();

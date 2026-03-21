@@ -8,13 +8,19 @@ import { DOCUMENT, isPlatformBrowser } from '@angular/common';
   providedIn: 'root',
 })
 export class ThemeService {
+  /** The local storage key for persisting the selected theme. */
   private readonly STORAGE_KEY = 'cdd_theme';
+  /** The injected DOM document instance. */
   private readonly document = inject(DOCUMENT);
+  /** The injected platform ID to determine the environment. */
   private readonly platformId = inject(PLATFORM_ID);
 
   /** Signal indicating if dark mode is currently active. */
   readonly isDarkTheme = signal<boolean>(this.loadInitialTheme());
 
+  /**
+   * Initializes the theme service and sets up an effect to apply theme changes to the DOM.
+   */
   constructor() {
     // Automatically apply the theme class whenever the signal changes
     effect(() => {

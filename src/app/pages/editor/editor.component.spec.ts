@@ -91,6 +91,31 @@ describe('EditorComponent', () => {
     expect(component.specUrl()).toBe('https://example.com/spec.yml');
   });
 
+  it('should set activeSdkTab to null if no languages active', () => {
+    component.selectedLanguages.set(new Set());
+    TestBed.flushEffects();
+    expect(component.activeSdkTab()).toBeNull();
+  });
+
+  it('should trigger onRun on OpenAPI change', async () => {
+    vi.spyOn(component, 'onRun').mockImplementation(() => Promise.resolve());
+    component.openapiLeft.set(true);
+    component.onOpenApiChange('new-spec');
+    // Fast-forward debounce
+    await new Promise((r) => setTimeout(r, 600));
+    expect(component.onRun).toHaveBeenCalled();
+  });
+
+  it('should trigger onRun on SDK change', async () => {
+    vi.spyOn(component, 'onRun').mockImplementation(() => Promise.resolve());
+    component.openapiLeft.set(false);
+    component.activeOutputType.set('sdk');
+    component.onSdkChange('new-code');
+    // Fast-forward debounce
+    await new Promise((r) => setTimeout(r, 600));
+    expect(component.onRun).toHaveBeenCalled();
+  });
+
   it('should toggle language selection', () => {
     const wasmSupportedLang = 'typescript'; // Default available and selected
     expect(component.selectedLanguages().has(wasmSupportedLang)).toBe(true);

@@ -219,9 +219,13 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditorComponent implements OnInit {
+  /** The current activated route. */
   private readonly route = inject(ActivatedRoute);
+  /** The storage service instance. */
   private readonly storage = inject(StorageService);
+  /** The language service instance. */
   private readonly langService = inject(LanguageService);
+  /** The WASM generator service instance. */
   private readonly wasm = inject(WasmGeneratorService);
 
   /** The ID of the currently loaded repository. */
@@ -276,11 +280,15 @@ export class EditorComponent implements OnInit {
     return this.languages().filter((l) => this.selectedLanguages().has(l.id));
   });
 
+  /** Subject for handling OpenAPI spec changes with debounce. */
   private openApiChangeSubject = new Subject<string>();
+  /** Subject for handling SDK code changes with debounce. */
   private sdkChangeSubject = new Subject<string>();
 
+  /** Editor options for the OpenAPI pane. */
   editorOptionsOpenApi = { theme: 'vs-light', language: 'yaml' };
 
+  /** Computed editor options for the SDK pane based on the active state. */
   editorOptionsSdk = computed(() => {
     const isReadOnly = this.openapiLeft() || this.activeOutputType() === 'ci';
     const language =
@@ -293,6 +301,9 @@ export class EditorComponent implements OnInit {
     };
   });
 
+  /**
+   * Initializes the editor component, setting up reactive effects for state synchronization.
+   */
   constructor() {
     effect(() => {
       const active = this.activeLanguages();
@@ -341,11 +352,19 @@ export class EditorComponent implements OnInit {
     });
   }
 
+  /**
+   * Handles changes to the OpenAPI specification content.
+   * @param value The updated OpenAPI spec content.
+   */
   onOpenApiChange(value: string): void {
     this.openapiSpec.set(value);
     this.openApiChangeSubject.next(value);
   }
 
+  /**
+   * Handles changes to the SDK code content.
+   * @param value The updated SDK code content.
+   */
   onSdkChange(value: string): void {
     this.setCurrentOutputCode(value);
     this.sdkChangeSubject.next(value);

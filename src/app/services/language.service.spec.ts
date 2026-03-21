@@ -35,6 +35,7 @@ describe('LanguageService', () => {
     req.flush({
       typescript: true,
       go: true,
+      python: null,
     });
 
     await promise;

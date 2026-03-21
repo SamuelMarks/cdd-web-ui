@@ -66,8 +66,11 @@ export class App {
   /** The application title. */
   title = 'cdd-web-ui';
 
+  /** Backend configuration service instance. */
   readonly config = inject(BackendConfigService);
+  /** Theme service instance. */
   readonly theme = inject(ThemeService);
+  /** Material dialog service instance. */
   private readonly dialog = inject(MatDialog);
 
   /**

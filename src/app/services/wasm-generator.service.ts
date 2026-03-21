@@ -11,8 +11,12 @@ import { CddWasmSdk, Ecosystem } from 'cdd-ctl-wasm-sdk';
   providedIn: 'root',
 })
 export class WasmGeneratorService {
+  /** The language service instance. */
   private langService = inject(LanguageService);
 
+  /**
+   * Initializes the WASM generator service.
+   */
   constructor() {}
 
   /**
@@ -44,7 +48,7 @@ export class WasmGeneratorService {
         target: 'to_sdk',
         specContent: specContent || '{}',
         wasmBinary: wasmBinary,
-        printStdout: false
+        printStdout: false,
       });
 
       if (generatedFiles.length === 0) {
@@ -66,6 +70,12 @@ export class WasmGeneratorService {
     }
   }
 
+  /**
+   * Returns a mock SDK output when WASM generation is not available.
+   * @param languageId The target programming language.
+   * @param apiName The name of the API.
+   * @returns A string containing the mock SDK source code.
+   */
   private getMockOutput(languageId: string, apiName: string): string {
     switch (languageId) {
       case 'python':
@@ -175,10 +185,10 @@ export class ${apiName}Client {
       const buffer = await response.arrayBuffer();
       await WebAssembly.instantiate(buffer, {
         wasi_snapshot_preview1: {
-          fd_write: /* v8 ignore next */ () => 0,
-          environ_get: /* v8 ignore next */ () => 0,
-          environ_sizes_get: /* v8 ignore next */ () => 0,
-          proc_exit: /* v8 ignore next */ () => 0,
+          fd_write: () => 0,
+          environ_get: () => 0,
+          environ_sizes_get: () => 0,
+          proc_exit: () => 0,
         },
         env: { memory: new WebAssembly.Memory({ initial: 256 }) },
       });

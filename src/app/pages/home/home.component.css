@@ -145,3 +145,14 @@
     width: 100%;
   }
 }
+
+.card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.card-link:focus-visible .org-card {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
