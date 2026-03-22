@@ -23,7 +23,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
  */
 @Component({
   selector: 'app-workspace',
-  standalone: true,
   imports: [
     CommonModule,
     SplitPaneComponent,
@@ -76,21 +75,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         </div>
 
         <span class="toolbar-spacer"></span>
-
-        <button
-          mat-flat-button
-          color="primary"
-          class="generate-btn"
-          (click)="onRun()"
-          [disabled]="isExecuting()"
-        >
-          @if (isExecuting()) {
-            <mat-spinner diameter="20" class="run-spinner"></mat-spinner>
-          } @else {
-            <mat-icon>play_arrow</mat-icon>
-          }
-          Generate
-        </button>
       </div>
 
       <div class="workspace-content">
@@ -100,6 +84,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           [leftTemplate]="orientation() === 'openapi-left' ? openApiTemplate : codeDirTemplate"
           [rightTemplate]="orientation() === 'openapi-right' ? openApiTemplate : codeDirTemplate"
           (swapClicked)="onSwap()"
+          (runClicked)="onRun()"
         ></app-split-pane>
       </div>
     </div>

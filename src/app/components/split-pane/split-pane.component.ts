@@ -23,7 +23,6 @@ import { LayoutOrientation } from '../../store/state';
  */
 @Component({
   selector: 'app-split-pane',
-  standalone: true,
   imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule, MatProgressSpinnerModule],
   template: `
     <div
@@ -32,42 +31,6 @@ import { LayoutOrientation } from '../../store/state';
       (mouseup)="onDragEnd()"
       (mouseleave)="onDragEnd()"
     >
-      <!-- Action Bar -->
-      <div
-        class="action-bar"
-        [style.left]="isMobile() ? 'auto' : splitPos() + '%'"
-        [style.top]="isMobile() ? splitPos() + '%' : '1rem'"
-      >
-        <button
-          mat-button
-          class="action-btn"
-          (click)="swapClicked.emit()"
-          [disabled]="isExecuting()"
-          matTooltip="Swap Panes (Ctrl+Shift+S)"
-          aria-label="Swap Panes"
-        >
-          <mat-icon>swap_horiz</mat-icon>
-          Swap
-        </button>
-
-        <button
-          mat-flat-button
-          color="primary"
-          class="action-btn"
-          (click)="runClicked.emit()"
-          [disabled]="isExecuting()"
-          [matTooltip]="runTooltip()"
-          [attr.aria-label]="runTooltip()"
-        >
-          @if (isExecuting()) {
-            <mat-spinner diameter="20" class="run-spinner"></mat-spinner>
-          } @else {
-            <mat-icon>play_arrow</mat-icon>
-          }
-          {{ orientation() === 'openapi-left' ? 'Generate Code' : 'Generate Spec' }}
-        </button>
-      </div>
-
       <!-- Left Pane -->
       <div
         class="pane pane-left"
@@ -84,7 +47,38 @@ import { LayoutOrientation } from '../../store/state';
         [style.left]="isMobile() ? '0' : 'calc(' + splitPos() + '% - 6px)'"
         [style.top]="isMobile() ? 'calc(' + splitPos() + '% - 6px)' : '0'"
         (mousedown)="onDragStart($event)"
-      ></div>
+      >
+        <div class="resizer-action-top" (mousedown)="$event.stopPropagation()">
+          <button
+            mat-flat-button
+            color="primary"
+            class="generate-btn"
+            (click)="runClicked.emit();"
+            [disabled]="isExecuting()"
+            [matTooltip]="runTooltip()"
+            [attr.aria-label]="runTooltip()"
+          >
+            @if (isExecuting()) {
+              <mat-spinner diameter="20" class="run-spinner"></mat-spinner>
+            } @else {
+              <mat-icon>play_arrow</mat-icon>
+            }
+            Generate
+          </button>
+        </div>
+
+        <button
+          mat-icon-button
+          class="resizer-swap-btn"
+          (click)="swapClicked.emit(); $event.stopPropagation()"
+          (mousedown)="$event.stopPropagation()"
+          [disabled]="isExecuting()"
+          matTooltip="Swap Panes (Ctrl+Shift+S)"
+          aria-label="Swap Panes"
+        >
+          <mat-icon>swap_horiz</mat-icon>
+        </button>
+      </div>
 
       <!-- Right Pane -->
       <div
@@ -120,7 +114,7 @@ export class SplitPaneComponent {
 
   /** Emitted when the Swap button is clicked. */
   swapClicked = output<void>();
-  /** Emitted when the Run button is clicked. */
+  /** Emitted when the Generate button is clicked. */
   runClicked = output<void>();
 
   /** Dynamic tooltip for the Run button based on orientation. */
