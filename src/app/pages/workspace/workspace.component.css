@@ -1,0 +1,83 @@
+.workspace-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.workspace-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  gap: 1rem;
+}
+
+.input-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.toolbar-field {
+  width: 200px;
+}
+
+.example-field {
+  width: 140px;
+}
+
+.arrow-container {
+  display: flex;
+  align-items: center;
+  color: var(--text-color-secondary);
+}
+
+.flow-arrow {
+  opacity: 0.6;
+}
+
+.output-controls {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.generate-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.run-spinner {
+  margin-right: 0.5rem;
+}
+
+.workspace-content {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.code-directory-wrapper {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.directory-tree-pane {
+  flex: 0 0 250px;
+  max-width: 40%;
+  border-right: 1px solid var(--border-color);
+}
+
+.code-viewer-pane {
+  flex: 1 1 auto;
+  overflow: hidden;
+}

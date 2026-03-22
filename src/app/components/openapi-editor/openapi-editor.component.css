@@ -1,0 +1,77 @@
+.openapi-editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: var(--surface-color);
+}
+
+.toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  background-color: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  gap: 0.5rem;
+}
+
+.toolbar-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-right: auto;
+}
+
+.editor-wrapper {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden; /* Monaco handles its own scrolling */
+}
+
+/* Make monaco take full space */
+:host ::ng-deep ngx-monaco-editor,
+:host ::ng-deep .monaco-editor {
+  width: 100%;
+  height: 100%;
+}
+
+.error-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--error-bg);
+  color: var(--error-text);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  border-top: 1px solid var(--error-text);
+  z-index: 10;
+  max-height: 30%;
+  overflow-y: auto;
+}
+
+.error-overlay ul {
+  margin: 0.5rem 0 0 0;
+  padding-left: 1.5rem;
+}
+
+.editor-floating-actions {
+  position: absolute;
+  top: 10px;
+  right: 20px;
+  z-index: 10;
+  display: flex;
+  gap: 4px;
+  background-color: var(--surface-color, #ffffff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  padding: 2px;
+}
+
+[data-theme='dark'] .editor-floating-actions {
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
