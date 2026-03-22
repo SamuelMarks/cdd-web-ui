@@ -67,7 +67,7 @@
 
 .badge.owner {
   background-color: var(--primary-color);
-  color: white;
+  color: var(--mat-sys-on-primary);
 }
 
 .detail-text {
@@ -127,7 +127,7 @@
 
 .view-link {
   margin-top: 1rem;
-  color: var(--primary-color, #2563eb);
+  color: var(--primary-color);
   font-weight: 500;
 }
 

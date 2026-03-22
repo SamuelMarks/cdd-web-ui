@@ -24,13 +24,14 @@
 }
 
 .sandbox-badge {
-  background-color: #f1f5f9;
+  background-color: var(--mat-sys-surface-variant);
+  color: var(--mat-sys-on-surface-variant);
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   font-size: 0.875rem;
   font-weight: 500;
   margin-right: 0.5rem;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--mat-sys-outline-variant);
 }
 
 .sandbox-desc {
@@ -73,12 +74,12 @@
 }
 
 .icon-btn:hover:not(.disabled) {
-  background-color: var(--border-color);
+  background-color: var(--mat-sys-surface-container-highest);
 }
 
 .icon-btn.selected {
   border-color: var(--primary-color);
-  background-color: #eff6ff;
+  background-color: var(--mat-sys-secondary-container);
 }
 
 .icon-btn.disabled {
@@ -142,7 +143,7 @@ mat-radio-group {
 
 .pane-header {
   padding: 0.5rem 1rem;
-  background-color: #f8fafc;
+  background-color: var(--mat-sys-surface-container);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
@@ -154,6 +155,7 @@ mat-radio-group {
   margin: 0;
   font-size: 1rem;
   font-weight: 500;
+  color: var(--text-primary);
 }
 
 .sdk-select {
@@ -177,6 +179,7 @@ mat-radio-group {
   font-size: 0.875rem;
   line-height: 1.5;
   background-color: var(--surface-color);
+  color: var(--text-primary);
 }
 
 .code-editor:focus {
@@ -184,5 +187,5 @@ mat-radio-group {
 }
 
 .code-editor[readonly] {
-  background-color: #fafafa;
+  background-color: var(--mat-sys-surface-container-low);
 }

@@ -155,10 +155,10 @@ import { ApiService } from '../services/api.service';
         margin-bottom: 1rem;
       }
       .error {
-        color: var(--error-text, red);
+        color: var(--error-text);
       }
       .success {
-        color: green;
+        color: var(--success-text);
       }
       .oauth-section {
         margin-top: 1.5rem;
@@ -169,13 +169,13 @@ import { ApiService } from '../services/api.service';
         align-items: center;
         text-align: center;
         margin: 1rem 0;
-        color: var(--text-secondary, #666);
+        color: var(--text-secondary);
       }
       .divider::before,
       .divider::after {
         content: '';
         flex: 1;
-        border-bottom: 1px solid var(--border-color, #ccc);
+        border-bottom: 1px solid var(--border-color);
       }
       .divider span {
         padding: 0 10px;
@@ -183,14 +183,9 @@ import { ApiService } from '../services/api.service';
         font-weight: 500;
       }
       .github-btn {
-        background-color: #24292e;
-        color: white;
         display: flex;
         align-items: center;
         justify-content: center;
-      }
-      .github-btn:hover {
-        background-color: #1b1f23;
       }
       .github-icon {
         margin-right: 8px;

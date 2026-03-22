@@ -1,7 +1,15 @@
 {
-  "typescript": true,
-  "python": true,
-  "java": false,
+  "c": false,
+  "cpp": false,
+  "csharp": false,
   "go": false,
-  "rust": true
+  "java": false,
+  "kotlin": false,
+  "php": false,
+  "python": true,
+  "ruby": false,
+  "rust": true,
+  "sh": false,
+  "swift": false,
+  "typescript": true
 }

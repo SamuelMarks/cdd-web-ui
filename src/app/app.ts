@@ -25,7 +25,7 @@ import { OnlineSettingsComponent } from './components/online-settings.component'
     <mat-toolbar color="primary" class="app-header" role="banner">
       <div class="logo">
         <h1 i18n="@@appTitle">
-          <a routerLink="/" style="color: white; text-decoration: none;" aria-label="Home"
+          <a routerLink="/" style="color: inherit; text-decoration: none;" aria-label="Home"
             >CDD Web UI ({{ config.isOnline() ? 'Online' : 'Offline' }})</a
           >
         </h1>

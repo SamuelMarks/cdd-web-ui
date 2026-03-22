@@ -29,31 +29,6 @@ nav {
   line-height: 1;
 }
 
-.alert {
-  padding: 1rem 2rem;
-  background-color: #fef08a; /* Soft warning yellow */
-  color: #854d0e;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0;
-  border-bottom: 1px solid #eab308;
-}
-
-.alert p {
-  margin: 0;
-  font-weight: 500;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: inherit;
-  padding: 0.2rem 0.5rem;
-}
-
 .app-main {
   height: calc(100vh - 64px); /* MatToolbar default height is ~64px */
   overflow: hidden; /* we want individual panes to scroll */

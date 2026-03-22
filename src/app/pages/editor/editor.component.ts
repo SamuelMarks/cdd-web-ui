@@ -12,6 +12,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { StorageService } from '../../services/storage.service';
 import { WasmGeneratorService } from '../../services/wasm-generator.service';
+import { ThemeService } from '../../services/theme.service';
 import { LanguageService } from '../../services/language.service';
 import { PETSTORE_SPEC, HELLO_WORLD_SPEC } from '../../models/examples';
 import { NgOptimizedImage } from '@angular/common';
@@ -166,7 +167,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
             class="code-editor monaco-container"
             [ngModel]="openapiSpec()"
             (ngModelChange)="onOpenApiChange($event)"
-            [options]="editorOptionsOpenApi"
+            [options]="editorOptionsOpenApi()"
             aria-label="OpenAPI Specification Editor"
           ></ngx-monaco-editor>
         </section>
@@ -227,6 +228,7 @@ export class EditorComponent implements OnInit {
   private readonly langService = inject(LanguageService);
   /** The WASM generator service instance. */
   private readonly wasm = inject(WasmGeneratorService);
+  private readonly theme = inject(ThemeService);
 
   /** The ID of the currently loaded repository. */
   readonly repositoryId = signal<string | null>(null);
@@ -285,8 +287,11 @@ export class EditorComponent implements OnInit {
   /** Subject for handling SDK code changes with debounce. */
   private sdkChangeSubject = new Subject<string>();
 
-  /** Editor options for the OpenAPI pane. */
-  editorOptionsOpenApi = { theme: 'vs-light', language: 'yaml' };
+  /** Computed editor options for the OpenAPI pane. */
+  editorOptionsOpenApi = computed(() => ({
+    theme: this.theme.isDarkTheme() ? 'vs-dark' : 'vs-light',
+    language: 'yaml',
+  }));
 
   /** Computed editor options for the SDK pane based on the active state. */
   editorOptionsSdk = computed(() => {
@@ -295,7 +300,7 @@ export class EditorComponent implements OnInit {
       this.activeOutputType() === 'ci' ? 'yaml' : this.getMonacoLanguageId(this.activeSdkTab());
 
     return {
-      theme: 'vs-light',
+      theme: this.theme.isDarkTheme() ? 'vs-dark' : 'vs-light',
       language: language,
       readOnly: isReadOnly,
     };
