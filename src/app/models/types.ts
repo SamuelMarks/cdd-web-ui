@@ -3,6 +3,31 @@
  * @module models/types
  */
 
+/** The available language ecosystems that can be targeted. */
+export type Ecosystem = 'cdd-c' | 'cdd-cpp' | 'cdd-csharp' | 'cdd-go' | 'cdd-java' | 'cdd-kotlin' | 'cdd-php' | 'cdd-python' | 'cdd-ruby' | 'cdd-rust' | 'cdd-swift' | 'cdd-ts' | 'cdd-sh';
+
+/** The target output format for the code generator. */
+export type Target = 'to_sdk' | 'to_sdk_cli' | 'to_server' | 'to_openapi_3_2_0';
+
+/** The supported input formats for the API specification. */
+export type InputFormat = 'openapi_3_2_0' | 'openapi_older' | 'google_discovery';
+
+/** Configuration options for the target language. */
+export interface LanguageOptions {
+  /** The target framework. */
+  framework?: string;
+  /** Whether to automatically generate admin scaffolding. */
+  autoAdmin?: boolean;
+  /** Whether to upgrade the OpenAPI spec automatically. */
+  upgradeOpenApi?: boolean;
+  /** Whether to skip generating GitHub Actions. */
+  noGithubActions?: boolean;
+  /** Whether to skip generating an installable package. */
+  noInstallablePackage?: boolean;
+  /** Additional dynamic properties. */
+  [key: string]: unknown;
+}
+
 /**
  * Represents a user in the system.
  */
@@ -56,17 +81,17 @@ export interface Repository {
  */
 export interface LanguageConfig {
   /** The unique identifier for the language. */
-  id: string | number;
+  id: string;
   /** The display name of the language. */
   name: string;
   /** The repository URL or identifier for the language generator. */
-  repo: string;
+  repo: Ecosystem;
   /** Indicates whether the language generation is supported via WASM offline. */
   availableInWasm: boolean;
   /** Indicates whether this language should be selected by default in the UI. */
   selectedByDefault: boolean;
   /** The URL to the language's icon or logo. */
-  iconUrl: string;
+  iconUrl?: string;
 }
 
 /**

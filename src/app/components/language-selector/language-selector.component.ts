@@ -20,6 +20,7 @@ import { StorageService } from '../../services/storage.service';
   template: `
     <div class="language-selector-container">
       <mat-form-field appearance="outline" class="language-selector-field" subscriptSizing="dynamic">
+        <mat-label>Language</mat-label>
         <mat-select 
           [value]="selectedLanguageId()" 
           (selectionChange)="onSelectionChange($event.value)"
@@ -56,6 +57,7 @@ import { StorageService } from '../../services/storage.service';
       </mat-form-field>
       
       <mat-form-field appearance="outline" class="target-selector-field" subscriptSizing="dynamic">
+        <mat-label>Target</mat-label>
         <mat-select
           [value]="target()"
           (selectionChange)="onTargetChange($event.value)"

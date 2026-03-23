@@ -9,7 +9,7 @@ import { ThemeService } from './services/theme.service';
 import { OnlineSettingsComponent } from './components/online-settings.component';
 
 /**
- * The root application component.
+ * The root application component containing the overall app layout shell (Header, Main Content, Footer).
  */
 @Component({
   selector: 'app-root',
@@ -22,42 +22,45 @@ import { OnlineSettingsComponent } from './components/online-settings.component'
     MatTooltipModule,
   ],
   template: `
-    <mat-toolbar color="primary" class="app-header" role="banner">
-      <div class="logo">
-        <h1 i18n="@@appTitle">
-          <a routerLink="/" style="color: inherit; text-decoration: none;" aria-label="Home"
-            >CDD Web UI ({{ config.isOnline() ? 'Online' : 'Offline' }})</a
+    <div class="app-layout">
+      <mat-toolbar color="primary" class="app-header" role="banner">
+        <div class="logo">
+          <h1 i18n="@@appTitle">
+            <a routerLink="/" style="color: inherit; text-decoration: none;" aria-label="Home"
+              >CDD Web UI ({{ config.isOnline() ? 'Online' : 'Offline' }})</a
+            >
+          </h1>
+        </div>
+        <span class="spacer"></span>
+        <nav aria-label="Main Navigation" class="nav-links">
+          <button
+            mat-button
+            (click)="openSettings()"
+            i18n="@@onlineSettings"
+            aria-label="Open Online Settings"
           >
-        </h1>
-      </div>
-      <span class="spacer"></span>
-      <nav aria-label="Main Navigation" class="nav-links">
-        <a mat-button routerLink="/dashboard" i18n="@@dashboardLink" aria-label="Go to Dashboard"
-          >Dashboard</a
-        >
-        <button
-          mat-stroked-button
-          (click)="openSettings()"
-          i18n="@@onlineSettings"
-          aria-label="Open Online Settings"
-        >
-          Online Settings
-        </button>
-        <button
-          mat-icon-button
-          class="theme-toggle"
-          (click)="theme.toggleTheme()"
-          [matTooltip]="theme.isDarkTheme() ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-          [attr.aria-label]="theme.isDarkTheme() ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-        >
-          <span aria-hidden="true" class="theme-icon">{{ theme.isDarkTheme() ? '☀' : '☾' }}</span>
-        </button>
-      </nav>
-    </mat-toolbar>
+            Settings
+          </button>
+          <button
+            mat-icon-button
+            class="theme-toggle"
+            (click)="theme.toggleTheme()"
+            [matTooltip]="theme.isDarkTheme() ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+            [attr.aria-label]="theme.isDarkTheme() ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+          >
+            <span aria-hidden="true" class="theme-icon">{{ theme.isDarkTheme() ? '☀' : '☾' }}</span>
+          </button>
+        </nav>
+      </mat-toolbar>
 
-    <main class="app-main" role="main">
-      <router-outlet></router-outlet>
-    </main>
+      <main class="app-main" role="main">
+        <router-outlet></router-outlet>
+      </main>
+
+      <footer class="app-footer" role="contentinfo">
+        <p>&copy; 2026 CDD Web UI. All rights reserved.</p>
+      </footer>
+    </div>
   `,
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

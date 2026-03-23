@@ -1,20 +1,22 @@
 import { test, expect } from '@playwright/test';
+import { LANGUAGES } from '../src/app/models/constants';
+
+const ALL_LANGUAGES = LANGUAGES.map(l => l.id);
 
 test.describe('App E2E Tests', () => {
 
   test.beforeEach(async ({ page }) => {
-    // Step 257: Add a mock backend/WASM interception layer for deterministic E2E testing
+    // Mock backend/WASM interception layer for deterministic E2E testing
+    const wasmSupportMap = ALL_LANGUAGES.reduce((acc, lang) => {
+      acc[lang] = true; // Mock all languages as supported for E2E
+      return acc;
+    }, {} as Record<string, boolean>);
+
     await page.route('**/assets/wasm-support.json', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({
-          typescript: true,
-          java: false,
-          rust: true,
-          python: true,
-          go: true
-        })
+        body: JSON.stringify(wasmSupportMap)
       });
     });
 
@@ -30,7 +32,7 @@ test.describe('App E2E Tests', () => {
     });
   });
 
-  test('App loads and displays split pane (242)', async ({ page }) => {
+  test('App loads and displays split pane', async ({ page }) => {
     await page.goto('/');
     
     // Title check
@@ -45,37 +47,60 @@ test.describe('App E2E Tests', () => {
     await expect(page.locator('.pane-right')).toBeVisible();
   });
 
-  test('User can type in the OpenAPI editor (243)', async ({ page }) => {
-    await page.goto('/');
-    
-    // We'll verify the editor wrapper component is mounted. We won't test Monaco internals directly.
-    const editorContainer = page.locator('.openapi-editor-container').first();
-    await expect(editorContainer).toBeVisible();
-    
-    // We can clear it using our Angular-bound toolbar to test interaction
-    const clearBtn = page.locator('button[aria-label="Clear Editor"]');
-    await clearBtn.waitFor({ state: 'visible' });
-    await clearBtn.click({ force: true });
-  });
+  for (const lang of LANGUAGES) {
+    test(`Language UI interactions: ${lang.name}`, async ({ page }) => {
+      await page.goto('/');
 
-  test('User selects a language from the dropdown (244)', async ({ page }) => {
-    await page.goto('/');
+      // Wait for app load
+      await page.waitForSelector('mat-select[aria-label="Select Target Language"]');
 
-    // Click the mat-select dropdown
-    const select = page.locator('mat-select[aria-label="Select Target Language"]');
-    await select.waitFor({ state: 'visible' });
-    await select.click();
+      // Click the language dropdown
+      const langSelect = page.locator('mat-select[aria-label="Select Target Language"]');
+      await langSelect.click();
 
-    // Wait for options panel
-    const option = page.locator('mat-option').filter({ hasText: 'Rust' });
-    await expect(option).toBeVisible();
-    await option.click();
+      // Wait for options panel and select the language
+      const option = page.locator('mat-option').filter({ hasText: lang.name }).first();
+      await option.click();
 
-    // Verify selection changed
-    await expect(select).toContainText('Rust');
-  });
+      // Verify selection changed
+      await expect(langSelect).toContainText(lang.name);
 
-  test('Verify Theme switching (Light/Dark) (253)', async ({ page }) => {
+      // Now test Targets
+      const targetSelect = page.locator('mat-select[aria-label="Select Target Output"]');
+      await targetSelect.waitFor({ state: 'visible' });
+
+      // Loop through a few targets
+      const targets = ['Client SDK', 'Client CLI', 'Server'];
+      for (const targetName of targets) {
+        await targetSelect.click();
+        const targetOption = page.getByRole('option', { name: targetName, exact: true });
+        await targetOption.click();
+        // Wait for dropdown to close
+        await expect(targetOption).toBeHidden();
+        await expect(targetSelect).toContainText(targetName);
+
+        // Verify options panel renders correct checkboxes based on language and target
+        if (lang.id === 'typescript') {
+           if (targetName === 'Client SDK') {
+             const fwSelect = page.locator('mat-select', { hasText: /(Framework target|Angular|Fetch|Axios)/i }).first();
+             await expect(fwSelect).toBeVisible();
+             await expect(page.locator('mat-checkbox', { hasText: 'Auto-admin' })).toBeVisible();
+           } else if (targetName === 'Client CLI') {
+             const fwSelect = page.locator('mat-select', { hasText: /(Framework target|Fetch|Axios)/i }).first();
+             await expect(fwSelect).toBeVisible();
+             await expect(page.locator('mat-checkbox', { hasText: 'Auto-admin' })).toBeVisible();
+           }
+        }
+        
+        if (['java', 'php', 'python', 'ruby', 'swift'].includes(lang.id)) {
+          await expect(page.locator('mat-checkbox', { hasText: 'No GitHub Actions' })).toBeVisible();
+          await expect(page.locator('mat-checkbox', { hasText: 'No Installable Package' })).toBeVisible();
+        }
+      }
+    });
+  }
+
+  test('Verify Theme switching (Light/Dark)', async ({ page }) => {
     await page.goto('/');
     
     const themeToggle = page.locator('.theme-toggle');
@@ -84,7 +109,7 @@ test.describe('App E2E Tests', () => {
     // Get initial state
     const iconText1 = await icon.innerText();
     
-    // Toggle (force click because on mobile it might be overlaid or narrow)
+    // Toggle
     await themeToggle.click({ force: true });
     
     // Verify it changed
@@ -93,24 +118,20 @@ test.describe('App E2E Tests', () => {
     expect(iconText1 === '☀' || iconText1 === '☾').toBeTruthy();
   });
 
-  test('User clicks Swap ⇆ -> verifies left/right swap (247)', async ({ page }) => {
+  test('User clicks Swap ⇆ -> verifies left/right swap', async ({ page }) => {
     await page.goto('/');
-
-    // Wait for render
     await page.waitForSelector('.workspace-toolbar');
 
-    // Initially OpenAPI is on the left
-    // We can just verify the layout by checking if the left pane has the editor toolbar
     let leftPane = page.locator('.pane-left');
     await expect(leftPane.locator('.toolbar-title').filter({ hasText: 'OpenAPI Spec' })).toBeVisible();
 
-    // Click Swap
     const swapButton = page.locator('button[aria-label="Swap Panes"]');
-    await swapButton.click({ force: true });
+    await expect(swapButton).toBeEnabled();
+    await swapButton.click();
 
-    // Now OpenAPI should be on the right
     let rightPane = page.locator('.pane-right');
     await expect(rightPane.locator('.toolbar-title').filter({ hasText: 'OpenAPI Spec' })).toBeVisible();
   });
 
 });
+

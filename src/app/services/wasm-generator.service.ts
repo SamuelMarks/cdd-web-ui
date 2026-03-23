@@ -37,7 +37,7 @@ export class WasmGeneratorService {
     }
 
     try {
-      const response = await fetch(`/assets/wasm/cdd-${languageId}.wasm`);
+      const response = await fetch(`https://github.com/SamuelMarks/cdd-web-ui/releases/download/wasm-v0.0.1/cdd-${languageId}.wasm`);
       if (!response.ok) throw new Error('WASM binary not found');
 
       const wasmBinary = await response.arrayBuffer();
@@ -61,10 +61,11 @@ export class WasmGeneratorService {
         .join('\n\n');
     } catch (err) {
       console.warn(`WASM execution failed for ${languageId}:`, err);
+      // Fallback
       const specInfo = this.extractInfoFromSpec(specContent);
       const apiName = specInfo.title ? specInfo.title.replace(/\s+/g, '') : 'GeneratedApi';
       return (
-        `/* Failed to execute WASM for ${lang?.name || languageId}. Fallback mock activated. */\n` +
+        `/* Failed to execute WASM for ${lang.name}. Fallback mock activated. */\n` +
         this.getMockOutput(languageId as string, apiName)
       );
     }
@@ -179,7 +180,7 @@ export class ${apiName}Client {
 
     try {
       // Real WASM integration path
-      const response = await fetch(`/assets/wasm/cdd-${languageId}.wasm`);
+      const response = await fetch(`https://github.com/SamuelMarks/cdd-web-ui/releases/download/wasm-v0.0.1/cdd-${languageId}.wasm`);
       if (!response.ok) throw new Error('WASM binary not found');
       // Instantiate just to verify loadability
       const buffer = await response.arrayBuffer();
@@ -219,17 +220,17 @@ export class ${apiName}Client {
    * @param spec The OpenAPI specification string (JSON or YAML).
    * @returns An object containing the extracted API title.
    */
-  private extractInfoFromSpec(spec: string): { title: string } {
+  private extractInfoFromSpec(spec: string): { title?: string } {
     try {
       const parsed = JSON.parse(spec);
-      return { title: parsed.info?.title || 'Unknown API' };
+      return { title: parsed.info?.title };
     } catch {
       // Very basic yaml/text parser
       const titleMatch = spec.match(/title:\s*['"]?([^'"\n\r]+)['"]?/i);
       if (titleMatch && titleMatch[1]) {
         return { title: titleMatch[1] };
       }
-      return { title: 'Unknown API' };
+      return {};
     }
   }
 }

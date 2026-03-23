@@ -43,9 +43,35 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           <mat-form-field appearance="outline" class="toolbar-field" subscriptSizing="dynamic">
             <mat-label>Input Format</mat-label>
             <mat-select [value]="inputFormat() || 'openapi_3_2_0'" (selectionChange)="onInputFormatChange($event.value)">
-              <mat-option value="openapi_3_2_0">OpenAPI 3.2.0</mat-option>
-              <mat-option value="openapi_older">Swagger / OpenAPI < 3.2.0</mat-option>
-              <mat-option value="google_discovery">Google Discovery</mat-option>
+              <mat-select-trigger>
+                <div class="format-option-trigger">
+                  <img
+                    [src]="inputFormat() === 'google_discovery' ? '/assets/icons/google.svg' : '/assets/icons/openapi.svg'"
+                    width="20" height="20" alt="" class="format-icon"
+                  />
+                  <span class="format-name">
+                    {{ inputFormat() === 'google_discovery' ? 'Google Discovery' : (inputFormat() === 'openapi_older' ? 'Swagger / OpenAPI < 3.2.0' : 'OpenAPI 3.2.0') }}
+                  </span>
+                </div>
+              </mat-select-trigger>
+              <mat-option value="openapi_3_2_0">
+                <div class="format-option">
+                  <img src="/assets/icons/openapi.svg" width="20" height="20" alt="" class="format-icon" />
+                  <span class="format-name">OpenAPI 3.2.0</span>
+                </div>
+              </mat-option>
+              <mat-option value="openapi_older">
+                <div class="format-option">
+                  <img src="/assets/icons/openapi.svg" width="20" height="20" alt="" class="format-icon" />
+                  <span class="format-name">Swagger / OpenAPI &lt; 3.2.0</span>
+                </div>
+              </mat-option>
+              <mat-option value="google_discovery">
+                <div class="format-option">
+                  <img src="/assets/icons/google.svg" width="20" height="20" alt="" class="format-icon" />
+                  <span class="format-name">Google Discovery</span>
+                </div>
+              </mat-option>
             </mat-select>
           </mat-form-field>
           

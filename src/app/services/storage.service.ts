@@ -66,6 +66,24 @@ export class StorageService {
   }
 
   /**
+   * Generic method to get a raw item from localStorage directly.
+   * @param key The key to retrieve.
+   * @returns The parsed item or null.
+   */
+  getItem<T>(key: string): T | null {
+    return this.loadFromStorage<T>(key);
+  }
+
+  /**
+   * Generic method to set a raw item into localStorage directly.
+   * @param key The key to set.
+   * @param data The data to save.
+   */
+  setItem<T>(key: string, data: T): void {
+    this.saveToStorage(key, data);
+  }
+
+  /**
    * Creates a new user and persists it.
    * @param login - The username/login of the user.
    * @returns The created User object.

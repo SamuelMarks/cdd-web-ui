@@ -1,0 +1,52 @@
+.language-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.language-options {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Material Select overrides for cleaner toolbar appearance */
+::ng-deep .language-selector-field .mat-mdc-form-field-wrapper {
+  padding-bottom: 0;
+}
+
+::ng-deep .language-selector-field .mat-mdc-text-field-wrapper {
+  background-color: transparent;
+}
+
+::ng-deep .language-selector-field .mat-mdc-form-field-subscript-wrapper {
+  display: none; /* Hide hint/error wrapper to save vertical space in toolbar */
+}
+
+.language-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.disabled-indicator {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.language-name {
+  flex: 1;
+}
+
+.language-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  object-fit: contain;
+}
+.language-option-trigger {
+  display: flex;
+  align-items: center;
+}

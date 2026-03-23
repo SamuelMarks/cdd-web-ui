@@ -8,6 +8,8 @@ export const initialWorkspaceState: WorkspaceState = {
   orientation: 'openapi-left',
   isExecuting: false,
   selectedLanguageId: 'c',
+  target: 'to_sdk',
+  languageOptions: {},
 };
 
 /** Workspace Reducer */
@@ -24,6 +26,17 @@ export const workspaceReducer = createReducer(
   on(Actions.setSelectedLanguage, (state, { languageId }): WorkspaceState => ({
     ...state,
     selectedLanguageId: languageId,
+  })),
+  on(Actions.setTarget, (state, { target }): WorkspaceState => ({
+    ...state,
+    target,
+  })),
+  on(Actions.setLanguageOptions, (state, { languageId, options }): WorkspaceState => ({
+    ...state,
+    languageOptions: {
+      ...state.languageOptions,
+      [languageId]: options,
+    },
   })),
   on(Actions.executeRunStart, (state): WorkspaceState => ({
     ...state,
@@ -59,6 +72,7 @@ export const fileTreeReducer = createReducer(
 export const initialOpenApiState: OpenApiState = {
   specContent: PETSTORE_SPEC,
   validationErrors: [],
+  inputFormat: 'openapi_3_2_0',
 };
 
 /** OpenAPI Reducer */
@@ -71,5 +85,9 @@ export const openApiReducer = createReducer(
   on(Actions.setOpenApiValidationErrors, (state, { errors }): OpenApiState => ({
     ...state,
     validationErrors: errors,
+  })),
+  on(Actions.setInputFormat, (state, { format }): OpenApiState => ({
+    ...state,
+    inputFormat: format,
   })),
 );

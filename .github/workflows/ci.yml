@@ -28,8 +28,11 @@ jobs:
       - name: Run Build
         run: npm run build
 
-      - name: Run Unit Tests
-        run: npm run test -- --watch=false
+      - name: Run Unit Tests with Coverage
+        run: npm run test:coverage
+
+      - name: Run Documentation Coverage
+        run: npm run doc:coverage
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps

@@ -26,7 +26,6 @@ import { ThemeService } from '../../services/theme.service';
  */
 @Component({
   selector: 'app-openapi-editor',
-  standalone: true,
   imports: [
     CommonModule, 
     FormsModule, 

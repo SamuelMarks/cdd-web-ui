@@ -1,0 +1,18 @@
+--- src/app/models/types.ts
++++ src/app/models/types.ts
+@@ -7,6 +7,16 @@
+ export type Ecosystem = 'cdd-c' | 'cdd-cpp' | 'cdd-csharp' | 'cdd-go' | 'cdd-java' | 'cdd-kotlin' | 'cdd-php' | 'cdd-python' | 'cdd-ruby' | 'cdd-rust' | 'cdd-swift' | 'cdd-ts' | 'cdd-sh';
+ 
+ /**
++ * Target output type.
++ */
++export type Target = 'to_sdk' | 'to_sdk_cli' | 'to_server';
++
++export interface LanguageOptions {
++  [key: string]: any;
++}
++
++/**
+  * Represents a user in the system.
+  */
+ export interface User {

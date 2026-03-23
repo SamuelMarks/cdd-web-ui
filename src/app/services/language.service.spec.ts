@@ -33,7 +33,7 @@ describe('LanguageService', () => {
     const req = httpMock.expectOne('/assets/wasm-support.json');
     expect(req.request.method).toBe('GET');
     req.flush({
-      typescript: true,
+      ts: true,
       go: true,
       python: null,
     });
@@ -45,6 +45,19 @@ describe('LanguageService', () => {
     expect(langs.find((l) => l.id === 'python')?.availableInWasm).toBe(false);
     expect(langs.find((l) => l.id === 'go')?.availableInWasm).toBe(true);
     expect(langs.find((l) => l.id === 'rust')?.availableInWasm).toBe(false);
+  });
+
+  it('should handle null supportMap gracefully', async () => {
+    const promise = service.loadWasmSupport();
+
+    const req = httpMock.expectOne('/assets/wasm-support.json');
+    req.flush(null);
+
+    await promise;
+
+    const langs = service.languages();
+    // Should retain defaults since supportMap was null
+    expect(langs.find((l) => l.id === 'typescript')?.availableInWasm).toBe(true);
   });
 
   it('should gracefully handle error when loading wasm config', async () => {

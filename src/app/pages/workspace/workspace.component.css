@@ -81,3 +81,25 @@
   flex: 1 1 auto;
   overflow: hidden;
 }
+
+.format-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.format-option-trigger {
+  display: flex;
+  align-items: center;
+}
+
+.format-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  object-fit: contain;
+}
+
+.format-name {
+  flex: 1;
+}

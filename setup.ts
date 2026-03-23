@@ -8,13 +8,15 @@ import {
   platformBrowserDynamicTesting,
 } from '@angular/platform-browser-dynamic/testing';
 
-import { CddWasmSdk } from 'cdd-ctl-wasm-sdk';
+import { CddWasmSdk, GenerateOptions } from 'cdd-ctl-wasm-sdk';
 
-CddWasmSdk.fromOpenApi = async (options: any) => {
-  if (options.ecosystem === 'cdd-go' || options.ecosystem === 'go') {
+CddWasmSdk.fromOpenApi = async (options: GenerateOptions) => {
+  const ecosystem = options.ecosystem as string;
+  const specContent = options.specContent as string;
+  if (ecosystem === 'cdd-go' || ecosystem === 'go') {
     return [];
   }
-  if (options.specContent === 'success-spec') {
+  if (specContent === 'success-spec') {
     return [
       {
         path: 'success.py',

@@ -68,7 +68,7 @@ export const LANGUAGES: LanguageConfig[] = [
   {
     id: 'python',
     name: 'Python',
-    repo: 'cdd-python-all',
+    repo: 'cdd-python',
     availableInWasm: true,
     selectedByDefault: false,
     iconUrl: '/assets/icons/python.svg',

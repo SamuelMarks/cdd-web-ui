@@ -200,6 +200,10 @@ import { ApiService } from '../services/api.service';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
+/**
+ * Component providing an interactive dialog to configure online backend URLs
+ * and handle authentication with the remote service.
+ */
 export class OnlineSettingsComponent {
   /** Access to backend config state. */
   readonly config = inject(BackendConfigService);

@@ -13,7 +13,7 @@ describe('WasmGeneratorService', () => {
   let originalFetch: typeof fetch;
 
   beforeEach(() => {
-    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockImplementation((opts: any) => {
+    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockImplementation((opts: import("cdd-ctl-wasm-sdk").GenerateOptions) => {
       if (opts.ecosystem === 'cdd-go' || opts.ecosystem === 'go') return Promise.resolve([]);
       if (opts.ecosystem === 'cdd-python' && opts.specContent === 'success-spec') {
         const encoder = new TextEncoder();
@@ -57,6 +57,38 @@ describe('WasmGeneratorService', () => {
   const dummyRepo: Repository = { id: 'p1', name: 'TestRepo', organizationId: 'org1' };
 
   describe('generateSdk', () => {
+    it('should handle unrecognised language ID in generateSdk', async () => {
+      window.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404
+      });
+      const code = await service.generateSdk(dummyRepo, 'unknown-lang', '{}');
+      expect(code).toContain('Generation for unknown-lang is disabled due to lack of WASM support.');
+    });
+    it('should generate fallback with GeneratedApi if title is missing', async () => {
+      window.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404
+      });
+      
+      const emptySpec = '{"openapi":"3.0.0"}'; // no info.title
+      const result = await service.generateSdk(dummyRepo, 'python', emptySpec);
+      
+      expect(result).toContain('class GeneratedApiClient:');
+    });
+
+    it('should strip spaces from title in fallback', async () => {
+      window.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404
+      });
+      
+      const specWithSpaces = '{"openapi":"3.0.0", "info": { "title": "My Awesome API" }}';
+      const result = await service.generateSdk(dummyRepo, 'python', specWithSpaces);
+      
+      expect(result).toContain('class MyAwesomeAPIClient:');
+    });
+
     it('should generate python stub', async () => {
       const code = await service.generateSdk(
         dummyRepo,
@@ -74,7 +106,7 @@ describe('WasmGeneratorService', () => {
 
     it('should generate typescript stub', async () => {
       const code = await service.generateSdk(dummyRepo, 'typescript', '');
-      expect(code).toContain('export class UnknownAPIClient {');
+      expect(code).toContain('export class GeneratedApiClient {');
     });
 
     it('should generate default stub for other supported languages', async () => {
@@ -107,7 +139,7 @@ describe('WasmGeneratorService', () => {
       window.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
       const code = await service.generateSdk(dummyRepo, 'python', '{}');
       expect(code).toContain('Fallback mock activated');
-      expect(code).toContain('UnknownAPIClient');
+      expect(code).toContain('GeneratedApiClient');
     });
   });
 
@@ -144,9 +176,25 @@ describe('WasmGeneratorService', () => {
       const config = await service.generateCiCd(dummyRepo, 'java');
       expect(config).toContain('is disabled due to lack of WASM support');
     });
+
+    it('should handle completely unknown languages in generateCiCd', async () => {
+      const config = await service.generateCiCd(dummyRepo, 'unknown-lang');
+      expect(config).toContain('is disabled due to lack of WASM support');
+      expect(config).toContain('for unknown-lang');
+    });
   });
 
   describe('generateOpenApi', () => {
+    it('should generate fallback mock if fetch fails with ok=false', async () => {
+      window.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+      });
+      
+      const spec = await service.generateOpenApi(dummyRepo, 'python', '{}');
+      expect(spec).toContain('"title": "Mock API from Python"');
+    });
+
     it('should generate openapi stub from python sdk', async () => {
       const spec = await service.generateOpenApi(dummyRepo, 'python', 'class Client: pass');
       expect(spec).toContain('"title": "Generated API from Python"');
@@ -185,7 +233,7 @@ describe('WasmGeneratorService', () => {
       arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
     });
 
-    await service.generateOpenApi({ id: 'proj-1' } as any, 'python', 'code');
+    await service.generateOpenApi({ id: 'proj-1' } as never, 'python', 'code');
 
     window.WebAssembly.instantiate = originalInstantiate;
     window.fetch = originalFetch;

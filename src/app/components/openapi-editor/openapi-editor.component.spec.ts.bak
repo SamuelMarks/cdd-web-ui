@@ -1,0 +1,197 @@
+import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
+import { TestBed, ComponentFixture } from '@angular/core/testing';
+import { OpenApiEditorComponent } from './openapi-editor.component';
+import { By } from '@angular/platform-browser';
+import { Component, signal, forwardRef } from '@angular/core';
+import { NotificationService } from '../../services/notification.service';
+import { ThemeService } from '../../services/theme.service';
+import { FormsModule, NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+
+// Mock the ngx-monaco-editor-v2 component completely to avoid module provider issues in standalone tests
+@Component({
+  selector: 'ngx-monaco-editor',
+  standalone: true,
+  template: '<div>Mock Monaco Editor</div>',
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => MockMonacoEditorComponent),
+      multi: true
+    }
+  ]
+})
+class MockMonacoEditorComponent implements ControlValueAccessor {
+  writeValue(obj: unknown): void {}
+  registerOnChange(fn: (v: unknown) => void): void {}
+  registerOnTouched(fn: () => void): void {}
+}
+
+@Component({
+  template: `
+    <app-openapi-editor 
+      [specContent]="specContent()"
+      (specContentChange)="onContentChange($event)"
+      (validationErrorsChange)="onErrorsChange($event)">
+    </app-openapi-editor>
+  `,
+  imports: [OpenApiEditorComponent]
+})
+class TestHostComponent {
+  specContent = signal('openapi: 3.0.0');
+  lastContent = '';
+  lastErrors: string[] = [];
+  
+  onContentChange(content: string) { this.lastContent = content; }
+  onErrorsChange(errors: string[]) { this.lastErrors = errors; }
+}
+
+describe('OpenApiEditorComponent', () => {
+  let component: OpenApiEditorComponent;
+  let fixture: ComponentFixture<OpenApiEditorComponent>;
+  let notificationServiceMock: { error: import("vitest").Mock; success: import("vitest").Mock };
+  let themeServiceMock: { isDarkTheme: import("@angular/core").WritableSignal<boolean> };
+
+  beforeEach(async () => {
+    notificationServiceMock = {
+      success: vi.fn(),
+      error: vi.fn(),
+    };
+    
+    themeServiceMock = {
+      isDarkTheme: signal(true)
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [OpenApiEditorComponent, TestHostComponent, FormsModule],
+      providers: [
+        { provide: NotificationService, useValue: notificationServiceMock },
+        { provide: ThemeService, useValue: themeServiceMock },
+      ]
+    })
+    // Override the import of MonacoEditorModule to use our mock
+    .overrideComponent(OpenApiEditorComponent, {
+      remove: { imports: [ /* we would remove the real one here but standalone makes it tricky, instead we override the whole template if needed, or we just rely on NO_ERRORS_SCHEMA or mock component. Let's use override to swap the component import */ ] },
+      add: { imports: [MockMonacoEditorComponent] }
+    })
+    .compileComponents();
+
+    // Re-override properly by clearing the real import
+    TestBed.overrideComponent(OpenApiEditorComponent, {
+      remove: { imports: [MonacoEditorModule] },
+      add: { imports: [MockMonacoEditorComponent] }
+    });
+
+    fixture = TestBed.createComponent(OpenApiEditorComponent);
+    component = fixture.componentInstance;
+    fixture.componentRef.setInput('specContent', 'openapi: 3.0.0\ninfo:\n  title: Test\n  version: "1.0"\npaths: {}');
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('should initialize internalContent from input', () => {
+    expect(component.internalContent()).toContain('openapi: 3.0.0');
+  });
+
+  it('should update editorOptions based on theme', () => {
+    expect(component.editorOptions().theme).toBe('vs-dark');
+  });
+
+  it('should format valid YAML document', () => {
+     component.internalContent.set('openapi: "3.0.0"\ninfo: \n  title: "test"\n  version: "1"');
+     component.formatDocument();
+     expect(notificationServiceMock.success).toHaveBeenCalledWith('Document formatted successfully.');
+     expect(component.internalContent()).toContain('openapi: 3.0.0'); // formatted by js-yaml
+  });
+
+  it('should format valid JSON document', () => {
+     component.internalContent.set('{"openapi":"3.0.0","info":{"title":"test","version":"1"}}');
+     component.formatDocument();
+     expect(notificationServiceMock.success).toHaveBeenCalledWith('Document formatted successfully.');
+     expect(component.internalContent()).toContain('{\n  "openapi": "3.0.0"'); // nicely formatted JSON
+  });
+
+  it('should show error when formatting invalid document', () => {
+     component.internalContent.set('{ "openapi": "3.0.0", "info": }');
+     component.formatDocument();
+     expect(notificationServiceMock.error).toHaveBeenCalledWith('Cannot format invalid document.');
+  });
+
+  it('should clear editor', () => {
+     component.clearEditor();
+     expect(component.internalContent()).toBe('');
+  });
+
+  it('should copy to clipboard on success', async () => {
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn().mockImplementation(() => Promise.resolve()),
+      },
+    });
+    
+    component.internalContent.set('test');
+    await component.copyToClipboard();
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test');
+    expect(notificationServiceMock.success).toHaveBeenCalledWith('Copied to clipboard.');
+  });
+
+  it('should show error if clipboard fails', async () => {
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn().mockImplementation(() => Promise.reject('error')),
+      },
+    });
+    
+    component.internalContent.set('test');
+    await component.copyToClipboard();
+    expect(notificationServiceMock.error).toHaveBeenCalledWith('Failed to copy to clipboard.');
+  });
+
+  it('should do nothing on format if empty', () => {
+      component.internalContent.set('   ');
+      component.formatDocument();
+      expect(notificationServiceMock.success).not.toHaveBeenCalled();
+      expect(notificationServiceMock.error).not.toHaveBeenCalled();
+  });
+  
+  it('should do nothing on copy if empty', async () => {
+      component.internalContent.set('');
+      await component.copyToClipboard();
+      expect(notificationServiceMock.success).not.toHaveBeenCalled();
+  });
+
+  it('should capture editor init', () => {
+      const mockEditor = { id: 1 };
+      component.onEditorInit(mockEditor);
+      expect((component as unknown as HTMLElement).editorInstance).toBe(mockEditor);
+  });
+
+  it('should correctly configure editor options based on theme', () => {
+    expect(component.editorOptions().theme).toBe('vs-dark');
+    themeServiceMock.isDarkTheme.set(false);
+    expect(component.editorOptions().theme).toBe('vs');
+  });
+
+  it('should correctly configure editor language based on content', () => {
+    // Force set internal to test determineLanguage
+    component.internalContent.set('{"key":"value"}');
+    expect(component.editorOptions().language).toBe('json');
+
+    component.internalContent.set('key: value');
+    expect(component.editorOptions().language).toBe('yaml');
+  });
+
+  it('should not update internal content if external content is the same', () => {
+    // Set directly internal
+    component.internalContent.set('same');
+    // Now trigger external to be 'same'
+    fixture.componentRef.setInput('specContent', 'same');
+    fixture.detectChanges();
+    
+    // Should be 'same' (not reset or anything)
+    expect(component.internalContent()).toBe('same');
+  });
+});

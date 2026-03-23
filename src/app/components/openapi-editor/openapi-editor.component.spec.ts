@@ -11,7 +11,6 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 // Mock the ngx-monaco-editor-v2 component completely to avoid module provider issues in standalone tests
 @Component({
   selector: 'ngx-monaco-editor',
-  standalone: true,
   template: '<div>Mock Monaco Editor</div>',
   providers: [
     {

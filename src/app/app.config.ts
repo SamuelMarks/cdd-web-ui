@@ -7,14 +7,22 @@ import {
   provideBrowserGlobalErrorListeners,
   importProvidersFrom,
   APP_INITIALIZER,
+  provideZoneChangeDetection,
+  ErrorHandler,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideHttpClient } from '@angular/common/http';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
+import { provideStore } from '@ngrx/store';
+import { provideEffects } from '@ngrx/effects';
+import { provideStoreDevtools } from '@ngrx/store-devtools';
+import * as Sentry from '@sentry/angular';
 
 import { routes } from './app.routes';
 import { LanguageService } from './services/language.service';
+import { reducers } from './store';
+import { WorkspaceEffects } from './store/effects';
 
 /**
  * Configuration options for the Monaco editor.
@@ -39,11 +47,16 @@ export function initWasmSupport(languageService: LanguageService) {
  */
 export const appConfig: ApplicationConfig = {
   providers: [
+    { provide: ErrorHandler, useValue: Sentry.createErrorHandler() },
+    provideZoneChangeDetection({ eventCoalescing: true }),
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideAnimationsAsync(),
     provideHttpClient(),
     importProvidersFrom(MonacoEditorModule.forRoot(monacoConfig)),
+    provideStore(reducers),
+    provideEffects(WorkspaceEffects),
+    provideStoreDevtools({ maxAge: 25, logOnly: false }),
     {
       provide: APP_INITIALIZER,
       useFactory: initWasmSupport,

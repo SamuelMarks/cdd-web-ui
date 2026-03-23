@@ -1,4 +1,11 @@
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
 .app-header {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   padding: 0 1rem;
@@ -30,6 +37,16 @@ nav {
 }
 
 .app-main {
-  height: calc(100vh - 64px); /* MatToolbar default height is ~64px */
+  flex: 1 1 auto;
   overflow: hidden; /* we want individual panes to scroll */
+}
+
+.app-footer {
+  flex: 0 0 auto;
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.8rem;
+  background-color: var(--surface-color);
+  border-top: 1px solid var(--border-color);
+  color: var(--text-secondary);
 }

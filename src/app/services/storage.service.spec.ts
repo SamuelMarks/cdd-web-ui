@@ -209,4 +209,24 @@ describe('StorageService', () => {
     expect(repos.find((r) => r.name === 'repo1')!.organizationId).toBe('new-id');
     expect(repos.find((r) => r.name === 'repo2')!.organizationId).toBe('other-org');
   });
+
+  it('should use raw setItem and getItem directly', () => {
+    service.setItem('my_test_key', { foo: 'bar' });
+    const result = service.getItem<{foo: string}>('my_test_key');
+    expect(result).toEqual({ foo: 'bar' });
+  });
+
+  it('should filter repositories by organization ID', () => {
+    service.createRepository('org-1', 'repo1');
+    service.createRepository('org-1', 'repo2');
+    service.createRepository('org-2', 'repo3');
+    
+    const org1Repos = service.getOrganizationRepositories('org-1');
+    expect(org1Repos.length).toBe(2);
+    expect(org1Repos.some(r => r.name === 'repo1')).toBe(true);
+    
+    const org2Repos = service.getOrganizationRepositories('org-2');
+    expect(org2Repos.length).toBe(1);
+    expect(org2Repos[0].name).toBe('repo3');
+  });
 });

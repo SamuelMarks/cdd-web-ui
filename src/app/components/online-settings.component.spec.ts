@@ -141,11 +141,17 @@ describe('OnlineSettingsComponent', () => {
   });
 
   it('should display error on login failure', () => {
-    component.authForm.setValue({ username: 'user', password: 'password' });
+    component.authForm.setValue({ username: 'user', password: 'wrong' });
     apiSpy.login.mockReturnValue(throwError(() => new Error('Error')));
     component.onLogin();
     fixture.detectChanges();
     expect(component.errorMsg()).toBe('Login failed');
+  });
+
+  it('should do nothing on login if form is invalid', () => {
+    component.authForm.setValue({ username: '', password: '' });
+    component.onLogin();
+    expect(apiSpy.login).not.toHaveBeenCalled();
   });
 
   it('should call api.register and store token on successful registration', () => {
@@ -164,6 +170,12 @@ describe('OnlineSettingsComponent', () => {
     component.onRegister();
     fixture.detectChanges();
     expect(component.errorMsg()).toBe('Registration failed');
+  });
+
+  it('should do nothing on register if form is invalid', () => {
+    component.authForm.setValue({ username: '', password: '' });
+    component.onRegister();
+    expect(apiSpy.register).not.toHaveBeenCalled();
   });
 
   it('should handle github login success', () => {
