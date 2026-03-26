@@ -7,7 +7,7 @@ import {
   computed,
   effect,
   inject,
-  CUSTOM_ELEMENTS_SCHEMA
+  CUSTOM_ELEMENTS_SCHEMA,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -26,15 +26,18 @@ import { ThemeService } from '../../services/theme.service';
  */
 @Component({
   selector: 'app-openapi-editor',
+  /** imports */
   imports: [
-    CommonModule, 
-    FormsModule, 
-    MonacoEditorModule, 
-    MatButtonModule, 
-    MatIconModule, 
-    MatTooltipModule
+    CommonModule,
+    FormsModule,
+    MonacoEditorModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
   ],
+  /** schemas */
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  /** template */
   template: `
     <div class="openapi-editor-container">
       <div class="toolbar" role="toolbar" aria-label="OpenAPI Editor Actions">
@@ -43,13 +46,29 @@ import { ThemeService } from '../../services/theme.service';
 
       <div class="editor-wrapper">
         <div class="editor-floating-actions">
-          <button mat-icon-button (click)="formatDocument()" matTooltip="Format Document" aria-label="Format Document">
+          <button
+            mat-icon-button
+            (click)="formatDocument()"
+            matTooltip="Format Document"
+            aria-label="Format Document"
+          >
             <mat-icon>format_align_left</mat-icon>
           </button>
-          <button mat-icon-button (click)="copyToClipboard()" matTooltip="Copy to Clipboard" aria-label="Copy to Clipboard">
+          <button
+            mat-icon-button
+            (click)="copyToClipboard()"
+            matTooltip="Copy to Clipboard"
+            aria-label="Copy to Clipboard"
+          >
             <mat-icon>content_copy</mat-icon>
           </button>
-          <button mat-icon-button color="warn" (click)="clearEditor()" matTooltip="Clear Editor" aria-label="Clear Editor">
+          <button
+            mat-icon-button
+            color="warn"
+            (click)="clearEditor()"
+            matTooltip="Clear Editor"
+            aria-label="Clear Editor"
+          >
             <mat-icon>delete_outline</mat-icon>
           </button>
         </div>
@@ -73,17 +92,21 @@ import { ThemeService } from '../../services/theme.service';
       </div>
     </div>
   `,
+  /** styleUrl */
   styleUrl: './openapi-editor.component.css',
+  /** changeDetection */
   changeDetection: ChangeDetectionStrategy.OnPush,
+  /** host */
   host: {
     '(document:keydown.control.s)': 'handleKeydown($event)',
     '(document:keydown.meta.s)': 'handleKeydown($event)',
-  }
+  },
 })
+/** OpenApiEditorComponent */
 export class OpenApiEditorComponent {
   /** The current OpenAPI specification content provided by the parent. */
   specContent = input.required<string>();
-  
+
   /** Indicates if WASM generation is active. */
   isExecuting = input<boolean>(false);
 
@@ -92,16 +115,16 @@ export class OpenApiEditorComponent {
 
   /** Emitted when the content changes inside the editor. */
   specContentChange = output<string>();
-  
+
   /** Emitted when the validation status/errors change. */
   validationErrorsChange = output<string[]>();
 
   /** Internal content state bound to the Monaco editor. */
   internalContent = signal('');
-  
+
   /** Current validation errors. */
   validationErrors = signal<string[]>([]);
-  
+
   /** The theme service for matching Monaco theme to app theme. */
   private themeService = inject(ThemeService);
   /** Notification service for user feedback. */
@@ -113,18 +136,27 @@ export class OpenApiEditorComponent {
 
   /** Computed options for the Monaco editor. */
   editorOptions = computed(() => ({
+    /** theme */
     theme: this.themeService.isDarkTheme() ? 'vs-dark' : 'vs',
+    /** language */
     language: this.determineLanguage(this.internalContent()),
+    /** automaticLayout */
     automaticLayout: true,
+    /** minimap */
     minimap: { enabled: false },
+    /** scrollBeyondLastLine */
     scrollBeyondLastLine: false,
+    /** wordWrap */
     wordWrap: 'on',
+    /** formatOnType */
     formatOnType: true,
+    /** formatOnPaste */
     formatOnPaste: true,
   }));
 
   /** Effect to sync the external input to the internal ngModel when it changes from outside. */
   constructor() {
+    /** effect */
     effect(() => {
       const externalContent = this.specContent();
       // Only update internal if it's actually different to prevent cursor jumping
@@ -190,9 +222,9 @@ export class OpenApiEditorComponent {
     try {
       const isJson = content.trim().startsWith('{');
       const parsed = isJson ? JSON.parse(content) : yaml.load(content);
-      
-      const formatted = isJson 
-        ? JSON.stringify(parsed, null, 2) 
+
+      const formatted = isJson
+        ? JSON.stringify(parsed, null, 2)
         : yaml.dump(parsed, { indent: 2, lineWidth: -1 });
       this.onContentChange(formatted);
       this.notificationService.success('Document formatted successfully.');

@@ -3,11 +3,7 @@ import { describe, it, expect } from 'vitest';
 
 describe('FileTreeUtil', () => {
   it('should build a nested tree from flat paths', () => {
-    const paths = [
-      'src/index.ts',
-      'src/utils/math.ts',
-      'package.json'
-    ];
+    const paths = ['src/index.ts', 'src/utils/math.ts', 'package.json'];
 
     const tree = FileTreeUtil.buildTree(paths);
 
@@ -29,12 +25,7 @@ describe('FileTreeUtil', () => {
   });
 
   it('should sort directories first then files alphabetically', () => {
-    const paths = [
-      'z-file.ts',
-      'a-folder/file.ts',
-      'a-file.ts',
-      'z-folder/file.ts'
-    ];
+    const paths = ['z-file.ts', 'a-folder/file.ts', 'a-file.ts', 'z-folder/file.ts'];
 
     const tree = FileTreeUtil.buildTree(paths);
 
@@ -45,10 +36,7 @@ describe('FileTreeUtil', () => {
   });
 
   it('should set all expanded', () => {
-     const paths = [
-      'src/a/1.ts',
-      'src/b/2.ts',
-    ];
+    const paths = ['src/a/1.ts', 'src/b/2.ts'];
     const tree = FileTreeUtil.buildTree(paths);
 
     // Initial state is expanded: true
@@ -66,7 +54,13 @@ describe('FileTreeUtil', () => {
     expect(tree[0].children![0].isExpanded).toBe(true);
 
     // Empty children branch
-    const node: FileNode = { name: 'empty', path: 'empty', isDirectory: true, isExpanded: false, depth: 0 };
+    const node: FileNode = {
+      name: 'empty',
+      path: 'empty',
+      isDirectory: true,
+      isExpanded: false,
+      depth: 0,
+    };
     FileTreeUtil.setAllExpanded([node], true);
     expect(node.isExpanded).toBe(true);
   });

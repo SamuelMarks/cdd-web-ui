@@ -10,6 +10,11 @@ import { Target, LanguageOptions } from '../models/types';
 export type LayoutOrientation = 'openapi-left' | 'openapi-right';
 
 /**
+ * State of the API documentation iframe loader.
+ */
+export type ApiDocsLoadState = 'IDLE' | 'LOADING' | 'LOADED' | 'ERROR';
+
+/**
  * State slice for general workspace settings.
  */
 export interface WorkspaceState {
@@ -23,6 +28,12 @@ export interface WorkspaceState {
   target: Target;
   /** Additional generation options mapped by language ID. */
   languageOptions: Record<string, LanguageOptions>;
+  /** Whether the API documentation pane is visible. */
+  isApiDocsVisible: boolean;
+  /** The height of the API documentation pane in pixels. */
+  apiDocsPaneHeight: number;
+  /** The current loading state of the API documentation iframe. */
+  apiDocsLoadState: ApiDocsLoadState;
 }
 
 /**

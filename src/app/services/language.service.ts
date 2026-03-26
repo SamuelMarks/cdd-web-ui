@@ -8,6 +8,7 @@ import { LANGUAGES } from '../models/constants';
  * Service to manage the available programming languages and their WebAssembly support state.
  */
 @Injectable({ providedIn: 'root' })
+/** LanguageService */
 export class LanguageService {
   /** The HTTP client instance for making requests. */
   private http = inject(HttpClient);
@@ -32,7 +33,7 @@ export class LanguageService {
             let supportKey = l.id;
             if (l.id === 'typescript') supportKey = 'ts';
             if (l.id === 'openapi') supportKey = 'cpp';
-            
+
             return {
               ...l,
               availableInWasm: supportMap[supportKey] ?? false,

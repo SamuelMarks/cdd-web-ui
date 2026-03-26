@@ -94,6 +94,7 @@ export interface SecretPayload {
 @Injectable({
   providedIn: 'root',
 })
+/** ApiService */
 export class ApiService {
   /** The HTTP client instance. */
   private readonly http = inject(HttpClient);

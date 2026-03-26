@@ -53,11 +53,11 @@ ul {
 }
 
 .node:hover {
-  background-color: rgba(var(--primary-color-rgb), 0.05);
+  background-color: color-mix(in srgb, var(--primary-color) 5%, transparent);
 }
 
 .node.active {
-  background-color: rgba(var(--primary-color-rgb), 0.15);
+  background-color: color-mix(in srgb, var(--primary-color) 15%, transparent);
   font-weight: 500;
 }
 

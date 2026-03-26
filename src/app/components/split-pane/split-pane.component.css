@@ -36,8 +36,9 @@
   transition: background-color 0.2s;
 }
 
-.resizer:hover, .resizer.resizing {
-  background-color: rgba(var(--primary-color-rgb), 0.1);
+.resizer:hover,
+.resizer.resizing {
+  background-color: color-mix(in srgb, var(--primary-color) 10%, transparent);
 }
 
 .resizer-action-top {
@@ -110,7 +111,7 @@
     right: 0;
     flex-direction: row;
   }
-  
+
   .resizer-action-top {
     position: absolute;
     left: 10px; /* Aligns with the left edge of toolbar */
@@ -122,3 +123,4 @@
     transform: rotate(90deg);
   }
 }
+.big-swap-icon { font-size: 24px; font-weight: bold; line-height: 24px; }

@@ -7,7 +7,7 @@ import {
   computed,
   effect,
   inject,
-  CUSTOM_ELEMENTS_SCHEMA
+  CUSTOM_ELEMENTS_SCHEMA,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -24,26 +24,35 @@ import { ThemeService } from '../../services/theme.service';
  */
 @Component({
   selector: 'app-code-viewer',
-  imports: [CommonModule, FormsModule, MonacoEditorModule, MatButtonModule, MatIconModule, MatTooltipModule],
+  /** imports */
+  imports: [
+    CommonModule,
+    FormsModule,
+    MonacoEditorModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+  ],
+  /** schemas */
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  /** template */
   template: `
     <div class="code-viewer-container">
       <div class="toolbar" role="toolbar" aria-label="Code Viewer Actions">
-        
         <div class="tabs-container" role="tablist">
           @for (tab of openTabs(); track tab) {
-            <div 
-              class="tab" 
+            <div
+              class="tab"
               role="tab"
               [class.active]="tab === activeFilePath()"
               [attr.aria-selected]="tab === activeFilePath()"
               (click)="selectTab(tab)"
             >
               <span [title]="tab">{{ getFilename(tab) }}</span>
-              <div 
-                class="tab-close" 
-                role="button" 
-                aria-label="Close Tab" 
+              <div
+                class="tab-close"
+                role="button"
+                aria-label="Close Tab"
                 (click)="closeTab(tab, $event)"
               >
                 <mat-icon>close</mat-icon>
@@ -53,27 +62,26 @@ import { ThemeService } from '../../services/theme.service';
         </div>
 
         <div class="actions">
-          <button 
-            mat-icon-button 
-            (click)="copyToClipboard()" 
+          <button
+            mat-icon-button
+            (click)="copyToClipboard()"
             [disabled]="!activeFilePath()"
-            matTooltip="Copy File Content" 
+            matTooltip="Copy File Content"
             aria-label="Copy to Clipboard"
           >
             <mat-icon>content_copy</mat-icon>
           </button>
-          
-          <button 
-            mat-icon-button 
-            (click)="downloadFile()" 
+
+          <button
+            mat-icon-button
+            (click)="downloadFile()"
             [disabled]="!activeFilePath()"
-            matTooltip="Download File" 
+            matTooltip="Download File"
             aria-label="Download File"
           >
             <mat-icon>download</mat-icon>
           </button>
         </div>
-
       </div>
 
       <div class="editor-wrapper">
@@ -81,25 +89,33 @@ import { ThemeService } from '../../services/theme.service';
           <!-- We intentionally don't use ngModel here to ensure strictly one-way binding -->
           <nu-monaco-editor
             [options]="editorOptions()"
-            [model]="{ value: fileContent() || '', language: determineLanguage(activeFilePath() || '') }"
+            [model]="{
+              value: fileContent() || '',
+              language: determineLanguage(activeFilePath() || ''),
+            }"
           ></nu-monaco-editor>
         } @else {
           <div class="empty-state">
             <mat-icon>code_off</mat-icon>
             <p>No file selected</p>
-            <p style="font-size: 0.8rem; margin-top: 0.5rem;">Select a file from the explorer to view its contents.</p>
+            <p style="font-size: 0.8rem; margin-top: 0.5rem;">
+              Select a file from the explorer to view its contents.
+            </p>
           </div>
         }
       </div>
     </div>
   `,
+  /** styleUrl */
   styleUrl: './code-viewer.component.css',
+  /** changeDetection */
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
+/** CodeViewerComponent */
 export class CodeViewerComponent {
   /** The path of the currently active file to view. */
   activeFilePath = input<string | null>(null);
-  
+
   /** The content of the currently active file. */
   fileContent = input<string | null>(null);
 
@@ -116,12 +132,19 @@ export class CodeViewerComponent {
 
   /** Computed options for the Monaco editor. */
   editorOptions = computed(() => ({
+    /** theme */
     theme: this.themeService.isDarkTheme() ? 'vs-dark' : 'vs',
+    /** readOnly */
     readOnly: true,
+    /** automaticLayout */
     automaticLayout: true,
+    /** minimap */
     minimap: { enabled: false },
+    /** scrollBeyondLastLine */
     scrollBeyondLastLine: false,
+    /** wordWrap */
     wordWrap: 'on',
+    /** renderLineHighlight */
     renderLineHighlight: 'none',
   }));
 
@@ -130,12 +153,15 @@ export class CodeViewerComponent {
    */
   constructor() {
     // Automatically open a tab if a new active file path is provided externally
-    effect(() => {
-      const activePath = this.activeFilePath();
-      if (activePath) {
-        this.ensureTabIsOpen(activePath);
-      }
-    }, { allowSignalWrites: true });
+    effect(
+      () => {
+        const activePath = this.activeFilePath();
+        if (activePath) {
+          this.ensureTabIsOpen(activePath);
+        }
+      },
+      { allowSignalWrites: true },
+    );
   }
 
   /**
@@ -143,7 +169,7 @@ export class CodeViewerComponent {
    */
   private ensureTabIsOpen(path: string): void {
     if (!this.openTabs().includes(path)) {
-      this.openTabs.update(tabs => [...tabs, path]);
+      this.openTabs.update((tabs) => [...tabs, path]);
     }
   }
 
@@ -164,9 +190,9 @@ export class CodeViewerComponent {
    */
   closeTab(path: string, event: MouseEvent): void {
     event.stopPropagation();
-    
+
     const tabs = this.openTabs();
-    const newTabs = tabs.filter(t => t !== path);
+    const newTabs = tabs.filter((t) => t !== path);
     this.openTabs.set(newTabs);
 
     // If we closed the currently active tab, we need to pick a new one
@@ -176,7 +202,7 @@ export class CodeViewerComponent {
         this.fileSelected.emit(newTabs[newTabs.length - 1]);
       } else {
         // Nothing left to select
-        this.fileSelected.emit(''); 
+        this.fileSelected.emit('');
       }
     }
   }
@@ -187,7 +213,7 @@ export class CodeViewerComponent {
   async copyToClipboard(): Promise<void> {
     const content = this.fileContent();
     if (!content) return;
-    
+
     try {
       await navigator.clipboard.writeText(content);
       this.notificationService.success('Copied to clipboard.');
@@ -202,7 +228,7 @@ export class CodeViewerComponent {
   downloadFile(): void {
     const content = this.fileContent();
     const path = this.activeFilePath();
-    
+
     if (!content) return;
     // We already check path indirectly because if activeFilePath is null, button is disabled.
     // But for type safety/coverage:
@@ -211,12 +237,12 @@ export class CodeViewerComponent {
     const filename = this.getFilename(path);
     const blob = new Blob([content], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
-    
+
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
     a.click();
-    
+
     window.URL.revokeObjectURL(url);
     this.notificationService.success(`Downloading ${filename}...`);
   }
@@ -234,7 +260,7 @@ export class CodeViewerComponent {
    */
   determineLanguage(path: string): string {
     const ext = path.split('.').pop()?.toLowerCase();
-    
+
     switch (ext) {
       case 'ts':
       case 'tsx':

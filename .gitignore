@@ -1,3 +1,6 @@
+update_*
+patch_*
+*.orig
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
 # Compiled output
@@ -66,3 +69,26 @@ public/assets/wasm/*.wasm
 /documentation
 /parse-coverage*.mjs
 /update.patch
+
+# Temporary development scripts and patches
+/fix-*.js
+/create-*.js
+/replace-*.js
+/test-*.js
+/test_*.js
+/__mock_*.js
+/patch*.js
+/patch*.txt
+/update*.patch
+/update*.py
+/update*.txt
+
+# Temporary files and backups
+*.bak
+*.tmp
+*.orig
+
+# WebAssembly and native temporary files
+*.pkg
+*.c
+/*.wasm

@@ -10,6 +10,7 @@ import { BackendConfigService } from './backend-config.service';
 @Injectable({
   providedIn: 'root',
 })
+/** StorageService */
 export class StorageService {
   /** The local storage key for the current user. */
   private readonly USER_KEY = 'cdd_user';

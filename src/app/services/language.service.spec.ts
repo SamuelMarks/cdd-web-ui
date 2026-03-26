@@ -73,4 +73,28 @@ describe('LanguageService', () => {
     expect(langs.find((l) => l.id === 'typescript')?.availableInWasm).toBe(true);
     expect(langs.find((l) => l.id === 'java')?.availableInWasm).toBe(false);
   });
+
+  it('should load wasm support and handle openapi alias', async () => {
+    // Add openapi to the languages list before testing
+    service.languages.set([
+      ...service.languages(),
+      {
+        id: 'openapi',
+        name: 'OpenAPI',
+        repo: 'cdd-cpp',
+        availableInWasm: false,
+        selectedByDefault: false,
+        iconUrl: '',
+      },
+    ]);
+    const promise = service.loadWasmSupport();
+
+    const req = httpMock.expectOne('/assets/wasm-support.json');
+    req.flush({
+      cpp: true,
+    });
+
+    await promise;
+    expect(service.languages().find((l) => l.id === 'openapi')?.availableInWasm).toBe(true);
+  });
 });

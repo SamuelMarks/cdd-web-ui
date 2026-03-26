@@ -6,6 +6,7 @@ import { Injectable } from '@angular/core';
 @Injectable({
   providedIn: 'root',
 })
+/** WasmLoaderService */
 export class WasmLoaderService {
   /** Cache of loaded WASM binaries to prevent re-fetching. */
   private binaryCache = new Map<string, ArrayBuffer>();
@@ -24,27 +25,39 @@ export class WasmLoaderService {
     }
 
     try {
-      // Switch to GitHub Releases CDN for WebAssembly payloads
-      const response = await fetch(`https://github.com/SamuelMarks/cdd-web-ui/releases/download/wasm-v0.0.1/${ecosystem}.wasm`);
-      
+      // Load from local assets for offline support
+      const response = await fetch(`/assets/wasm/${ecosystem}.wasm`);
+
       if (!response.ok) {
         if (response.status === 404) {
-          throw new Error(`WASM binary not found for ${ecosystem}. Ensure it is generated and available in public/assets/wasm.`);
+          throw new Error(
+            `WASM binary not found for ${ecosystem}. Ensure it is generated and available in public/assets/wasm.`,
+          );
         }
         throw new Error(`Failed to load WASM binary for ${ecosystem}: ${response.statusText}`);
       }
 
       // Ensure the content type is somewhat correct, though local dev servers might serve it as octet-stream
       const contentType = response.headers.get('content-type');
-      if (contentType && !contentType.includes('wasm') && !contentType.includes('application/octet-stream')) {
+      if (
+        contentType &&
+        !contentType.includes('wasm') &&
+        !contentType.includes('application/octet-stream')
+      ) {
         console.warn(`Unexpected content-type for WASM binary: ${contentType}. Continuing anyway.`);
       }
 
       const buffer = await response.arrayBuffer();
-      
+
       // Basic check for WASM magic number (\0asm)
       const view = new Uint8Array(buffer);
-      if (view.length < 4 || view[0] !== 0x00 || view[1] !== 0x61 || view[2] !== 0x73 || view[3] !== 0x6d) {
+      if (
+        view.length < 4 ||
+        view[0] !== 0x00 ||
+        view[1] !== 0x61 ||
+        view[2] !== 0x73 ||
+        view[3] !== 0x6d
+      ) {
         throw new Error(`Invalid WASM binary downloaded for ${ecosystem}: Missing magic number.`);
       }
 

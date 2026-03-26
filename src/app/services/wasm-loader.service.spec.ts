@@ -23,7 +23,7 @@ describe('WasmLoaderService', () => {
 
   it('should load a valid WASM binary and cache it', async () => {
     const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
-    
+
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'content-type': 'application/wasm' }),
@@ -47,7 +47,9 @@ describe('WasmLoaderService', () => {
       statusText: 'Not Found',
     } as unknown as Response);
 
-    await expect(service.loadWasmBinary('cdd-missing')).rejects.toThrow(/WASM binary not found for cdd-missing/);
+    await expect(service.loadWasmBinary('cdd-missing')).rejects.toThrow(
+      /WASM binary not found for cdd-missing/,
+    );
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -58,7 +60,9 @@ describe('WasmLoaderService', () => {
       statusText: 'Internal Server Error',
     } as unknown as Response);
 
-    await expect(service.loadWasmBinary('cdd-error')).rejects.toThrow(/Failed to load WASM binary for cdd-error: Internal Server Error/);
+    await expect(service.loadWasmBinary('cdd-error')).rejects.toThrow(
+      /Failed to load WASM binary for cdd-error: Internal Server Error/,
+    );
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -74,7 +78,9 @@ describe('WasmLoaderService', () => {
 
     const buffer = await service.loadWasmBinary('cdd-weird');
     expect(new Uint8Array(buffer)).toEqual(mockWasmData);
-    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Unexpected content-type for WASM binary'));
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Unexpected content-type for WASM binary'),
+    );
 
     consoleWarnSpy.mockRestore();
   });
@@ -88,9 +94,11 @@ describe('WasmLoaderService', () => {
       arrayBuffer: () => Promise.resolve(mockInvalidData.buffer),
     } as unknown as Response);
 
-    await expect(service.loadWasmBinary('cdd-invalid')).rejects.toThrow(/Invalid WASM binary downloaded for cdd-invalid: Missing magic number./);
+    await expect(service.loadWasmBinary('cdd-invalid')).rejects.toThrow(
+      /Invalid WASM binary downloaded for cdd-invalid: Missing magic number./,
+    );
   });
-  
+
   it('should clear the cache', async () => {
     const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d]);
     global.fetch = vi.fn().mockResolvedValue({

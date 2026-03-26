@@ -12,6 +12,7 @@ export default defineConfig({
     exclude: ['cdd-ctl-wasm-sdk'],
   },
   test: {
+    watch: false,
     globals: true,
     environment: 'jsdom',
     setupFiles: ['setup.ts'],
@@ -26,10 +27,7 @@ export default defineConfig({
       reporter: ['text', 'json', 'html', 'json-summary'],
       all: true,
       include: ['src/**/*.ts'],
-      exclude: [
-        'src/**/*.spec.ts',
-        'src/**/*.mock.ts',
-      ],
+      exclude: ['src/**/*.spec.ts', 'src/**/*.mock.ts'],
       thresholds: {
         statements: 100,
         branches: 100,

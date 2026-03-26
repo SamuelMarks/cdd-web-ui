@@ -28,6 +28,11 @@
                 "glob": "**/*",
                 "input": "node_modules/monaco-editor/min/vs",
                 "output": "/assets/vs"
+              },
+              {
+                "glob": "**/*",
+                "input": "../cdd-docs-ui/dist",
+                "output": "/docs-ui"
               }
             ],
             "styles": ["src/styles.scss"]
@@ -75,11 +80,16 @@
               "buildTarget": "tmp-app:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          }
         },
         "test": {
           "builder": "@angular/build:unit-test",
-          "options": {}
+          "options": {
+            "watch": false
+          }
         }
       }
     }

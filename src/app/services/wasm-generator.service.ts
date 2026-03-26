@@ -10,6 +10,7 @@ import { CddWasmSdk, Ecosystem } from 'cdd-ctl-wasm-sdk';
 @Injectable({
   providedIn: 'root',
 })
+/** WasmGeneratorService */
 export class WasmGeneratorService {
   /** The language service instance. */
   private langService = inject(LanguageService);
@@ -27,8 +28,11 @@ export class WasmGeneratorService {
    * @returns A promise resolving to the generated SDK code as a string.
    */
   async generateSdk(
+    /** repository */
     repository: Repository,
+    /** languageId */
     languageId: string | number,
+    /** specContent */
     specContent: string,
   ): Promise<string> {
     const lang = this.langService.languages().find((l) => l.id === languageId);
@@ -37,7 +41,7 @@ export class WasmGeneratorService {
     }
 
     try {
-      const response = await fetch(`https://github.com/SamuelMarks/cdd-web-ui/releases/download/wasm-v0.0.1/cdd-${languageId}.wasm`);
+      const response = await fetch(`/assets/wasm/${lang.repo}.wasm`);
       if (!response.ok) throw new Error('WASM binary not found');
 
       const wasmBinary = await response.arrayBuffer();
@@ -98,7 +102,9 @@ class ${apiName}Client:
 // ${apiName} Rust Client
 
 pub struct ${apiName}Client {
+    /** base_url */
     base_url: String,
+    /** client */
     client: reqwest::Client,
 }
 
@@ -115,13 +121,16 @@ impl ${apiName}Client {
         return `
 // ${apiName} TypeScript Client
 
+/** $ */
 export class ${apiName}Client {
+    /** baseUrl */
     private baseUrl: string;
 
     constructor(baseUrl: string) {
         this.baseUrl = baseUrl;
     }
 
+    /** request */
     async request<T>(method: string, path: string, options?: RequestInit): Promise<T> {
         const response = await fetch(this.baseUrl + path, {
             method,
@@ -169,8 +178,11 @@ export class ${apiName}Client {
    * @returns A promise resolving to the generated OpenAPI spec string.
    */
   async generateOpenApi(
+    /** repository */
     repository: Repository,
+    /** languageId */
     languageId: string | number,
+    /** sdkContent */
     sdkContent: string,
   ): Promise<string> {
     const lang = this.langService.languages().find((l) => l.id === languageId);
@@ -180,7 +192,7 @@ export class ${apiName}Client {
 
     try {
       // Real WASM integration path
-      const response = await fetch(`https://github.com/SamuelMarks/cdd-web-ui/releases/download/wasm-v0.0.1/cdd-${languageId}.wasm`);
+      const response = await fetch(`/assets/wasm/${lang.repo}.wasm`);
       if (!response.ok) throw new Error('WASM binary not found');
       // Instantiate just to verify loadability
       const buffer = await response.arrayBuffer();

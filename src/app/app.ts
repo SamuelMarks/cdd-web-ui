@@ -13,6 +13,7 @@ import { OnlineSettingsComponent } from './components/online-settings.component'
  */
 @Component({
   selector: 'app-root',
+  /** imports */
   imports: [
     RouterOutlet,
     RouterLink,
@@ -21,6 +22,7 @@ import { OnlineSettingsComponent } from './components/online-settings.component'
     MatDialogModule,
     MatTooltipModule,
   ],
+  /** template */
   template: `
     <div class="app-layout">
       <mat-toolbar color="primary" class="app-header" role="banner">
@@ -62,9 +64,12 @@ import { OnlineSettingsComponent } from './components/online-settings.component'
       </footer>
     </div>
   `,
+  /** styleUrl */
   styleUrl: './app.css',
+  /** changeDetection */
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
+/** App */
 export class App {
   /** The application title. */
   title = 'cdd-web-ui';

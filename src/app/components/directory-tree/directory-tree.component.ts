@@ -19,16 +19,30 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
  */
 @Component({
   selector: 'app-directory-tree',
+  /** imports */
   imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule],
+  /** template */
   template: `
     <div class="directory-tree-container">
       <div class="toolbar" role="toolbar" aria-label="Directory Tree Actions">
         <h2 class="toolbar-title">Explorer</h2>
-        
-        <button mat-icon-button (click)="expandAll()" matTooltip="Expand All" aria-label="Expand All" [disabled]="!hasFiles()">
+
+        <button
+          mat-icon-button
+          (click)="expandAll()"
+          matTooltip="Expand All"
+          aria-label="Expand All"
+          [disabled]="!hasFiles()"
+        >
           <mat-icon>unfold_more</mat-icon>
         </button>
-        <button mat-icon-button (click)="collapseAll()" matTooltip="Collapse All" aria-label="Collapse All" [disabled]="!hasFiles()">
+        <button
+          mat-icon-button
+          (click)="collapseAll()"
+          matTooltip="Collapse All"
+          aria-label="Collapse All"
+          [disabled]="!hasFiles()"
+        >
           <mat-icon>unfold_less</mat-icon>
         </button>
       </div>
@@ -44,12 +58,16 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
           </div>
         } @else if (hasFiles()) {
           <!-- Use recursive template for the tree -->
-          <ng-container *ngTemplateOutlet="treeNodeTemplate; context: { $implicit: treeNodes() }"></ng-container>
+          <ng-container
+            *ngTemplateOutlet="treeNodeTemplate; context: { $implicit: treeNodes() }"
+          ></ng-container>
         } @else {
           <div class="empty-state">
             <mat-icon>snippet_folder</mat-icon>
             <p>No files generated.</p>
-            <p style="font-size: 0.8rem; margin-top: 0.5rem;">Click 'Run' to generate SDK files from the OpenAPI spec.</p>
+            <p style="font-size: 0.8rem; margin-top: 0.5rem;">
+              Click 'Run' to generate SDK files from the OpenAPI spec.
+            </p>
           </div>
         }
       </div>
@@ -59,7 +77,11 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
     <ng-template #treeNodeTemplate let-nodes>
       <ul>
         @for (node of nodes; track node.path) {
-          <li role="treeitem" [attr.aria-expanded]="node.isDirectory ? node.isExpanded : null" [attr.aria-selected]="node.path === activeFilePath()">
+          <li
+            role="treeitem"
+            [attr.aria-expanded]="node.isDirectory ? node.isExpanded : null"
+            [attr.aria-selected]="node.path === activeFilePath()"
+          >
             <div
               class="node"
               [class.active]="!node.isDirectory && node.path === activeFilePath()"
@@ -74,18 +96,23 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
               }
               <span>{{ node.name }}</span>
             </div>
-            
+
             @if (node.isDirectory && node.isExpanded && node.children) {
-              <ng-container *ngTemplateOutlet="treeNodeTemplate; context: { $implicit: node.children }"></ng-container>
+              <ng-container
+                *ngTemplateOutlet="treeNodeTemplate; context: { $implicit: node.children }"
+              ></ng-container>
             }
           </li>
         }
       </ul>
     </ng-template>
   `,
+  /** styleUrl */
   styleUrl: './directory-tree.component.css',
+  /** changeDetection */
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
+/** DirectoryTreeComponent */
 export class DirectoryTreeComponent {
   /** The flat list of generated files from the store. */
   files = input.required<GeneratedFile[]>();
@@ -108,17 +135,20 @@ export class DirectoryTreeComponent {
    */
   constructor() {
     // Rebuild tree when files input changes
-    effect(() => {
-      const currentFiles = this.files();
-      if (currentFiles.length > 0) {
-        const paths = currentFiles.map(f => f.path);
-        // We capture existing expansion state if we wanted to be perfectly stateful across regenerations
-        // For simplicity and speed, rebuilding tree sets everything to expanded by default in the util
-        this.treeNodes.set(FileTreeUtil.buildTree(paths));
-      } else {
-        this.treeNodes.set([]);
-      }
-    }, { allowSignalWrites: true });
+    effect(
+      () => {
+        const currentFiles = this.files();
+        if (currentFiles.length > 0) {
+          const paths = currentFiles.map((f) => f.path);
+          // We capture existing expansion state if we wanted to be perfectly stateful across regenerations
+          // For simplicity and speed, rebuilding tree sets everything to expanded by default in the util
+          this.treeNodes.set(FileTreeUtil.buildTree(paths));
+        } else {
+          this.treeNodes.set([]);
+        }
+      },
+      { allowSignalWrites: true },
+    );
   }
 
   /**
@@ -128,10 +158,10 @@ export class DirectoryTreeComponent {
    */
   onNodeClick(node: FileNode): void {
     if (node.isDirectory) {
-      // Toggle expansion natively by modifying the reference 
+      // Toggle expansion natively by modifying the reference
       // and forcing a signal update to trigger change detection
       node.isExpanded = !node.isExpanded;
-      this.treeNodes.update(nodes => [...nodes]);
+      this.treeNodes.update((nodes) => [...nodes]);
     } else {
       this.fileSelected.emit(node.path);
     }

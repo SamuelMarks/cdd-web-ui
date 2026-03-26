@@ -16,9 +16,9 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => MockMonacoEditorComponent),
-      multi: true
-    }
-  ]
+      multi: true,
+    },
+  ],
 })
 class MockMonacoEditorComponent implements ControlValueAccessor {
   writeValue(obj: unknown): void {}
@@ -28,37 +28,42 @@ class MockMonacoEditorComponent implements ControlValueAccessor {
 
 @Component({
   template: `
-    <app-openapi-editor 
+    <app-openapi-editor
       [specContent]="specContent()"
       (specContentChange)="onContentChange($event)"
-      (validationErrorsChange)="onErrorsChange($event)">
+      (validationErrorsChange)="onErrorsChange($event)"
+    >
     </app-openapi-editor>
   `,
-  imports: [OpenApiEditorComponent]
+  imports: [OpenApiEditorComponent],
 })
 class TestHostComponent {
   specContent = signal('openapi: 3.0.0');
   lastContent = '';
   lastErrors: string[] = [];
-  
-  onContentChange(content: string) { this.lastContent = content; }
-  onErrorsChange(errors: string[]) { this.lastErrors = errors; }
+
+  onContentChange(content: string) {
+    this.lastContent = content;
+  }
+  onErrorsChange(errors: string[]) {
+    this.lastErrors = errors;
+  }
 }
 
 describe('OpenApiEditorComponent', () => {
   let component: OpenApiEditorComponent;
   let fixture: ComponentFixture<OpenApiEditorComponent>;
-  let notificationServiceMock: { error: import("vitest").Mock; success: import("vitest").Mock };
-  let themeServiceMock: { isDarkTheme: import("@angular/core").WritableSignal<boolean> };
+  let notificationServiceMock: { error: import('vitest').Mock; success: import('vitest').Mock };
+  let themeServiceMock: { isDarkTheme: import('@angular/core').WritableSignal<boolean> };
 
   beforeEach(async () => {
     notificationServiceMock = {
       success: vi.fn(),
       error: vi.fn(),
     };
-    
+
     themeServiceMock = {
-      isDarkTheme: signal(true)
+      isDarkTheme: signal(true),
     };
 
     await TestBed.configureTestingModule({
@@ -66,24 +71,31 @@ describe('OpenApiEditorComponent', () => {
       providers: [
         { provide: NotificationService, useValue: notificationServiceMock },
         { provide: ThemeService, useValue: themeServiceMock },
-      ]
+      ],
     })
-    // Override the import of MonacoEditorModule to use our mock
-    .overrideComponent(OpenApiEditorComponent, {
-      remove: { imports: [ /* we would remove the real one here but standalone makes it tricky, instead we override the whole template if needed, or we just rely on NO_ERRORS_SCHEMA or mock component. Let's use override to swap the component import */ ] },
-      add: { imports: [MockMonacoEditorComponent] }
-    })
-    .compileComponents();
+      // Override the import of MonacoEditorModule to use our mock
+      .overrideComponent(OpenApiEditorComponent, {
+        remove: {
+          imports: [
+            /* we would remove the real one here but standalone makes it tricky, instead we override the whole template if needed, or we just rely on NO_ERRORS_SCHEMA or mock component. Let's use override to swap the component import */
+          ],
+        },
+        add: { imports: [MockMonacoEditorComponent] },
+      })
+      .compileComponents();
 
     // Re-override properly by clearing the real import
     TestBed.overrideComponent(OpenApiEditorComponent, {
       remove: { imports: [MonacoEditorModule] },
-      add: { imports: [MockMonacoEditorComponent] }
+      add: { imports: [MockMonacoEditorComponent] },
     });
 
     fixture = TestBed.createComponent(OpenApiEditorComponent);
     component = fixture.componentInstance;
-    fixture.componentRef.setInput('specContent', 'openapi: 3.0.0\ninfo:\n  title: Test\n  version: "1.0"\npaths: {}');
+    fixture.componentRef.setInput(
+      'specContent',
+      'openapi: 3.0.0\ninfo:\n  title: Test\n  version: "1.0"\npaths: {}',
+    );
     fixture.detectChanges();
   });
 
@@ -100,28 +112,32 @@ describe('OpenApiEditorComponent', () => {
   });
 
   it('should format valid YAML document', () => {
-     component.internalContent.set('openapi: "3.0.0"\ninfo: \n  title: "test"\n  version: "1"');
-     component.formatDocument();
-     expect(notificationServiceMock.success).toHaveBeenCalledWith('Document formatted successfully.');
-     expect(component.internalContent()).toContain('openapi: 3.0.0'); // formatted by js-yaml
+    component.internalContent.set('openapi: "3.0.0"\ninfo: \n  title: "test"\n  version: "1"');
+    component.formatDocument();
+    expect(notificationServiceMock.success).toHaveBeenCalledWith(
+      'Document formatted successfully.',
+    );
+    expect(component.internalContent()).toContain('openapi: 3.0.0'); // formatted by js-yaml
   });
 
   it('should format valid JSON document', () => {
-     component.internalContent.set('{"openapi":"3.0.0","info":{"title":"test","version":"1"}}');
-     component.formatDocument();
-     expect(notificationServiceMock.success).toHaveBeenCalledWith('Document formatted successfully.');
-     expect(component.internalContent()).toContain('{\n  "openapi": "3.0.0"'); // nicely formatted JSON
+    component.internalContent.set('{"openapi":"3.0.0","info":{"title":"test","version":"1"}}');
+    component.formatDocument();
+    expect(notificationServiceMock.success).toHaveBeenCalledWith(
+      'Document formatted successfully.',
+    );
+    expect(component.internalContent()).toContain('{\n  "openapi": "3.0.0"'); // nicely formatted JSON
   });
 
   it('should show error when formatting invalid document', () => {
-     component.internalContent.set('{ "openapi": "3.0.0", "info": }');
-     component.formatDocument();
-     expect(notificationServiceMock.error).toHaveBeenCalledWith('Cannot format invalid document.');
+    component.internalContent.set('{ "openapi": "3.0.0", "info": }');
+    component.formatDocument();
+    expect(notificationServiceMock.error).toHaveBeenCalledWith('Cannot format invalid document.');
   });
 
   it('should clear editor', () => {
-     component.clearEditor();
-     expect(component.internalContent()).toBe('');
+    component.clearEditor();
+    expect(component.internalContent()).toBe('');
   });
 
   it('should copy to clipboard on success', async () => {
@@ -130,7 +146,7 @@ describe('OpenApiEditorComponent', () => {
         writeText: vi.fn().mockImplementation(() => Promise.resolve()),
       },
     });
-    
+
     component.internalContent.set('test');
     await component.copyToClipboard();
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test');
@@ -143,29 +159,29 @@ describe('OpenApiEditorComponent', () => {
         writeText: vi.fn().mockImplementation(() => Promise.reject('error')),
       },
     });
-    
+
     component.internalContent.set('test');
     await component.copyToClipboard();
     expect(notificationServiceMock.error).toHaveBeenCalledWith('Failed to copy to clipboard.');
   });
 
   it('should do nothing on format if empty', () => {
-      component.internalContent.set('   ');
-      component.formatDocument();
-      expect(notificationServiceMock.success).not.toHaveBeenCalled();
-      expect(notificationServiceMock.error).not.toHaveBeenCalled();
+    component.internalContent.set('   ');
+    component.formatDocument();
+    expect(notificationServiceMock.success).not.toHaveBeenCalled();
+    expect(notificationServiceMock.error).not.toHaveBeenCalled();
   });
-  
+
   it('should do nothing on copy if empty', async () => {
-      component.internalContent.set('');
-      await component.copyToClipboard();
-      expect(notificationServiceMock.success).not.toHaveBeenCalled();
+    component.internalContent.set('');
+    await component.copyToClipboard();
+    expect(notificationServiceMock.success).not.toHaveBeenCalled();
   });
 
   it('should capture editor init', () => {
-      const mockEditor = { id: 1 };
-      component.onEditorInit(mockEditor);
-      expect((component as unknown as HTMLElement).editorInstance).toBe(mockEditor);
+    const mockEditor = { id: 1 };
+    component.onEditorInit(mockEditor);
+    expect((component as unknown as HTMLElement).editorInstance).toBe(mockEditor);
   });
 
   it('should correctly configure editor options based on theme', () => {
@@ -189,7 +205,7 @@ describe('OpenApiEditorComponent', () => {
     // Now trigger external to be 'same'
     fixture.componentRef.setInput('specContent', 'same');
     fixture.detectChanges();
-    
+
     // Should be 'same' (not reset or anything)
     expect(component.internalContent()).toBe('same');
   });
@@ -198,9 +214,9 @@ describe('OpenApiEditorComponent', () => {
     const emitSpy = vi.spyOn(component.runClicked, 'emit');
     const event = new KeyboardEvent('keydown', { key: 's', shiftKey: false, ctrlKey: true });
     vi.spyOn(event, 'preventDefault');
-    
+
     component.handleKeydown(event);
-    
+
     expect(event.preventDefault).toHaveBeenCalled();
     expect(emitSpy).toHaveBeenCalled();
   });
@@ -209,9 +225,9 @@ describe('OpenApiEditorComponent', () => {
     const emitSpy = vi.spyOn(component.runClicked, 'emit');
     const event = new KeyboardEvent('keydown', { key: 's', shiftKey: true, ctrlKey: true });
     vi.spyOn(event, 'preventDefault');
-    
+
     component.handleKeydown(event);
-    
+
     expect(event.preventDefault).not.toHaveBeenCalled();
     expect(emitSpy).not.toHaveBeenCalled();
   });
@@ -220,9 +236,9 @@ describe('OpenApiEditorComponent', () => {
     const emitSpy = vi.spyOn(component.runClicked, 'emit');
     const event = new KeyboardEvent('keydown', { key: 'a', shiftKey: false, ctrlKey: true });
     vi.spyOn(event, 'preventDefault');
-    
+
     component.handleKeydown(event);
-    
+
     expect(event.preventDefault).not.toHaveBeenCalled();
     expect(emitSpy).not.toHaveBeenCalled();
   });
@@ -231,10 +247,9 @@ describe('OpenApiEditorComponent', () => {
     const emitSpy = vi.spyOn(component.runClicked, 'emit');
     fixture.componentRef.setInput('isExecuting', true);
     const event = new KeyboardEvent('keydown', { key: 's', shiftKey: false, ctrlKey: true });
-    
+
     component.handleKeydown(event);
-    
+
     expect(emitSpy).not.toHaveBeenCalled();
   });
-
 });

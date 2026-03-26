@@ -13,6 +13,7 @@ import { ApiService } from '../services/api.service';
  */
 @Component({
   selector: 'app-online-settings',
+  /** imports */
   imports: [
     ReactiveFormsModule,
     MatDialogModule,
@@ -21,6 +22,7 @@ import { ApiService } from '../services/api.service';
     MatInputModule,
     MatIconModule,
   ],
+  /** template */
   template: `
     <h2 mat-dialog-title id="dialog-title" i18n="@@onlineSettingsTitle">Online Mode Settings</h2>
     <mat-dialog-content>
@@ -139,6 +141,7 @@ import { ApiService } from '../services/api.service';
       <button mat-button mat-dialog-close aria-label="Close dialog" i18n="@@closeBtn">Close</button>
     </mat-dialog-actions>
   `,
+  /** styles */
   styles: [
     `
       .full-width {
@@ -198,6 +201,7 @@ import { ApiService } from '../services/api.service';
       }
     `,
   ],
+  /** changeDetection */
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 /**
@@ -221,12 +225,15 @@ export class OnlineSettingsComponent {
 
   /** Form for setting backend URL. */
   urlForm = this.fb.group({
+    /** url */
     url: [this.config.backendUrl() || '', Validators.required],
   });
 
   /** Form for authentication. */
   authForm = this.fb.group({
+    /** username */
     username: ['', Validators.required],
+    /** password */
     password: ['', Validators.required],
   });
 

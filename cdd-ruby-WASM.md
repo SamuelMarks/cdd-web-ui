@@ -1,9 +1,11 @@
 # WASM Analysis for cdd-ruby
 
 ## 1. Why a WASM isn't produced
+
 The project is built in ruby (or another ecosystem) and does not contain a `Cargo.toml` file at its root. The centralized build script (`../cdd-ctl/scripts/build-wasm-all.mjs`) currently only attempts to run `cargo build` for projects containing a `Cargo.toml`. Since it's missing, the build script silently skips compilation and injects a dummy WASM stub instead.
 
 ## 2. What changes need to be made to produce a WASM
+
 To produce a WASM binary for ruby, you must either rewrite the generator in a WASM-friendly language (like Rust, C, C++, or Go) or find an ecosystem-specific compiler that targets WASI. Then, update the `build-wasm-all.mjs` script to invoke this specific toolchain instead of skipping the directory.
 
 ## 3. 300-Step Plan
@@ -308,4 +310,3 @@ To produce a WASM binary for ruby, you must either rewrite the generator in a WA
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-ruby WASM (Step 298)
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-ruby WASM (Step 299)
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-ruby WASM (Step 300)
-

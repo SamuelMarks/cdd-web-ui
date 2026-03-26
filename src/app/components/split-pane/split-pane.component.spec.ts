@@ -9,7 +9,7 @@ describe('SplitPaneComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SplitPaneComponent]
+      imports: [SplitPaneComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SplitPaneComponent);
@@ -34,7 +34,7 @@ describe('SplitPaneComponent', () => {
 
   it('should set isDragging to false on mouseup/mouseleave', () => {
     component.isDragging.set(true);
-    
+
     const container = fixture.debugElement.query(By.css('.split-pane-container'));
     container.triggerEventHandler('mouseup', new MouseEvent('mouseup'));
     expect(component.isDragging()).toBe(false);
@@ -54,21 +54,26 @@ describe('SplitPaneComponent', () => {
   });
 
   it('should return early if container is missing during drag', () => {
-     component.isDragging.set(true);
-     const container = fixture.nativeElement.querySelector('.split-pane-container');
-     container.parentNode.removeChild(container);
-     
-     component.onDrag(new MouseEvent('mousemove'));
-     expect(component.splitPos()).toBe(50);
+    component.isDragging.set(true);
+    const container = fixture.nativeElement.querySelector('.split-pane-container');
+    container.parentNode.removeChild(container);
+
+    component.onDrag(new MouseEvent('mousemove'));
+    expect(component.splitPos()).toBe(50);
   });
 
   it('should update splitPos vertically if mobile', () => {
     component.isDragging.set(true);
     component.isMobile.set(true);
-    
+
     const containerDebug = fixture.debugElement.query(By.css('.split-pane-container'));
-    containerDebug.nativeElement.getBoundingClientRect = () => ({ left: 0, width: 1000, top: 0, height: 1000 });
-    
+    containerDebug.nativeElement.getBoundingClientRect = () => ({
+      left: 0,
+      width: 1000,
+      top: 0,
+      height: 1000,
+    });
+
     component.onDrag(new MouseEvent('mousemove', { clientY: 600 }));
     expect(component.splitPos()).toBe(60);
   });
@@ -76,10 +81,15 @@ describe('SplitPaneComponent', () => {
   it('should update splitPos horizontally if not mobile', () => {
     component.isDragging.set(true);
     component.isMobile.set(false);
-    
+
     const containerDebug = fixture.debugElement.query(By.css('.split-pane-container'));
-    containerDebug.nativeElement.getBoundingClientRect = () => ({ left: 0, width: 1000, top: 0, height: 1000 });
-    
+    containerDebug.nativeElement.getBoundingClientRect = () => ({
+      left: 0,
+      width: 1000,
+      top: 0,
+      height: 1000,
+    });
+
     component.onDrag(new MouseEvent('mousemove', { clientX: 700 }));
     expect(component.splitPos()).toBe(70);
   });
@@ -87,18 +97,21 @@ describe('SplitPaneComponent', () => {
   it('should clamp splitPos to 20% and 80%', () => {
     component.isDragging.set(true);
     component.isMobile.set(false);
-    
+
     const containerDebug = fixture.debugElement.query(By.css('.split-pane-container'));
-    containerDebug.nativeElement.getBoundingClientRect = () => ({ left: 0, width: 1000, top: 0, height: 1000 });
-    
+    containerDebug.nativeElement.getBoundingClientRect = () => ({
+      left: 0,
+      width: 1000,
+      top: 0,
+      height: 1000,
+    });
+
     component.onDrag(new MouseEvent('mousemove', { clientX: 100 })); // 10%
     expect(component.splitPos()).toBe(20); // Clamped
 
     component.onDrag(new MouseEvent('mousemove', { clientX: 900 })); // 90%
     expect(component.splitPos()).toBe(80); // Clamped
   });
-
-
 
   it('should checkMobile safely', () => {
     window.innerWidth = 500;
@@ -110,45 +123,42 @@ describe('SplitPaneComponent', () => {
     expect(component.isMobile()).toBe(false);
   });
 
-
-
   it('should emit swapClicked on shift+s shortcut', () => {
-     let emitted = false;
-     component.swapClicked.subscribe(() => emitted = true);
+    let emitted = false;
+    component.swapClicked.subscribe(() => (emitted = true));
 
-     const event = new KeyboardEvent('keydown', { key: 'S', shiftKey: true });
-     component.handleKeydown(event);
-     expect(emitted).toBe(true);
+    const event = new KeyboardEvent('keydown', { key: 'S', shiftKey: true });
+    component.handleKeydown(event);
+    expect(emitted).toBe(true);
   });
 
   it('should not emit swapClicked if isExecuting is true', () => {
-     let emitted = false;
-     component.swapClicked.subscribe(() => emitted = true);
-     fixture.componentRef.setInput('isExecuting', true);
+    let emitted = false;
+    component.swapClicked.subscribe(() => (emitted = true));
+    fixture.componentRef.setInput('isExecuting', true);
 
-     const event = new KeyboardEvent('keydown', { key: 's', shiftKey: true });
-     component.handleKeydown(event);
-     expect(emitted).toBe(false);
+    const event = new KeyboardEvent('keydown', { key: 's', shiftKey: true });
+    component.handleKeydown(event);
+    expect(emitted).toBe(false);
   });
 
   it('should not emit swapClicked if shiftKey is not pressed', () => {
-     let emitted = false;
-     component.swapClicked.subscribe(() => emitted = true);
+    let emitted = false;
+    component.swapClicked.subscribe(() => (emitted = true));
 
-     const event = new KeyboardEvent('keydown', { key: 's', shiftKey: false });
-     component.handleKeydown(event);
-     expect(emitted).toBe(false);
+    const event = new KeyboardEvent('keydown', { key: 's', shiftKey: false });
+    component.handleKeydown(event);
+    expect(emitted).toBe(false);
   });
 
   it('should ignore other keys', () => {
-     let emitted = false;
-     component.swapClicked.subscribe(() => emitted = true);
+    let emitted = false;
+    component.swapClicked.subscribe(() => (emitted = true));
 
-     const event = new KeyboardEvent('keydown', { key: 'a', shiftKey: true });
-     component.handleKeydown(event);
-     expect(emitted).toBe(false);
+    const event = new KeyboardEvent('keydown', { key: 'a', shiftKey: true });
+    component.handleKeydown(event);
+    expect(emitted).toBe(false);
   });
-
 
   it('should compute runTooltip correctly', () => {
     fixture.componentRef.setInput('orientation', 'openapi-left');
@@ -159,5 +169,4 @@ describe('SplitPaneComponent', () => {
     fixture.detectChanges();
     expect(component.runTooltip()).toBe('Generate OpenAPI (to_openapi)');
   });
-
 });

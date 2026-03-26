@@ -11,10 +11,10 @@ describe('AppConfig', () => {
     const mockLanguageService = {
       loadWasmSupport: vi.fn(),
     } as unknown as LanguageService;
-    
+
     const initFn = initWasmSupport(mockLanguageService);
     initFn();
-    
+
     expect(mockLanguageService.loadWasmSupport).toHaveBeenCalled();
   });
 });

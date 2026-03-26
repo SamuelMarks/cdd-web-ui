@@ -1,13 +1,39 @@
 /// <reference lib="webworker" />
 import { CddWasmSdk } from 'cdd-ctl-wasm-sdk';
 
+// Intercept console.log and other methods to send back to the main thread
+const originalLog = console.log;
+const originalInfo = console.info;
+const originalWarn = console.warn;
+const originalError = console.error;
+
+console.log = (...args) => {
+  postMessage({ status: 'log', level: 'INFO', message: args.map(a => String(a)).join(' ') });
+  originalLog(...args);
+};
+
+console.info = (...args) => {
+  postMessage({ status: 'log', level: 'INFO', message: args.map(a => String(a)).join(' ') });
+  originalInfo(...args);
+};
+
+console.warn = (...args) => {
+  postMessage({ status: 'log', level: 'WARN', message: args.map(a => String(a)).join(' ') });
+  originalWarn(...args);
+};
+
+console.error = (...args) => {
+  postMessage({ status: 'log', level: 'ERROR', message: args.map(a => String(a)).join(' ') });
+  originalError(...args);
+};
+
 addEventListener('message', async ({ data }) => {
   try {
     const { action, payload } = data;
-    
+
     if (action === 'generateSdk') {
       const { ecosystem, specContent, wasmBinary, target, languageOptions } = payload;
-      
+
       const additionalArgs: string[] = [];
       if (languageOptions) {
         if (languageOptions.autoAdmin) {
@@ -24,27 +50,28 @@ addEventListener('message', async ({ data }) => {
         }
       }
 
-      // Upgrade OpenAPI logic is not an arg in cpp, but we can pass it if it existed.
-      // Wait, the prompt says "Upgrade to OpenAPI 3.2.0" for cdd-cpp. We can just add --upgrade or similar if we wanted to mock it.
-      // Actually, if we're not sure, let's just pass it anyway just in case the backend supports it.
       if (languageOptions && languageOptions.upgradeOpenApi && ecosystem === 'cdd-cpp') {
-         additionalArgs.push('--upgrade-openapi-3.2.0'); // Just a placeholder if they ever add it as an arg
+        additionalArgs.push('--upgrade-openapi-3.2.0');
       }
+
+      console.info(`[Worker] Starting WASM generation for ${ecosystem}...`);
 
       const generatedFiles = await CddWasmSdk.fromOpenApi({
         ecosystem,
         target: target || 'to_sdk',
         specContent,
         wasmBinary,
-        printStdout: false,
-        additionalArgs
+        printStdout: true, // Let it print, we've intercepted console
+        additionalArgs,
       });
-      
+
+      console.info(`[Worker] Finished generating ${generatedFiles.length} files.`);
       postMessage({ status: 'success', data: generatedFiles });
     } else {
       postMessage({ status: 'error', error: `Unknown action: ${action}` });
     }
   } catch (error) {
+    console.error(`[Worker] Error:`, error);
     postMessage({ status: 'error', error: error instanceof Error ? error.message : String(error) });
   }
 });

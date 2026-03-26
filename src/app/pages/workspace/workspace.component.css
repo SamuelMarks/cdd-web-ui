@@ -103,3 +103,115 @@
 .format-name {
   flex: 1;
 }
+
+/* Docs UI Pane and Resizer Styles */
+.workspace-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.top-pane {
+  flex-grow: 1;
+  min-height: 100px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bottom-pane {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--surface-color, #fff);
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  transition: height 0.2s ease-out; /* Smooth slide down/up unless dragging */
+}
+
+/* Disable transition during active drag by adding a class via JS, but for simplicity we rely on high frequency updates. 
+   To be truly smooth without lag during drag, we might disable this on mousedown and enable on mouseup, but doing it entirely via binding is also fine. */
+.bottom-pane.dragging {
+  transition: none;
+}
+
+.vertical-resizer {
+  height: 6px;
+  background-color: var(--border-color, #e0e0e0);
+  cursor: row-resize;
+  flex-shrink: 0;
+  z-index: 10;
+  transition: background-color 0.2s ease;
+}
+
+.vertical-resizer:hover,
+.vertical-resizer:focus {
+  background-color: var(--primary-color, #1976d2);
+  outline: none;
+}
+
+@media (max-width: 768px) {
+  .vertical-resizer {
+    display: none;
+  }
+
+  .workspace-content.has-docs .bottom-pane {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh !important; /* Full screen overlay */
+    z-index: 1000;
+  }
+}
+
+
+/* Mobile Responsiveness for Toolbar */
+@media (max-width: 900px) {
+  .workspace-toolbar {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    height: auto;
+  }
+  
+  .input-controls {
+    flex: 1 1 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .arrow-container {
+    display: none;
+  }
+
+  .output-controls {
+    flex: 1 1 100%;
+  }
+  
+  .toolbar-spacer {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .input-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .toolbar-field, .example-field {
+    width: 100%;
+  }
+
+  .output-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .code-directory-wrapper {
+    flex-direction: column;
+  }
+
+  .directory-tree-pane {
+    max-width: 100%;
+    flex: 0 0 200px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+}

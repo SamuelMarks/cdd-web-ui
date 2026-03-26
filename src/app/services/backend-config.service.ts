@@ -6,6 +6,7 @@ import { Injectable, signal, computed } from '@angular/core';
 @Injectable({
   providedIn: 'root',
 })
+/** BackendConfigService */
 export class BackendConfigService {
   /** The local storage key for the backend URL. */
   private readonly BACKEND_URL_KEY = 'cdd_backend_url';

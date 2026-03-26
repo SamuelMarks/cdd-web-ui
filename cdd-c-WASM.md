@@ -1,9 +1,11 @@
 # WASM Analysis for cdd-c
 
 ## 1. Why a WASM isn't produced
+
 The project is built in c (or another ecosystem) and does not contain a `Cargo.toml` file at its root. The centralized build script (`../cdd-ctl/scripts/build-wasm-all.mjs`) currently only attempts to run `cargo build` for projects containing a `Cargo.toml`. Since it's missing, the build script silently skips compilation and injects a dummy WASM stub instead.
 
 ## 2. What changes need to be made to produce a WASM
+
 To produce a WASM binary for C/C++, you must use `wasi-sdk` (clang) to compile the source code. You will need to add a `Makefile` or CMake configuration that targets `wasm32-wasi`, and update the centralized build script to invoke it.
 
 ## 3. 300-Step Plan
@@ -308,4 +310,3 @@ To produce a WASM binary for C/C++, you must use `wasi-sdk` (clang) to compile t
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-c WASM (Step 298)
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-c WASM (Step 299)
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-c WASM (Step 300)
-

@@ -13,19 +13,21 @@ describe('WasmGeneratorService', () => {
   let originalFetch: typeof fetch;
 
   beforeEach(() => {
-    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockImplementation((opts: import("cdd-ctl-wasm-sdk").GenerateOptions) => {
-      if (opts.ecosystem === 'cdd-go' || opts.ecosystem === 'go') return Promise.resolve([]);
-      if (opts.ecosystem === 'cdd-python' && opts.specContent === 'success-spec') {
-        const encoder = new TextEncoder();
-        return Promise.resolve([
-          {
-            path: 'test.py',
-            content: encoder.encode('Generated content for success'),
-          },
-        ]);
-      }
-      return Promise.reject(new Error('WASM error'));
-    });
+    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockImplementation(
+      (opts: import('cdd-ctl-wasm-sdk').GenerateOptions) => {
+        if (opts.ecosystem === 'cdd-go' || opts.ecosystem === 'go') return Promise.resolve([]);
+        if (opts.ecosystem === 'cdd-python' && opts.specContent === 'success-spec') {
+          const encoder = new TextEncoder();
+          return Promise.resolve([
+            {
+              path: 'test.py',
+              content: encoder.encode('Generated content for success'),
+            },
+          ]);
+        }
+        return Promise.reject(new Error('WASM error'));
+      },
+    );
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -60,32 +62,34 @@ describe('WasmGeneratorService', () => {
     it('should handle unrecognised language ID in generateSdk', async () => {
       window.fetch = vi.fn().mockResolvedValue({
         ok: false,
-        status: 404
+        status: 404,
       });
       const code = await service.generateSdk(dummyRepo, 'unknown-lang', '{}');
-      expect(code).toContain('Generation for unknown-lang is disabled due to lack of WASM support.');
+      expect(code).toContain(
+        'Generation for unknown-lang is disabled due to lack of WASM support.',
+      );
     });
     it('should generate fallback with GeneratedApi if title is missing', async () => {
       window.fetch = vi.fn().mockResolvedValue({
         ok: false,
-        status: 404
+        status: 404,
       });
-      
+
       const emptySpec = '{"openapi":"3.0.0"}'; // no info.title
       const result = await service.generateSdk(dummyRepo, 'python', emptySpec);
-      
+
       expect(result).toContain('class GeneratedApiClient:');
     });
 
     it('should strip spaces from title in fallback', async () => {
       window.fetch = vi.fn().mockResolvedValue({
         ok: false,
-        status: 404
+        status: 404,
       });
-      
+
       const specWithSpaces = '{"openapi":"3.0.0", "info": { "title": "My Awesome API" }}';
       const result = await service.generateSdk(dummyRepo, 'python', specWithSpaces);
-      
+
       expect(result).toContain('class MyAwesomeAPIClient:');
     });
 
@@ -190,7 +194,7 @@ describe('WasmGeneratorService', () => {
         ok: false,
         status: 404,
       });
-      
+
       const spec = await service.generateOpenApi(dummyRepo, 'python', '{}');
       expect(spec).toContain('"title": "Mock API from Python"');
     });

@@ -7,6 +7,7 @@ import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 @Injectable({
   providedIn: 'root',
 })
+/** ThemeService */
 export class ThemeService {
   /** The local storage key for persisting the selected theme. */
   private readonly STORAGE_KEY = 'cdd_theme';

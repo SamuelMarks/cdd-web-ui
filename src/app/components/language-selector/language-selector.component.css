@@ -4,6 +4,20 @@
   gap: 0.5rem;
 }
 
+.language-selector-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.offline-info-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary, #757575);
+  cursor: help;
+}
+
 .language-options {
   display: flex;
   align-items: center;

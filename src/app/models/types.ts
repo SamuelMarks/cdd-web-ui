@@ -4,7 +4,20 @@
  */
 
 /** The available language ecosystems that can be targeted. */
-export type Ecosystem = 'cdd-c' | 'cdd-cpp' | 'cdd-csharp' | 'cdd-go' | 'cdd-java' | 'cdd-kotlin' | 'cdd-php' | 'cdd-python' | 'cdd-ruby' | 'cdd-rust' | 'cdd-swift' | 'cdd-ts' | 'cdd-sh';
+export type Ecosystem =
+  | 'cdd-c'
+  | 'cdd-cpp'
+  | 'cdd-csharp'
+  | 'cdd-go'
+  | 'cdd-java'
+  | 'cdd-kotlin'
+  | 'cdd-php'
+  | 'cdd-python'
+  | 'cdd-ruby'
+  | 'cdd-rust'
+  | 'cdd-swift'
+  | 'cdd-ts'
+  | 'cdd-sh';
 
 /** The target output format for the code generator. */
 export type Target = 'to_sdk' | 'to_sdk_cli' | 'to_server' | 'to_openapi_3_2_0';

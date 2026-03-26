@@ -1,9 +1,11 @@
 # WASM Analysis for cdd-ts
 
 ## 1. Why a WASM isn't produced
+
 The project is built in TypeScript (or another ecosystem) and does not contain a `Cargo.toml` file at its root. The centralized build script (`../cdd-ctl/scripts/build-wasm-all.mjs`) currently only attempts to run `cargo build` for projects containing a `Cargo.toml`. Since it's missing, the build script silently skips compilation and injects a dummy WASM stub instead.
 
 ## 2. What changes need to be made to produce a WASM
+
 To produce a WASM binary for TypeScript, you cannot directly compile TS to a standalone WASI binary easily. You must use a tool like Javy (which embeds QuickJS) to compile the JS output to a WASI module, or rewrite the core generator in Rust or Go.
 
 ## 3. 300-Step Plan
@@ -308,4 +310,3 @@ To produce a WASM binary for TypeScript, you cannot directly compile TS to a sta
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-ts WASM (Step 298)
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-ts WASM (Step 299)
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-ts WASM (Step 300)
-

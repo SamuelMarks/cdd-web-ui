@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { WasmLoaderService } from './wasm-loader.service';
+import { LoggingService } from './logging.service';
 
 /**
  * Interface representing a generated file from WASM.
@@ -15,11 +16,14 @@ export interface GeneratedFile {
  * Service to communicate with the WASM Web Worker, ensuring main thread UI is not blocked.
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
+/** WasmWorkerService */
 export class WasmWorkerService {
   /** The WasmLoaderService instance to fetch binaries. */
   private loaderService = inject(WasmLoaderService);
+  /** The LoggingService to log messages from worker. */
+  private loggingService = inject(LoggingService);
   /** The worker instance. */
   private worker: Worker | null = null;
 
@@ -28,9 +32,13 @@ export class WasmWorkerService {
    */
   constructor() {
     if (typeof Worker !== 'undefined') {
-      this.worker = new Worker(new URL('./wasm-worker.worker', import.meta.url), { type: 'module' });
+      this.worker = new Worker(new URL('./wasm-worker.worker', import.meta.url), {
+        type: 'module',
+      });
     } else {
-      console.warn('Web Workers are not supported in this environment. WASM operations may block UI.');
+      console.warn(
+        'Web Workers are not supported in this environment. WASM operations may block UI.',
+      );
     }
   }
 
@@ -42,7 +50,16 @@ export class WasmWorkerService {
    * @param languageOptions The language specific options
    * @returns Array of generated files
    */
-  async generateCode(ecosystem: string, specContent: string, target: string = 'to_sdk', languageOptions: Record<string, unknown> = {}): Promise<GeneratedFile[]> {
+  async generateCode(
+    /** ecosystem */
+    ecosystem: string,
+    /** specContent */
+    specContent: string,
+    /** target */
+    target: string = 'to_sdk',
+    /** languageOptions */
+    languageOptions: Record<string, unknown> = {},
+  ): Promise<GeneratedFile[]> {
     if (!this.worker) {
       throw new Error('Web Worker not initialized.');
     }
@@ -52,7 +69,18 @@ export class WasmWorkerService {
     return new Promise((resolve, reject) => {
       // One-off message handler for this request
       const handleMessage = (event: MessageEvent) => {
-        const { status, data, error } = event.data;
+        const { status, data, error, level, message } = event.data;
+        if (status === 'log') {
+          if (level === 'INFO') {
+            this.loggingService.info(message);
+          } else if (level === 'WARN') {
+            this.loggingService.warn(message);
+          } else if (level === 'ERROR') {
+            this.loggingService.error(message);
+          }
+          return; // Do not resolve or reject, keep listening
+        }
+
         if (status === 'success') {
           resolve(data as GeneratedFile[]);
         } else {
@@ -72,8 +100,8 @@ export class WasmWorkerService {
           specContent,
           wasmBinary,
           target,
-          languageOptions
-        }
+          languageOptions,
+        },
       });
     });
   }

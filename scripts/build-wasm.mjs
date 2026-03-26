@@ -6,7 +6,12 @@ const CDD_CTL_DIR = path.resolve(process.cwd(), '../cdd-ctl');
 const BUILD_SCRIPT = path.join(CDD_CTL_DIR, 'scripts', 'build-wasm-all.mjs');
 const WASM_SOURCE_DIR = path.join(CDD_CTL_DIR, 'cdd-ctl-wasm-sdk', 'assets', 'wasm');
 const DEST_DIR = path.resolve(process.cwd(), 'public/assets/wasm');
-const SUPPORT_FILE_SOURCE = path.join(CDD_CTL_DIR, 'cdd-ctl-wasm-sdk', 'assets', 'wasm-support.json');
+const SUPPORT_FILE_SOURCE = path.join(
+  CDD_CTL_DIR,
+  'cdd-ctl-wasm-sdk',
+  'assets',
+  'wasm-support.json',
+);
 const SUPPORT_FILE_DEST = path.resolve(process.cwd(), 'public/assets', 'wasm-support.json');
 
 if (!fs.existsSync(CDD_CTL_DIR)) {
@@ -36,12 +41,9 @@ if (!fs.existsSync(DEST_DIR)) {
 }
 
 if (fs.existsSync(WASM_SOURCE_DIR)) {
-  const wasmFiles = fs.readdirSync(WASM_SOURCE_DIR).filter(f => f.endsWith('.wasm'));
-  wasmFiles.forEach(file => {
-    fs.copyFileSync(
-      path.join(WASM_SOURCE_DIR, file),
-      path.join(DEST_DIR, file)
-    );
+  const wasmFiles = fs.readdirSync(WASM_SOURCE_DIR).filter((f) => f.endsWith('.wasm'));
+  wasmFiles.forEach((file) => {
+    fs.copyFileSync(path.join(WASM_SOURCE_DIR, file), path.join(DEST_DIR, file));
     console.log(`✅ Copied ${file} to public/assets/wasm/`);
   });
 } else {

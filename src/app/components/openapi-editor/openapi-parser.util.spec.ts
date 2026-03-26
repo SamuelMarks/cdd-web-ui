@@ -12,7 +12,7 @@ describe('OpenApiParser', () => {
     const validJson = JSON.stringify({
       openapi: '3.0.0',
       info: { title: 'Test', version: '1.0' },
-      paths: {}
+      paths: {},
     });
     const result = OpenApiParser.parseAndValidate(validJson);
     expect(result.isValid).toBe(true);
@@ -46,11 +46,11 @@ paths: {}
     globalThis.JSON.parse = vi.fn().mockImplementation(() => {
       throw { message: 'Custom thrown object error' };
     });
-    
+
     const result = OpenApiParser.parseAndValidate('{ "invalid": true }');
     expect(result.isValid).toBe(false);
     expect(result.errors).toContain('Parse error: Custom thrown object error');
-    
+
     globalThis.JSON.parse = originalParse;
   });
 
@@ -59,20 +59,18 @@ paths: {}
     globalThis.JSON.parse = vi.fn().mockImplementation(() => {
       throw 'A string error';
     });
-    
+
     const result = OpenApiParser.parseAndValidate('{ "invalid": true }');
     expect(result.isValid).toBe(false);
     expect(result.errors).toContain('Unknown parsing error.');
-    
+
     globalThis.JSON.parse = originalParse;
   });
-
-  
 
   it('should invalidate missing structural components', () => {
     const missingOpenApi = JSON.stringify({
       info: { title: 'Test', version: '1.0' },
-      paths: {}
+      paths: {},
     });
     let result = OpenApiParser.parseAndValidate(missingOpenApi);
     expect(result.isValid).toBe(false);
@@ -80,7 +78,7 @@ paths: {}
 
     const missingInfo = JSON.stringify({
       openapi: '3.0.0',
-      paths: {}
+      paths: {},
     });
     result = OpenApiParser.parseAndValidate(missingInfo);
     expect(result.isValid).toBe(false);
@@ -89,7 +87,7 @@ paths: {}
     const invalidInfo = JSON.stringify({
       openapi: '3.0.0',
       info: 'a string',
-      paths: {}
+      paths: {},
     });
     result = OpenApiParser.parseAndValidate(invalidInfo);
     expect(result.isValid).toBe(false);
@@ -98,7 +96,7 @@ paths: {}
     const nullInfo = JSON.stringify({
       openapi: '3.0.0',
       info: null,
-      paths: {}
+      paths: {},
     });
     result = OpenApiParser.parseAndValidate(nullInfo);
     expect(result.isValid).toBe(false);
@@ -106,7 +104,7 @@ paths: {}
 
     const missingPaths = JSON.stringify({
       openapi: '3.0.0',
-      info: { title: 'Test', version: '1.0' }
+      info: { title: 'Test', version: '1.0' },
     });
     result = OpenApiParser.parseAndValidate(missingPaths);
     expect(result.isValid).toBe(false);
@@ -117,7 +115,7 @@ paths: {}
     const missingTitle = JSON.stringify({
       openapi: '3.0.0',
       info: { version: '1.0' },
-      paths: {}
+      paths: {},
     });
     let result = OpenApiParser.parseAndValidate(missingTitle);
     expect(result.isValid).toBe(false);
@@ -126,16 +124,16 @@ paths: {}
     const missingVersion = JSON.stringify({
       openapi: '3.0.0',
       info: { title: 'Test' },
-      paths: {}
+      paths: {},
     });
     result = OpenApiParser.parseAndValidate(missingVersion);
     expect(result.isValid).toBe(false);
     expect(result.errors).toContain('Missing "info.version".');
-  });  
+  });
   it('should catch non-object payloads', () => {
-     const strPayload = `"just a string"`;
-     const result = OpenApiParser.parseAndValidate(strPayload);
-     expect(result.isValid).toBe(false);
-     expect(result.errors).toContain('Specification must be an object.');
+    const strPayload = `"just a string"`;
+    const result = OpenApiParser.parseAndValidate(strPayload);
+    expect(result.isValid).toBe(false);
+    expect(result.errors).toContain('Specification must be an object.');
   });
 });

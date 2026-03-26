@@ -1,0 +1,33 @@
+.vis-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--mat-sys-surface-container);
+}
+
+.empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--mat-sys-outline);
+  font-style: italic;
+}
+
+::ng-deep .node circle {
+  fill: #fff;
+  stroke: var(--mat-sys-primary);
+  stroke-width: 1.5px;
+}
+
+::ng-deep .node text {
+  font: 12px sans-serif;
+  fill: var(--mat-sys-on-surface);
+}
+
+::ng-deep .link {
+  fill: none;
+  stroke: var(--mat-sys-outline-variant);
+  stroke-width: 1.5px;
+}

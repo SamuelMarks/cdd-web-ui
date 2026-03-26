@@ -1,4 +1,12 @@
-import { Component, ChangeDetectionStrategy, inject, input, output, computed, effect } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  input,
+  output,
+  computed,
+  effect,
+} from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
@@ -16,46 +24,82 @@ import { StorageService } from '../../services/storage.service';
  */
 @Component({
   selector: 'app-language-selector',
-  imports: [CommonModule, FormsModule, MatSelectModule, MatFormFieldModule, MatTooltipModule, MatIconModule, MatCheckboxModule, NgOptimizedImage],
+  /** imports */
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatSelectModule,
+    MatFormFieldModule,
+    MatTooltipModule,
+    MatIconModule,
+    MatCheckboxModule,
+    NgOptimizedImage,
+  ],
+  /** template */
   template: `
     <div class="language-selector-container">
-      <mat-form-field appearance="outline" class="language-selector-field" subscriptSizing="dynamic">
-        <mat-label>Language</mat-label>
-        <mat-select 
-          [value]="selectedLanguageId()" 
-          (selectionChange)="onSelectionChange($event.value)"
-          aria-label="Select Target Language"
+      <div class="language-selector-wrapper">
+        <mat-form-field
+          appearance="outline"
+          class="language-selector-field"
+          subscriptSizing="dynamic"
         >
-          <mat-select-trigger>
-            <div class="language-option-trigger">
-               @if (selectedLanguage()?.iconUrl) {
-                 <img [ngSrc]="selectedLanguage()?.iconUrl!" width="20" height="20" alt="" class="language-icon" />
-               }
-               <span class="language-name">{{ selectedLanguage()?.name }}</span>
-            </div>
-          </mat-select-trigger>
-          @for (lang of processedLanguages(); track lang.id) {
-            <mat-option 
-              [value]="lang.id" 
-              [disabled]="lang.isDisabled"
-            >
-              <div 
-                class="language-option" 
-                [matTooltip]="lang.isDisabled ? 'This language requires an internet connection for code generation.' : ''"
-              >
-                @if (lang.iconUrl) {
-                  <img [ngSrc]="lang.iconUrl" width="20" height="20" alt="" class="language-icon" />
+          <mat-label>Language</mat-label>
+          <mat-select
+            [value]="selectedLanguageId()"
+            (selectionChange)="onSelectionChange($event.value)"
+            aria-label="Select Target Language"
+          >
+            <mat-select-trigger>
+              <div class="language-option-trigger">
+                @if (selectedLanguage()?.iconUrl) {
+                  <img
+                    [ngSrc]="selectedLanguage()?.iconUrl!"
+                    width="20"
+                    height="20"
+                    alt=""
+                    class="language-icon"
+                  />
                 }
-                <span class="language-name">{{ lang.name }}</span>
-                @if (lang.isDisabled) {
-                  <mat-icon class="disabled-indicator">wifi_off</mat-icon>
-                }
+                <span class="language-name">{{ selectedLanguage()?.name }}</span>
               </div>
-            </mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-      
+            </mat-select-trigger>
+            @for (lang of processedLanguages(); track lang.id) {
+              <mat-option [value]="lang.id" [disabled]="lang.isDisabled">
+                <div
+                  class="language-option"
+                  [matTooltip]="
+                    lang.isDisabled
+                      ? 'Languages shown as disabled are not available in the current offline-only environment. To enable generation for all supported languages, configure the application for &quot;Online Mode&quot; by following the backend setup instructions on our GitHub repository.'
+                      : ''
+                  "
+                >
+                  @if (lang.iconUrl) {
+                    <img
+                      [ngSrc]="lang.iconUrl"
+                      width="20"
+                      height="20"
+                      alt=""
+                      class="language-icon"
+                    />
+                  }
+                  <span class="language-name">{{ lang.name }}</span>
+                  @if (lang.isDisabled) {
+                    <mat-icon class="disabled-indicator">wifi_off</mat-icon>
+                  }
+                </div>
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-icon
+          class="offline-info-icon"
+          matTooltip="Languages shown as disabled are not available in the current offline-only environment. To enable generation for all supported languages, configure the application for 'Online Mode' by following the backend setup instructions on our GitHub repository."
+        >
+          help_outline
+        </mat-icon>
+      </div>
+
       <mat-form-field appearance="outline" class="target-selector-field" subscriptSizing="dynamic">
         <mat-label>Target</mat-label>
         <mat-select
@@ -71,45 +115,54 @@ import { StorageService } from '../../services/storage.service';
 
       <div class="language-options">
         @if (selectedLanguageId() === 'typescript' && target() !== 'to_server') {
-          <mat-form-field appearance="outline" class="framework-selector-field" subscriptSizing="dynamic">
-             <mat-label>Framework target</mat-label>
-             <mat-select
-               [value]="options().framework || (target() === 'to_sdk' ? 'angular' : 'fetch')"
-               (selectionChange)="onOptionsChange('framework', $event.value)"
-             >
-               @if (target() === 'to_sdk') {
-                 <mat-option value="angular">Angular</mat-option>
-               }
-               <mat-option value="fetch">Fetch</mat-option>
-               <mat-option value="axios">Axios</mat-option>
-             </mat-select>
+          <mat-form-field
+            appearance="outline"
+            class="framework-selector-field"
+            subscriptSizing="dynamic"
+          >
+            <mat-label>Framework target</mat-label>
+            <mat-select
+              [value]="options().framework || (target() === 'to_sdk' ? 'angular' : 'fetch')"
+              (selectionChange)="onOptionsChange('framework', $event.value)"
+            >
+              @if (target() === 'to_sdk') {
+                <mat-option value="angular">Angular</mat-option>
+              }
+              <mat-option value="fetch">Fetch</mat-option>
+              <mat-option value="axios">Axios</mat-option>
+            </mat-select>
           </mat-form-field>
-          <mat-checkbox 
+          <mat-checkbox
             [checked]="options().autoAdmin || false"
-            (change)="onOptionsChange('autoAdmin', $event.checked)">
+            (change)="onOptionsChange('autoAdmin', $event.checked)"
+          >
             Auto-admin
           </mat-checkbox>
         }
-        
 
         @if (['java', 'php', 'python', 'ruby', 'swift'].includes(selectedLanguageId())) {
-          <mat-checkbox 
+          <mat-checkbox
             [checked]="options().noGithubActions || false"
-            (change)="onOptionsChange('noGithubActions', $event.checked)">
+            (change)="onOptionsChange('noGithubActions', $event.checked)"
+          >
             No GitHub Actions
           </mat-checkbox>
-          <mat-checkbox 
+          <mat-checkbox
             [checked]="options().noInstallablePackage || false"
-            (change)="onOptionsChange('noInstallablePackage', $event.checked)">
+            (change)="onOptionsChange('noInstallablePackage', $event.checked)"
+          >
             No Installable Package
           </mat-checkbox>
         }
       </div>
     </div>
   `,
+  /** styleUrl */
   styleUrl: './language-selector.component.css',
+  /** changeDetection */
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
+/** LanguageSelectorComponent */
 export class LanguageSelectorComponent {
   /** The currently selected language ID. */
   selectedLanguageId = input.required<string>();
@@ -117,13 +170,13 @@ export class LanguageSelectorComponent {
   target = input.required<Target>();
   /** The language options. */
   options = input.required<LanguageOptions>();
-  
+
   /** Emits when the language selection changes. */
   languageChanged = output<string>();
   /** Emits when the target selection changes. */
   targetChanged = output<Target>();
   /** Emits when the language options change. */
-  optionsChanged = output<{languageId: string, options: LanguageOptions}>();
+  optionsChanged = output<{ languageId: string; options: LanguageOptions }>();
 
   /** Language service dependency */
   private languageService = inject(LanguageService);
@@ -134,15 +187,15 @@ export class LanguageSelectorComponent {
 
   /** Computed currently selected language object. */
   selectedLanguage = computed(() => {
-    return this.processedLanguages().find(l => l.id === this.selectedLanguageId());
+    return this.processedLanguages().find((l) => l.id === this.selectedLanguageId());
   });
 
   /** Computed list of languages with their disabled state based on offline mode. */
   processedLanguages = computed(() => {
     const isOnline = this.offlineService.isOnline();
-    return this.languageService.languages().map(lang => ({
+    return this.languageService.languages().map((lang) => ({
       ...lang,
-      isDisabled: !isOnline && !lang.availableInWasm
+      isDisabled: !isOnline && !lang.availableInWasm,
     }));
   });
 
@@ -150,28 +203,32 @@ export class LanguageSelectorComponent {
   constructor() {
     const lastLanguage = this.storageService.getItem<string>('lastSelectedLanguage');
     if (lastLanguage) {
-       setTimeout(() => {
-         const langConfig = this.processedLanguages().find(l => l.id === lastLanguage);
-         if (langConfig && !langConfig.isDisabled) {
-           this.languageChanged.emit(lastLanguage);
-         }
-       }, 0);
-    }
-    
-    effect(() => {
-      const currentSelectionId = this.selectedLanguageId();
-      const langs = this.processedLanguages();
-      const currentLang = langs.find(l => l.id === currentSelectionId);
-      
-      if (currentLang && currentLang.isDisabled) {
-        const fallbackLang = langs.find(l => !l.isDisabled);
-        if (fallbackLang) {
-          setTimeout(() => {
-             this.onSelectionChange(fallbackLang.id);
-          }, 0);
+      setTimeout(() => {
+        const langConfig = this.processedLanguages().find((l) => l.id === lastLanguage);
+        if (langConfig && !langConfig.isDisabled) {
+          this.languageChanged.emit(lastLanguage);
         }
-      }
-    }, { allowSignalWrites: true });
+      }, 0);
+    }
+
+    /** effect */
+    effect(
+      () => {
+        const currentSelectionId = this.selectedLanguageId();
+        const langs = this.processedLanguages();
+        const currentLang = langs.find((l) => l.id === currentSelectionId);
+
+        if (currentLang && currentLang.isDisabled) {
+          const fallbackLang = langs.find((l) => !l.isDisabled);
+          if (fallbackLang) {
+            setTimeout(() => {
+              this.onSelectionChange(fallbackLang.id);
+            }, 0);
+          }
+        }
+      },
+      { allowSignalWrites: true },
+    );
   }
 
   /**
@@ -184,34 +241,34 @@ export class LanguageSelectorComponent {
       this.languageChanged.emit(newLangId);
     }
   }
-  
+
   /**
    * Handles target output selection change.
    * @param newTarget The newly selected target format.
    */
   onTargetChange(newTarget: Target): void {
-     this.targetChanged.emit(newTarget);
-     if (this.selectedLanguageId() === 'typescript' && newTarget === 'to_sdk_cli') {
-       const currentOpts = this.options();
-       if (!currentOpts.framework || currentOpts.framework === 'angular') {
-         this.onOptionsChange('framework', 'fetch');
-       }
-     }
+    this.targetChanged.emit(newTarget);
+    if (this.selectedLanguageId() === 'typescript' && newTarget === 'to_sdk_cli') {
+      const currentOpts = this.options();
+      if (!currentOpts.framework || currentOpts.framework === 'angular') {
+        this.onOptionsChange('framework', 'fetch');
+      }
+    }
   }
-  
+
   /**
    * Handles changes in target specific language options.
    * @param key The option key.
    * @param value The new option value.
    */
   onOptionsChange(key: string, value: unknown): void {
-     const currentOpts = this.options();
-     this.optionsChanged.emit({
-       languageId: this.selectedLanguageId(),
-       options: {
-         ...currentOpts,
-         [key]: value
-       }
-     });
+    const currentOpts = this.options();
+    this.optionsChanged.emit({
+      languageId: this.selectedLanguageId(),
+      options: {
+        ...currentOpts,
+        [key]: value,
+      },
+    });
   }
 }

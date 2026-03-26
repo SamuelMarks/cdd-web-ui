@@ -4,8 +4,9 @@ import { Injectable, signal } from '@angular/core';
  * Service to manage and detect the application's offline status using the browser's navigator APIs.
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
+/** OfflineService */
 export class OfflineService {
   /** Signal indicating whether the browser is currently online. */
   readonly isOnline = signal<boolean>(true);
@@ -16,7 +17,7 @@ export class OfflineService {
   }
 
   /**
-   * Initializes the offline detection by checking `navigator.onLine` 
+   * Initializes the offline detection by checking `navigator.onLine`
    * and attaching event listeners to `window`.
    */
   private init(): void {

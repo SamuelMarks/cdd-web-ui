@@ -1,9 +1,11 @@
 # WASM Analysis for cdd-rust
 
 ## 1. Why a WASM isn't produced
+
 The project contains a Cargo.toml and is attempted to be built via `cargo build --target wasm32-wasip1`, but it fails because dependencies like `tokio` (which require OS threads and async runtime features) are incompatible with the `wasm32-wasip1` target. The codebase attempts to use native I/O and networking features unavailable in standard WASI.
 
 ## 2. What changes need to be made to produce a WASM
+
 To produce a WASM binary for Rust, you must either remove `tokio` and other native dependencies, replace them with synchronous or WASI-compatible alternatives, or conditionally compile them out when targeting WASM. Alternatively, use a WASM-specific async executor if absolutely necessary, but since this is an offline code generator, synchronous WASI operations are preferable.
 
 ## 3. 300-Step Plan
@@ -308,4 +310,3 @@ To produce a WASM binary for Rust, you must either remove `tokio` and other nati
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-rust WASM (Step 298)
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-rust WASM (Step 299)
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-rust WASM (Step 300)
-

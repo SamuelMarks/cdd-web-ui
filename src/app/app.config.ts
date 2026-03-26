@@ -28,7 +28,9 @@ import { WorkspaceEffects } from './store/effects';
  * Configuration options for the Monaco editor.
  */
 const monacoConfig = {
+  /** baseUrl */
   baseUrl: '/assets/vs', // configure base path for monaco editor
+  /** defaultOptions */
   defaultOptions: { scrollBeyondLastLine: false }, // pass default options to be used
 };
 
@@ -46,16 +48,26 @@ export function initWasmSupport(languageService: LanguageService) {
  * Provides routing and asynchronous animations.
  */
 export const appConfig: ApplicationConfig = {
+  /** providers */
   providers: [
     { provide: ErrorHandler, useValue: Sentry.createErrorHandler() },
+    /** provideZoneChangeDetection */
     provideZoneChangeDetection({ eventCoalescing: true }),
+    /** provideBrowserGlobalErrorListeners */
     provideBrowserGlobalErrorListeners(),
+    /** provideRouter */
     provideRouter(routes),
+    /** provideAnimationsAsync */
     provideAnimationsAsync(),
+    /** provideHttpClient */
     provideHttpClient(),
+    /** importProvidersFrom */
     importProvidersFrom(MonacoEditorModule.forRoot(monacoConfig)),
+    /** provideStore */
     provideStore(reducers),
+    /** provideEffects */
     provideEffects(WorkspaceEffects),
+    /** provideStoreDevtools */
     provideStoreDevtools({ maxAge: 25, logOnly: false }),
     {
       provide: APP_INITIALIZER,

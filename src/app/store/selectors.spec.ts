@@ -9,6 +9,11 @@ describe('Selectors', () => {
       orientation: 'openapi-right',
       isExecuting: true,
       selectedLanguageId: 'rust',
+      target: 'to_sdk',
+      languageOptions: {},
+      isApiDocsVisible: false,
+      apiDocsPaneHeight: 300,
+      apiDocsLoadState: 'IDLE',
     },
     fileTree: {
       files: [
@@ -52,7 +57,10 @@ describe('Selectors', () => {
   });
 
   it('should return null for active file content if file not found', () => {
-    const state = { ...mockState, fileTree: { ...mockState.fileTree, activeFilePath: 'notfound.rs' } };
+    const state = {
+      ...mockState,
+      fileTree: { ...mockState.fileTree, activeFilePath: 'notfound.rs' },
+    };
     expect(Selectors.selectActiveFileContent(state)).toBeNull();
   });
 
@@ -62,5 +70,22 @@ describe('Selectors', () => {
 
   it('should select open api validation errors', () => {
     expect(Selectors.selectOpenApiValidationErrors(mockState)).toEqual(['error1']);
+  });
+
+  describe('API Docs Selectors', () => {
+    it('should select isApiDocsVisible', () => {
+      const result = Selectors.selectIsApiDocsVisible(mockState);
+      expect(result).toBe(false);
+    });
+
+    it('should select apiDocsPaneHeight', () => {
+      const result = Selectors.selectApiDocsPaneHeight(mockState);
+      expect(result).toBe(300);
+    });
+
+    it('should select apiDocsLoadState', () => {
+      const result = Selectors.selectApiDocsLoadState(mockState);
+      expect(result).toBe('IDLE');
+    });
   });
 });

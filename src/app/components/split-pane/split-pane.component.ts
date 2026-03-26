@@ -9,7 +9,7 @@ import {
   ElementRef,
   inject,
   TemplateRef,
-  viewChild
+  viewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,7 +23,15 @@ import { LayoutOrientation } from '../../store/state';
  */
 @Component({
   selector: 'app-split-pane',
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule, MatProgressSpinnerModule],
+  /** imports */
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    MatProgressSpinnerModule,
+  ],
+  /** template */
   template: `
     <div
       class="split-pane-container"
@@ -53,7 +61,7 @@ import { LayoutOrientation } from '../../store/state';
             mat-flat-button
             color="primary"
             class="generate-btn"
-            (click)="runClicked.emit();"
+            (click)="runClicked.emit()"
             [disabled]="isExecuting()"
             [matTooltip]="runTooltip()"
             [attr.aria-label]="runTooltip()"
@@ -76,27 +84,30 @@ import { LayoutOrientation } from '../../store/state';
           matTooltip="Swap Panes (Ctrl+Shift+S)"
           aria-label="Swap Panes"
         >
-          <mat-icon>swap_horiz</mat-icon>
+          <span class="big-swap-icon">⇄</span>
         </button>
       </div>
 
       <!-- Right Pane -->
       <div
         class="pane pane-right"
-        [style.width]="isMobile() ? '100%' : (100 - splitPos()) + '%'"
-        [style.height]="isMobile() ? (100 - splitPos()) + '%' : '100%'"
+        [style.width]="isMobile() ? '100%' : 100 - splitPos() + '%'"
+        [style.height]="isMobile() ? 100 - splitPos() + '%' : '100%'"
       >
         <ng-container *ngTemplateOutlet="rightTemplate() || null"></ng-container>
       </div>
     </div>
   `,
+  /** styleUrl */
   styleUrl: './split-pane.component.css',
+  /** changeDetection */
   changeDetection: ChangeDetectionStrategy.OnPush,
+  /** host */
   host: {
     '(document:keydown.control.s)': 'handleKeydown($event)',
     '(document:keydown.meta.s)': 'handleKeydown($event)',
     '(window:resize)': 'checkMobile()',
-  }
+  },
 })
 /**
  * A layout component that provides a resizable dual-pane interface with a central action bar.
@@ -106,7 +117,7 @@ export class SplitPaneComponent {
   leftTemplate = input<TemplateRef<unknown>>();
   /** The template to render in the right pane. */
   rightTemplate = input<TemplateRef<unknown>>();
-  
+
   /** Current layout orientation from state. */
   orientation = input.required<LayoutOrientation>();
   /** Indicates if WASM generation is active. */
@@ -118,10 +129,10 @@ export class SplitPaneComponent {
   runClicked = output<void>();
 
   /** Dynamic tooltip for the Run button based on orientation. */
-  runTooltip = computed(() => 
-    this.orientation() === 'openapi-left' 
-      ? 'Generate Code (from_openapi)' 
-      : 'Generate OpenAPI (to_openapi)'
+  runTooltip = computed(() =>
+    this.orientation() === 'openapi-left'
+      ? 'Generate Code (from_openapi)'
+      : 'Generate OpenAPI (to_openapi)',
   );
 
   /** Element reference for size calculations. */
@@ -162,7 +173,7 @@ export class SplitPaneComponent {
     if (!container) return;
 
     const rect = container.getBoundingClientRect();
-    
+
     if (this.isMobile()) {
       // Vertical split
       let newY = event.clientY - rect.top;

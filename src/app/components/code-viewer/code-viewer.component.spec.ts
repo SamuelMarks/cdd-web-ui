@@ -15,9 +15,9 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => MockMonacoEditorComponent),
-      multi: true
-    }
-  ]
+      multi: true,
+    },
+  ],
 })
 class MockMonacoEditorComponent implements ControlValueAccessor {
   @Input() options: unknown;
@@ -29,27 +29,30 @@ class MockMonacoEditorComponent implements ControlValueAccessor {
 
 @Component({
   template: `
-    <app-code-viewer 
+    <app-code-viewer
       [activeFilePath]="activeFilePath()"
       [fileContent]="fileContent()"
-      (fileSelected)="onFileSelected($event)">
+      (fileSelected)="onFileSelected($event)"
+    >
     </app-code-viewer>
   `,
-  imports: [CodeViewerComponent]
+  imports: [CodeViewerComponent],
 })
 class TestHostComponent {
   activeFilePath = signal<string | null>(null);
   fileContent = signal<string | null>(null);
-  
+
   lastSelected = '';
-  onFileSelected(path: string) { this.lastSelected = path; }
+  onFileSelected(path: string) {
+    this.lastSelected = path;
+  }
 }
 
 describe('CodeViewerComponent', () => {
   let component: CodeViewerComponent;
   let fixture: ComponentFixture<CodeViewerComponent>;
-  let notificationServiceMock: { success: import("vitest").Mock; error: import("vitest").Mock };
-  let themeServiceMock: { isDarkTheme: import("@angular/core").WritableSignal<boolean> };
+  let notificationServiceMock: { success: import('vitest').Mock; error: import('vitest').Mock };
+  let themeServiceMock: { isDarkTheme: import('@angular/core').WritableSignal<boolean> };
   let hostComponent: TestHostComponent;
   let hostFixture: ComponentFixture<TestHostComponent>;
 
@@ -58,9 +61,9 @@ describe('CodeViewerComponent', () => {
       success: vi.fn(),
       error: vi.fn(),
     };
-    
+
     themeServiceMock = {
-      isDarkTheme: signal(true)
+      isDarkTheme: signal(true),
     };
 
     await TestBed.configureTestingModule({
@@ -68,22 +71,26 @@ describe('CodeViewerComponent', () => {
       providers: [
         { provide: NotificationService, useValue: notificationServiceMock },
         { provide: ThemeService, useValue: themeServiceMock },
-      ]
+      ],
     })
-    .overrideComponent(CodeViewerComponent, {
-      remove: {
-        imports: [import('ngx-monaco-editor-v2').then(m => m.MonacoEditorModule) as unknown as import('@angular/core').Type<unknown>]
-      },
-      add: {
-        imports: [MockMonacoEditorComponent]
-      }
-    })
-    .compileComponents();
+      .overrideComponent(CodeViewerComponent, {
+        remove: {
+          imports: [
+            import('ngx-monaco-editor-v2').then(
+              (m) => m.MonacoEditorModule,
+            ) as unknown as import('@angular/core').Type<unknown>,
+          ],
+        },
+        add: {
+          imports: [MockMonacoEditorComponent],
+        },
+      })
+      .compileComponents();
 
     hostFixture = TestBed.createComponent(TestHostComponent);
     hostComponent = hostFixture.componentInstance;
     hostFixture.detectChanges();
-    
+
     component = hostFixture.debugElement.query(By.directive(CodeViewerComponent)).componentInstance;
   });
 
@@ -102,7 +109,7 @@ describe('CodeViewerComponent', () => {
     hostFixture.detectChanges();
 
     expect(component.openTabs()).toContain('src/test.ts');
-    
+
     const tabs = hostFixture.debugElement.queryAll(By.css('.tab'));
     expect(tabs.length).toBe(1);
     expect(tabs[0].nativeElement.textContent).toContain('test.ts');
@@ -111,14 +118,14 @@ describe('CodeViewerComponent', () => {
   it('should emit fileSelected when a different tab is clicked', () => {
     hostComponent.activeFilePath.set('src/test1.ts');
     hostFixture.detectChanges();
-    
+
     // Manually add another tab for testing
     component.openTabs.set(['src/test1.ts', 'src/test2.ts']);
     hostFixture.detectChanges();
 
     const tabs = hostFixture.debugElement.queryAll(By.css('.tab'));
     tabs[1].triggerEventHandler('click', null);
-    
+
     expect(hostComponent.lastSelected).toBe('src/test2.ts');
   });
 
@@ -128,7 +135,7 @@ describe('CodeViewerComponent', () => {
 
     const tab = hostFixture.debugElement.query(By.css('.tab'));
     tab.triggerEventHandler('click', null);
-    
+
     expect(hostComponent.lastSelected).toBe(''); // unchanged
   });
 
@@ -216,7 +223,7 @@ describe('CodeViewerComponent', () => {
     hostFixture.detectChanges();
 
     await component.copyToClipboard();
-    
+
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('const b = 2;');
     expect(notificationServiceMock.success).toHaveBeenCalledWith('Copied to clipboard.');
   });
@@ -233,7 +240,7 @@ describe('CodeViewerComponent', () => {
     hostFixture.detectChanges();
 
     await component.copyToClipboard();
-    
+
     expect(notificationServiceMock.error).toHaveBeenCalledWith('Failed to copy to clipboard.');
   });
 
@@ -249,15 +256,17 @@ describe('CodeViewerComponent', () => {
     // Mock URL and a element
     const createObjectURLSpy = vi.spyOn(window.URL, 'createObjectURL').mockReturnValue('blob:url');
     const revokeObjectURLSpy = vi.spyOn(window.URL, 'revokeObjectURL').mockImplementation(() => {});
-    
+
     const mockAnchor = document.createElement('a');
     const clickSpy = vi.spyOn(mockAnchor, 'click').mockImplementation(() => {});
-    
+
     const originalCreateElement = document.createElement.bind(document);
-    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
-      if (tagName.toLowerCase() === 'a') return mockAnchor;
-      return originalCreateElement(tagName as string);
-    });
+    const createElementSpy = vi
+      .spyOn(document, 'createElement')
+      .mockImplementation((tagName: string) => {
+        if (tagName.toLowerCase() === 'a') return mockAnchor;
+        return originalCreateElement(tagName as string);
+      });
 
     hostComponent.activeFilePath.set('src/test.ts');
     hostComponent.fileContent.set('const c = 3;');
@@ -281,7 +290,7 @@ describe('CodeViewerComponent', () => {
     hostFixture.detectChanges();
     component.downloadFile();
     expect(notificationServiceMock.success).not.toHaveBeenCalled();
-    
+
     hostComponent.fileContent.set('content');
     hostComponent.activeFilePath.set(null);
     hostFixture.detectChanges();

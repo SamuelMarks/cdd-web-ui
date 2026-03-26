@@ -1,9 +1,11 @@
 # WASM Analysis for cdd-java
 
 ## 1. Why a WASM isn't produced
+
 The project is built in java (or another ecosystem) and does not contain a `Cargo.toml` file at its root. The centralized build script (`../cdd-ctl/scripts/build-wasm-all.mjs`) currently only attempts to run `cargo build` for projects containing a `Cargo.toml`. Since it's missing, the build script silently skips compilation and injects a dummy WASM stub instead.
 
 ## 2. What changes need to be made to produce a WASM
+
 To produce a WASM binary for java, you can use GraalVM's WebAssembly support, TeaVM, or Kotlin/Wasm to compile the JVM code to WASM. Update the centralized build script to detect the Gradle/Maven build and invoke the correct WASM target.
 
 ## 3. 300-Step Plan
@@ -308,4 +310,3 @@ To produce a WASM binary for java, you can use GraalVM's WebAssembly support, Te
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-java WASM (Step 298)
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-java WASM (Step 299)
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-java WASM (Step 300)
-

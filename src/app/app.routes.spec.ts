@@ -7,7 +7,7 @@ describe('AppRoutes', () => {
   });
 
   it('should lazy load workspace component', async () => {
-    const route = routes.find(r => r.path === '');
+    const route = routes.find((r) => r.path === '');
     expect(route).toBeDefined();
     if (route && route.loadComponent) {
       const component = await (route.loadComponent as Function)();
@@ -15,4 +15,3 @@ describe('AppRoutes', () => {
     }
   });
 });
-

@@ -7,22 +7,25 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 @Component({
   template: `
-    <app-directory-tree 
+    <app-directory-tree
       [files]="files()"
       [activeFilePath]="activeFilePath()"
       [isExecuting]="isExecuting()"
-      (fileSelected)="onFileSelected($event)">
+      (fileSelected)="onFileSelected($event)"
+    >
     </app-directory-tree>
   `,
-  imports: [DirectoryTreeComponent]
+  imports: [DirectoryTreeComponent],
 })
 class TestHostComponent {
   files = signal<GeneratedFile[]>([]);
   activeFilePath = signal<string | null>(null);
   isExecuting = signal(false);
-  
+
   lastSelected = '';
-  onFileSelected(path: string) { this.lastSelected = path; }
+  onFileSelected(path: string) {
+    this.lastSelected = path;
+  }
 }
 
 describe('DirectoryTreeComponent', () => {
@@ -33,14 +36,16 @@ describe('DirectoryTreeComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [DirectoryTreeComponent, TestHostComponent]
+      imports: [DirectoryTreeComponent, TestHostComponent],
     }).compileComponents();
 
     hostFixture = TestBed.createComponent(TestHostComponent);
     hostComponent = hostFixture.componentInstance;
     hostFixture.detectChanges();
-    
-    component = hostFixture.debugElement.query(By.directive(DirectoryTreeComponent)).componentInstance;
+
+    component = hostFixture.debugElement.query(
+      By.directive(DirectoryTreeComponent),
+    ).componentInstance;
   });
 
   it('should create', () => {
@@ -62,15 +67,17 @@ describe('DirectoryTreeComponent', () => {
   it('should build and render tree when files are provided', () => {
     hostComponent.files.set([
       { path: 'src/index.ts', content: new Uint8Array() },
-      { path: 'package.json', content: new Uint8Array() }
+      { path: 'package.json', content: new Uint8Array() },
     ]);
     hostFixture.detectChanges();
 
     const nodes = hostFixture.debugElement.queryAll(By.css('.node'));
     expect(nodes.length).toBe(3); // src (folder), index.ts (file), package.json (file)
-    
+
     // Check if the node's span has the right text
-    const textContents = nodes.map(n => n.query(By.css('span'))?.nativeElement.textContent.trim());
+    const textContents = nodes.map((n) =>
+      n.query(By.css('span'))?.nativeElement.textContent.trim(),
+    );
     expect(textContents).toContain('src');
     expect(textContents).toContain('index.ts');
   });
@@ -80,7 +87,7 @@ describe('DirectoryTreeComponent', () => {
     hostFixture.detectChanges();
 
     const folderNode = hostFixture.debugElement.queryAll(By.css('.node'))[0];
-    
+
     // Initially expanded
     expect(component.treeNodes()[0].isExpanded).toBe(true);
 
@@ -89,7 +96,7 @@ describe('DirectoryTreeComponent', () => {
 
     // Now collapsed
     expect(component.treeNodes()[0].isExpanded).toBe(false);
-    
+
     // File inside should be hidden
     const nodesAfter = hostFixture.debugElement.queryAll(By.css('.node'));
     expect(nodesAfter.length).toBe(1); // Only the folder is visible
@@ -101,7 +108,7 @@ describe('DirectoryTreeComponent', () => {
 
     const fileNode = hostFixture.debugElement.queryAll(By.css('.node'))[1]; // second node is index.ts
     fileNode.triggerEventHandler('click', null);
-    
+
     expect(hostComponent.lastSelected).toBe('src/index.ts');
   });
 
@@ -121,7 +128,7 @@ describe('DirectoryTreeComponent', () => {
 
     // Initial state: expanded
     expect(component.treeNodes()[0].isExpanded).toBe(true);
-    
+
     component.collapseAll();
     hostFixture.detectChanges();
     expect(component.treeNodes()[0].isExpanded).toBe(false);

@@ -1,9 +1,11 @@
 # WASM Analysis for cdd-go
 
 ## 1. Why a WASM isn't produced
+
 The project is built in go (or another ecosystem) and does not contain a `Cargo.toml` file at its root. The centralized build script (`../cdd-ctl/scripts/build-wasm-all.mjs`) currently only attempts to run `cargo build` for projects containing a `Cargo.toml`. Since it's missing, the build script silently skips compilation and injects a dummy WASM stub instead.
 
 ## 2. What changes need to be made to produce a WASM
+
 To produce a WASM binary for Go, you must update the build script to run `GOOS=wasip1 GOARCH=wasm go build -o output.wasm` (using Go 1.21+). You'll also need to ensure the Go code doesn't rely on OS features unsupported by WASI.
 
 ## 3. 300-Step Plan
@@ -308,4 +310,3 @@ To produce a WASM binary for Go, you must update the build script to run `GOOS=w
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-go WASM (Step 298)
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-go WASM (Step 299)
 - [ ] Phase 6: Testing, CI integration, and deployment of cdd-go WASM (Step 300)
-
