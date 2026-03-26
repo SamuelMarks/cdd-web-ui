@@ -6,9 +6,10 @@ import {
   OnDestroy,
   computed,
   HostListener,
+  signal,
 } from '@angular/core';
 import { fromEvent, Subject, takeUntil, tap } from 'rxjs';
-import {  DOCUMENT , NgOptimizedImage } from '@angular/common';
+import { DOCUMENT, NgOptimizedImage } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { AppState } from '../../store/state';
@@ -23,6 +24,7 @@ import { DirectoryTreeComponent } from '../../components/directory-tree/director
 import { CodeViewerComponent } from '../../components/code-viewer/code-viewer.component';
 import { LanguageSelectorComponent } from '../../components/language-selector/language-selector.component';
 import { BottomPanelComponent } from '../../components/bottom-panel/bottom-panel.component';
+import { ApiDocsViewerComponent } from '../../components/api-docs-viewer/api-docs-viewer.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
@@ -44,6 +46,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     CodeViewerComponent,
     LanguageSelectorComponent,
     BottomPanelComponent,
+    ApiDocsViewerComponent,
     MatFormFieldModule,
     MatSelectModule,
     MatButtonModule,
@@ -63,7 +66,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             >
               <mat-select-trigger>
                 <div class="format-option-trigger">
-                  <img [ngSrc]="
+                  <img
+                    [ngSrc]="
                       inputFormat() === 'google_discovery'
                         ? '/assets/icons/google.svg'
                         : '/assets/icons/openapi.svg'
@@ -86,7 +90,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               </mat-select-trigger>
               <mat-option value="openapi_3_2_0">
                 <div class="format-option">
-                  <img ngSrc="/assets/icons/openapi.svg"
+                  <img
+                    ngSrc="/assets/icons/openapi.svg"
                     width="20"
                     height="20"
                     alt=""
@@ -97,7 +102,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               </mat-option>
               <mat-option value="openapi_older">
                 <div class="format-option">
-                  <img ngSrc="/assets/icons/openapi.svg"
+                  <img
+                    ngSrc="/assets/icons/openapi.svg"
                     width="20"
                     height="20"
                     alt=""
@@ -108,7 +114,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               </mat-option>
               <mat-option value="google_discovery">
                 <div class="format-option">
-                  <img ngSrc="/assets/icons/google.svg"
+                  <img
+                    ngSrc="/assets/icons/google.svg"
                     width="20"
                     height="20"
                     alt=""
@@ -150,6 +157,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             (targetChanged)="onTargetChanged($event)"
             (optionsChanged)="onOptionsChanged($event)"
           ></app-language-selector>
+          <button mat-icon-button title="Toggle API Docs" aria-label="Toggle API Docs Pane" (click)="toggleApiDocs()">
+            <mat-icon>menu_book</mat-icon>
+          </button>
         </div>
       </div>
 
@@ -177,6 +187,31 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         <div class="bottom-pane" id="bottom-pane" [style.height.px]="apiDocsPaneHeight()">
           <app-bottom-panel></app-bottom-panel>
         </div>
+        @if (isApiDocsVisible()) {
+          <div
+            class="vertical-resizer"
+            tabindex="0"
+            role="separator"
+            aria-orientation="horizontal"
+            (mousedown)="onApiDocsResizerMouseDown($event)"
+            (dblclick)="onApiDocsResizerDoubleClick()"
+            (keydown)="onApiDocsResizerKeydown($event)"
+          ></div>
+          <div class="api-docs-pane" id="api-docs-pane" [style.height.px]="apiDocsViewerHeight()">
+            @if (generatedFiles().length > 0) {
+              <app-api-docs-viewer></app-api-docs-viewer>
+            } @else {
+              <div class="empty-docs-placeholder">
+                <div class="placeholder-geometry">
+                  <div class="geo-circle"></div>
+                  <div class="geo-square"></div>
+                  <div class="geo-triangle"></div>
+                </div>
+                <p class="placeholder-text">Pretty SDK DOCS UI HTML will appear here</p>
+              </div>
+            }
+          </div>
+        }
       </div>
     </div>
 
@@ -228,6 +263,9 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   isApiDocsVisible = this.store.selectSignal(Selectors.selectIsApiDocsVisible);
   /** Signal for API Docs pane height. */
   apiDocsPaneHeight = this.store.selectSignal(Selectors.selectApiDocsPaneHeight);
+
+  /** Height for the new Docs Viewer pane. Default 300 if not in store. */
+  apiDocsViewerHeight = signal(300);
 
   /** Selects the current orientation of the split pane. */
   /** Signal for workspace layout orientation. */
@@ -416,6 +454,39 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       event.preventDefault();
       const newHeight = Math.max(150, this.apiDocsPaneHeight() - 20);
       this.store.dispatch(Actions.resizeApiDocsPane({ height: newHeight }));
+    }
+  }
+
+  onApiDocsResizerMouseDown(event: MouseEvent): void {
+    event.preventDefault();
+
+    const startY = event.clientY;
+    const startHeight = this.apiDocsViewerHeight();
+
+    const mouseMove$ = fromEvent<MouseEvent>(this.document, 'mousemove').pipe(
+      tap((e: MouseEvent) => {
+        const delta = startY - e.clientY;
+        let newHeight = startHeight + delta;
+        newHeight = Math.max(150, Math.min(newHeight, window.innerHeight * 0.8));
+        this.apiDocsViewerHeight.set(newHeight);
+      }),
+    );
+
+    const mouseUp$ = fromEvent<MouseEvent>(this.document, 'mouseup');
+    mouseMove$.pipe(takeUntil(mouseUp$), takeUntil(this.destroy$)).subscribe();
+  }
+
+  onApiDocsResizerDoubleClick(): void {
+    this.apiDocsViewerHeight.set(300);
+  }
+
+  onApiDocsResizerKeydown(event: KeyboardEvent): void {
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.apiDocsViewerHeight.update((h) => h + 20);
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.apiDocsViewerHeight.update((h) => Math.max(150, h - 20));
     }
   }
 

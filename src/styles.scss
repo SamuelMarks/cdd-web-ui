@@ -48,6 +48,11 @@ html {
 html.dark-theme {
   @include mat.all-component-colors($dark-theme);
   color-scheme: dark;
+
+  // Adapt SVG icons for dark mode: inverting and hue-rotating keeps hues but reverses lightness
+  img[src$=".svg"] {
+    filter: invert(1) hue-rotate(180deg) brightness(1.2);
+  }
 }
 
 body,

@@ -38,6 +38,7 @@
     "@sentry/tracing": "^7.120.4",
     "@types/d3": "^7.4.3",
     "cdd-ctl-wasm-sdk": "file:../cdd-ctl/cdd-ctl-wasm-sdk",
+    "cdd-docs-ui": "file:../cdd-docs-ui",
     "d3": "^7.9.0",
     "js-yaml": "^4.1.1",
     "monaco-editor": "^0.55.1",
