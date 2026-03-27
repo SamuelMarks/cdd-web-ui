@@ -8,15 +8,15 @@
  */
 export const PETSTORE_SPEC = `openapi: 3.0.0
 info:
-  /** title */
+  # title
   title: Swagger Petstore
-  /** version */
+  # version
   version: 1.0.0
 servers:
   - url: http://petstore.swagger.io/v1
 paths:
   /pets:
-    /** get */
+    # get
     get:
       summary: List all pets
       operationId: listPets
@@ -27,7 +27,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Pets'
-    /** post */
+    # post
     post:
       summary: Create a pet
       operationId: createPets
@@ -35,9 +35,9 @@ paths:
         '201':
           description: Null response
 components:
-  /** schemas */
+  # schemas
   schemas:
-    /** Pet */
+    # Pet
     Pet:
       type: object
       required:
@@ -51,7 +51,7 @@ components:
           type: string
         tag:
           type: string
-    /** Pets */
+    # Pets
     Pets:
       type: array
       items:
@@ -62,13 +62,13 @@ components:
  */
 export const HELLO_WORLD_SPEC = `openapi: 3.0.0
 info:
-  /** title */
+  # title
   title: Hello World API
-  /** version */
+  # version
   version: 1.0.0
 paths:
   /hello:
-    /** get */
+    # get
     get:
       summary: Returns a greeting
       responses:
