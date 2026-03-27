@@ -14,6 +14,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { Store } from '@ngrx/store';
+import { AppState } from '../../store/state';
+import { selectExecutionError } from '../../store/selectors';
 import { LanguageService } from '../../services/language.service';
 import { OfflineService } from '../../services/offline.service';
 import { LanguageConfig, Target, LanguageOptions } from '../../models/types';
@@ -42,9 +45,12 @@ import { StorageService } from '../../services/storage.service';
         <mat-form-field
           appearance="outline"
           class="language-selector-field"
+          [class.has-error]="hasError()"
+          [matTooltip]="hasError() ? (errorMessage() || 'Failed to generate code for this language') : ''"
           subscriptSizing="dynamic"
+          [color]="hasError() ? 'warn' : 'primary'"
         >
-          <mat-label>Language</mat-label>
+          <mat-label [class.error-text]="hasError()">Language</mat-label>
           <mat-select
             [value]="selectedLanguageId()"
             (selectionChange)="onSelectionChange($event.value)"
@@ -61,7 +67,7 @@ import { StorageService } from '../../services/storage.service';
                     class="language-icon"
                   />
                 }
-                <span class="language-name">{{ selectedLanguage()?.name }}</span>
+                <span class="language-name" [class.error-text]="hasError()">{{ selectedLanguage()?.name }}</span>
               </div>
             </mat-select-trigger>
             @for (lang of processedLanguages(); track lang.id) {
@@ -178,12 +184,19 @@ export class LanguageSelectorComponent {
   /** Emits when the language options change. */
   optionsChanged = output<{ languageId: string; options: LanguageOptions }>();
 
+  /** Store dependency */
+  private store = inject(Store<AppState>);
   /** Language service dependency */
   private languageService = inject(LanguageService);
   /** Offline service dependency */
   private offlineService = inject(OfflineService);
   /** Storage service dependency */
   private storageService = inject(StorageService);
+
+  /** Computed error state based on executionError in the store */
+  hasError = computed(() => !!this.store.selectSignal(selectExecutionError)());
+  /** The actual execution error message */
+  errorMessage = this.store.selectSignal(selectExecutionError);
 
   /** Computed currently selected language object. */
   selectedLanguage = computed(() => {

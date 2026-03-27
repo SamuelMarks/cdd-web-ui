@@ -21,42 +21,6 @@ test.describe('App E2E Tests', () => {
         body: JSON.stringify(wasmSupportMap),
       });
     });
-
-    // Mock WASM downloading to avoid heavy builds and network failures in tests
-    // A valid empty wasm module (magic header \0asm + version)
-    const dummyWasm = Buffer.from([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
-    await page.route('**/assets/wasm/*.wasm', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/wasm',
-        body: dummyWasm,
-      });
-    });
-
-    await page.route('**/wasm-worker.worker*', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/javascript',
-        body: `
-          self.addEventListener('message', (event) => {
-            if (event.data.action === 'generateSdk') {
-              const target = event.data.payload?.target || '';
-              if (target === 'to_openapi' || target === 'to_openapi_3_2_0') {
-                self.postMessage({
-                  status: 'success',
-                  data: [{ path: 'openapi.yaml', content: new Uint8Array([116, 101, 115, 116]) }]
-                });
-              } else {
-                self.postMessage({
-                  status: 'success',
-                  data: [{ path: 'generated.ts', content: new Uint8Array([116, 101, 115, 116]) }]
-                });
-              }
-            }
-          });
-        `
-      });
-    });
   });
 
   test.skip('Verify API Docs pane is visible, scrollable, and renders dynamic Swagger HTML', async ({ page }) => {
@@ -85,7 +49,7 @@ test.describe('App E2E Tests', () => {
     await generateBtn.click({ force: true });
 
     // Wait for toast indicating successful generation
-    const snackBar = page.locator('.toast-error, .toast-success').first();
+    const snackBar = page.locator('.toast-success').first();
     await expect(snackBar).toBeVisible({ timeout: 15000 });
 
     // The iframe should now be loaded and visible
@@ -214,7 +178,7 @@ test.describe('App E2E Tests', () => {
     await runButton.click();
 
     // We expect a snack bar toast
-    const snackBar = page.locator('.toast-error, .toast-success').first();
+    const snackBar = page.locator('.toast-success').first();
     await expect(snackBar).toBeVisible({ timeout: 15000 });
 
     expect(externalRequests).toBe(0);
@@ -239,7 +203,7 @@ test.describe('App E2E Tests', () => {
     await generateBtn.click({ force: true });
 
     // Wait for toast
-    const snackBar = page.locator('.toast-error, .toast-success').first();
+    const snackBar = page.locator('.toast-success').first();
     await expect(snackBar).toBeVisible({ timeout: 15000 });
 
     // Swap panes
@@ -258,7 +222,7 @@ test.describe('App E2E Tests', () => {
     await generateBtn.click();
     
     // Check toast again
-    const secondToast = page.locator('.toast-error, .toast-success').first();
+    const secondToast = page.locator('.toast-success').first();
     await expect(secondToast).toBeVisible({ timeout: 15000 });
   });
 });

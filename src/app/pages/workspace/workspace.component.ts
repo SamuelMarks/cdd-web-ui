@@ -5,7 +5,6 @@ import {
   OnInit,
   OnDestroy,
   computed,
-  HostListener,
   signal,
 } from '@angular/core';
 import { fromEvent, Subject, takeUntil, tap } from 'rxjs';
@@ -24,7 +23,6 @@ import { DirectoryTreeComponent } from '../../components/directory-tree/director
 import { CodeViewerComponent } from '../../components/code-viewer/code-viewer.component';
 import { LanguageSelectorComponent } from '../../components/language-selector/language-selector.component';
 import { BottomPanelComponent } from '../../components/bottom-panel/bottom-panel.component';
-import { ApiDocsViewerComponent } from '../../components/api-docs-viewer/api-docs-viewer.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
@@ -46,7 +44,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     CodeViewerComponent,
     LanguageSelectorComponent,
     BottomPanelComponent,
-    ApiDocsViewerComponent,
     MatFormFieldModule,
     MatSelectModule,
     MatButtonModule,
@@ -157,9 +154,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             (targetChanged)="onTargetChanged($event)"
             (optionsChanged)="onOptionsChanged($event)"
           ></app-language-selector>
-          <button mat-icon-button title="Toggle API Docs" aria-label="Toggle API Docs Pane" (click)="toggleApiDocs()">
-            <mat-icon>menu_book</mat-icon>
-          </button>
         </div>
       </div>
 
@@ -187,31 +181,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         <div class="bottom-pane" id="bottom-pane" [style.height.px]="apiDocsPaneHeight()">
           <app-bottom-panel></app-bottom-panel>
         </div>
-        @if (isApiDocsVisible()) {
-          <div
-            class="vertical-resizer"
-            tabindex="0"
-            role="separator"
-            aria-orientation="horizontal"
-            (mousedown)="onApiDocsResizerMouseDown($event)"
-            (dblclick)="onApiDocsResizerDoubleClick()"
-            (keydown)="onApiDocsResizerKeydown($event)"
-          ></div>
-          <div class="api-docs-pane" id="api-docs-pane" [style.height.px]="apiDocsViewerHeight()">
-            @if (generatedFiles().length > 0) {
-              <app-api-docs-viewer></app-api-docs-viewer>
-            } @else {
-              <div class="empty-docs-placeholder">
-                <div class="placeholder-geometry">
-                  <div class="geo-circle"></div>
-                  <div class="geo-square"></div>
-                  <div class="geo-triangle"></div>
-                </div>
-                <p class="placeholder-text">Pretty SDK DOCS UI HTML will appear here</p>
-              </div>
-            }
-          </div>
-        }
       </div>
     </div>
 
@@ -259,13 +228,9 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   /** The injected NgRx store instance. */
   private store = inject(Store<AppState>);
-  /** Signal for API Docs visibility. */
-  isApiDocsVisible = this.store.selectSignal(Selectors.selectIsApiDocsVisible);
-  /** Signal for API Docs pane height. */
-  apiDocsPaneHeight = this.store.selectSignal(Selectors.selectApiDocsPaneHeight);
 
-  /** Height for the new Docs Viewer pane. Default 300 if not in store. */
-  apiDocsViewerHeight = signal(300);
+  /** Signal for bottom pane height. Using the existing state selector. */
+  apiDocsPaneHeight = this.store.selectSignal(Selectors.selectApiDocsPaneHeight);
 
   /** Selects the current orientation of the split pane. */
   /** Signal for workspace layout orientation. */
@@ -311,15 +276,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   /**
    * Initializes the workspace and triggers an initial code generation run.
    */
-
-  @HostListener('document:keydown', ['$event'])
-  /** handleKeyboardEvent */
-  handleKeyboardEvent(event: KeyboardEvent) {
-    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'd') {
-      event.preventDefault();
-      this.toggleApiDocs();
-    }
-  }
 
   /** ngOnInit */
   ngOnInit(): void {
@@ -410,12 +366,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     this.store.dispatch(Actions.selectFile({ filePath }));
   }
 
-  /** Toggles the API Docs pane. */
-  toggleApiDocs(): void {
-    this.store.dispatch(Actions.toggleApiDocsPane());
-  }
-
-  /** Handles the mouse down event on the API Docs resizer bar. */
+  /** Handles the mouse down event on the Bottom Pane resizer bar. */
   onResizerMouseDown(event: MouseEvent): void {
     event.preventDefault(); // Prevent text selection
 
@@ -440,12 +391,12 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     mouseMove$.pipe(takeUntil(mouseUp$), takeUntil(this.destroy$)).subscribe();
   }
 
-  /** Resets the API Docs pane height to the default on double click. */
+  /** Resets the Bottom pane height to the default on double click. */
   onResizerDoubleClick(): void {
     this.store.dispatch(Actions.resizeApiDocsPane({ height: 300 }));
   }
 
-  /** Handles keyboard events on the API Docs resizer bar for accessibility. */
+  /** Handles keyboard events on the Bottom Pane resizer bar for accessibility. */
   onResizerKeydown(event: KeyboardEvent): void {
     if (event.key === 'ArrowUp') {
       event.preventDefault();
@@ -457,40 +408,20 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  onApiDocsResizerMouseDown(event: MouseEvent): void {
-    event.preventDefault();
-
-    const startY = event.clientY;
-    const startHeight = this.apiDocsViewerHeight();
-
-    const mouseMove$ = fromEvent<MouseEvent>(this.document, 'mousemove').pipe(
-      tap((e: MouseEvent) => {
-        const delta = startY - e.clientY;
-        let newHeight = startHeight + delta;
-        newHeight = Math.max(150, Math.min(newHeight, window.innerHeight * 0.8));
-        this.apiDocsViewerHeight.set(newHeight);
-      }),
-    );
-
-    const mouseUp$ = fromEvent<MouseEvent>(this.document, 'mouseup');
-    mouseMove$.pipe(takeUntil(mouseUp$), takeUntil(this.destroy$)).subscribe();
+  /** ngOnDestroy */
+  /** Toggles the API Docs pane visibility */
+  toggleApiDocs(): void {
+    this.store.dispatch(Actions.toggleApiDocsPane());
   }
 
-  onApiDocsResizerDoubleClick(): void {
-    this.apiDocsViewerHeight.set(300);
-  }
-
-  onApiDocsResizerKeydown(event: KeyboardEvent): void {
-    if (event.key === 'ArrowUp') {
+  /** Handles global keyboard shortcuts */
+  handleKeyboardEvent(event: KeyboardEvent): void {
+    if (event.key.toLowerCase() === "d" && (event.ctrlKey || event.metaKey) && event.shiftKey) {
       event.preventDefault();
-      this.apiDocsViewerHeight.update((h) => h + 20);
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      this.apiDocsViewerHeight.update((h) => Math.max(150, h - 20));
+      this.toggleApiDocs();
     }
   }
 
-  /** ngOnDestroy */
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();

@@ -7,7 +7,6 @@ import {
   computed,
   effect,
   inject,
-  CUSTOM_ELEMENTS_SCHEMA,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -33,8 +32,6 @@ import { ThemeService } from '../../services/theme.service';
     MatIconModule,
     MatTooltipModule,
   ],
-  /** schemas */
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   /** template */
   template: `
     <div class="code-viewer-container">
@@ -86,14 +83,11 @@ import { ThemeService } from '../../services/theme.service';
 
       <div class="editor-wrapper">
         @if (activeFilePath() && fileContent() !== null) {
-          <!-- We intentionally don't use ngModel here to ensure strictly one-way binding -->
-          <nu-monaco-editor
+          <!-- We use ngModel for strictly one-way binding via Angular's standard form integration -->
+          <ngx-monaco-editor
             [options]="editorOptions()"
-            [model]="{
-              value: fileContent() || '',
-              language: determineLanguage(activeFilePath() || ''),
-            }"
-          ></nu-monaco-editor>
+            [ngModel]="fileContent() || ''"
+          ></ngx-monaco-editor>
         } @else {
           <div class="empty-state">
             <mat-icon>code_off</mat-icon>
@@ -134,6 +128,8 @@ export class CodeViewerComponent {
   editorOptions = computed(() => ({
     /** theme */
     theme: this.themeService.isDarkTheme() ? 'vs-dark' : 'vs',
+    /** language */
+    language: this.determineLanguage(this.activeFilePath() || ''),
     /** readOnly */
     readOnly: true,
     /** automaticLayout */

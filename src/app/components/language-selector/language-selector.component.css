@@ -64,3 +64,21 @@
   display: flex;
   align-items: center;
 }
+
+/* Error state styles */
+::ng-deep .language-selector-field.has-error .mdc-notched-outline__leading,
+::ng-deep .language-selector-field.has-error .mdc-notched-outline__notch,
+::ng-deep .language-selector-field.has-error .mdc-notched-outline__trailing {
+  border-color: var(--mat-sys-error) !important;
+  border-width: 2px !important;
+}
+
+::ng-deep .language-selector-field.has-error .mat-mdc-select-value-text,
+::ng-deep .language-selector-field.has-error .mat-mdc-select-arrow,
+::ng-deep .language-selector-field.has-error .mdc-floating-label {
+  color: var(--mat-sys-error) !important;
+}
+
+.error-text {
+  color: var(--mat-sys-error) !important;
+}

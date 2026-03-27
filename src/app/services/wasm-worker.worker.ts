@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 import { CddWasmSdk } from 'cdd-ctl-wasm-sdk';
+import * as yaml from 'js-yaml';
 
 // Intercept console.log and other methods to send back to the main thread
 const originalLog = console.log;
@@ -34,6 +35,18 @@ addEventListener('message', async ({ data }) => {
     if (action === 'generateSdk') {
       const { ecosystem, specContent, wasmBinary, target, languageOptions } = payload;
 
+      let finalSpecContent = specContent;
+      if (typeof specContent === 'string' && !specContent.trim().startsWith('{')) {
+        try {
+          const parsed = yaml.load(specContent);
+          if (parsed && typeof parsed === 'object') {
+            finalSpecContent = JSON.stringify(parsed, null, 2);
+          }
+        } catch (e) {
+          console.warn(`[Worker] Failed to parse YAML, continuing with raw string.`, e);
+        }
+      }
+
       const additionalArgs: string[] = [];
       if (languageOptions) {
         if (languageOptions.autoAdmin) {
@@ -59,7 +72,7 @@ addEventListener('message', async ({ data }) => {
       const generatedFiles = await CddWasmSdk.fromOpenApi({
         ecosystem,
         target: target || 'to_sdk',
-        specContent,
+        specContent: finalSpecContent,
         wasmBinary,
         printStdout: true, // Let it print, we've intercepted console
         additionalArgs,

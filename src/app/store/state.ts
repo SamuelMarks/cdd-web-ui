@@ -34,6 +34,8 @@ export interface WorkspaceState {
   apiDocsPaneHeight: number;
   /** The current loading state of the API documentation iframe. */
   apiDocsLoadState: ApiDocsLoadState;
+  /** Holds any execution error message, null if none. */
+  executionError: string | null;
 }
 
 /**

@@ -78,7 +78,7 @@
 }
 
 .directory-tree-pane {
-  flex: 0 0 250px;
+  flex: 0 0 200px;
   max-width: 40%;
   border-right: 1px solid var(--border-color);
 }
@@ -157,44 +157,6 @@
   .vertical-resizer {
     display: none;
   }
-
-  .workspace-content.has-docs .bottom-pane {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh !important; /* Full screen overlay */
-    z-index: 1000;
-  }
-}
-
-
-.api-docs-pane {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--surface-color, #fff);
-  border-top: 1px solid var(--border-color, #e0e0e0);
-  transition: height 0.2s ease-out;
-}
-
-.empty-docs-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--text-secondary);
-  font-size: 1.1rem;
-  background-color: var(--surface-color);
-}
-
-.placeholder-icon {
-  font-size: 48px;
-  width: 48px;
-  height: 48px;
-  margin-bottom: 16px;
-  color: var(--border-color);
 }
 
 /* Mobile Responsiveness for Toolbar */
@@ -250,42 +212,4 @@
   }
 }
 
-.placeholder-geometry {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 24px;
-  justify-content: center;
-  align-items: center;
-  opacity: 0.2;
-}
-
-.geo-circle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 4px solid var(--primary-color, #1976d2);
-}
-
-.geo-square {
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--accent-color, #ff4081);
-  transform: rotate(15deg);
-}
-
-.geo-triangle {
-  width: 0;
-  height: 0;
-  border-left: 24px solid transparent;
-  border-right: 24px solid transparent;
-  border-bottom: 40px solid var(--warn-color, #f44336);
-  opacity: 0.8;
-}
-
-.placeholder-text {
-  font-size: 1.25rem;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  color: var(--text-secondary);
-}
 

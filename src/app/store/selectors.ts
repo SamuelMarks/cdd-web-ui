@@ -25,6 +25,12 @@ export const selectIsExecuting = createSelector(
   (state: WorkspaceState) => state.isExecuting,
 );
 
+/** Selects the execution error */
+export const selectExecutionError = createSelector(
+  selectWorkspaceFeature,
+  (state: WorkspaceState) => state.executionError,
+);
+
 /** Selects the currently selected language ID */
 export const selectSelectedLanguageId = createSelector(
   selectWorkspaceFeature,

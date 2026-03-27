@@ -19,7 +19,7 @@
 
 .toolbar-title {
   margin: 0;
-  margin-left: 4rem;
+  margin-left: 5rem;
   font-size: 1rem;
   font-weight: 500;
   color: var(--text-primary);
@@ -34,7 +34,7 @@
 
 ul {
   list-style-type: none;
-  padding-left: 1rem;
+  padding-left: 0.75rem;
   margin: 0;
 }
 
@@ -47,10 +47,19 @@ ul {
   display: flex;
   align-items: center;
   cursor: pointer;
-  padding: 0.25rem 0.5rem;
+  padding: 0.2rem 0.5rem;
   border-radius: 4px;
   user-select: none;
   color: var(--text-primary);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.node span {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .node:hover {
@@ -71,6 +80,7 @@ ul {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .folder-icon {

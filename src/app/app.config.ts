@@ -64,7 +64,12 @@ export const appConfig: ApplicationConfig = {
     /** importProvidersFrom */
     importProvidersFrom(MonacoEditorModule.forRoot(monacoConfig)),
     /** provideStore */
-    provideStore(reducers),
+    provideStore(reducers, {
+      runtimeChecks: {
+        strictStateImmutability: false,
+        strictActionImmutability: false,
+      },
+    }),
     /** provideEffects */
     provideEffects(WorkspaceEffects),
     /** provideStoreDevtools */

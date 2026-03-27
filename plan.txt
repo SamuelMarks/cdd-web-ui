@@ -1,0 +1,10 @@
+Research indicates that `../cdd-docs-ui` is indeed integrated properly in terms of iframe messaging, but it is fundamentally a **stub**.
+
+1. **Proper Integration:** `DocsSyncService` successfully sends the `UPDATE_SPEC` message containing the OpenAPI specification when the iframe emits `DOCS_UI_READY`.
+2. **Stubbed Functionality:** The bundled JavaScript (`dist/bundle.js`) inside `cdd-docs-ui` is a minimal implementation. It iterates over endpoints to display basic paths and methods but intentionally **omits schemas**.
+3. **No Dynamic Code Examples:** The UI's `index.html` contains a hardcoded placeholder: `<!-- Code panel not supported dynamically without cdd-ctl backend --> <p>Code examples are disabled in dynamic preview mode.</p>`. It is not designed to receive or display dynamically generated SDK files.
+
+**Proposed Strategy:**
+If you'd like to see an interactive API docs page with schemas and your dynamically generated SDK examples (e.g., C, Go, Python), we can bypass the stubbed iframe entirely. I can implement a native Angular component (or integrate a capable viewer like Swagger UI/Redoc) within `cdd-web-ui` that reads both the OpenAPI spec and the `FileTreeState` to display the generated code examples side-by-side with the endpoints. 
+
+Would you like me to implement this enhanced, native API documentation viewer?

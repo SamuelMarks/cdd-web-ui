@@ -21,6 +21,8 @@ export const initialWorkspaceState: WorkspaceState = {
   apiDocsPaneHeight: 300,
   /** apiDocsLoadState */
   apiDocsLoadState: 'IDLE',
+  /** executionError */
+  executionError: null,
 };
 
 /** Workspace Reducer */
@@ -48,6 +50,7 @@ export const workspaceReducer = createReducer(
     (state, { languageId }): WorkspaceState => ({
       ...state,
       selectedLanguageId: languageId,
+      executionError: null,
     }),
   ),
   /** on */
@@ -56,6 +59,7 @@ export const workspaceReducer = createReducer(
     (state, { target }): WorkspaceState => ({
       ...state,
       target,
+      executionError: null,
     }),
   ),
   /** on */
@@ -67,6 +71,7 @@ export const workspaceReducer = createReducer(
         ...state.languageOptions,
         [languageId]: options,
       },
+      executionError: null,
     }),
   ),
   /** on */
@@ -75,15 +80,33 @@ export const workspaceReducer = createReducer(
     (state): WorkspaceState => ({
       ...state,
       isExecuting: true,
+      executionError: null,
     }),
   ),
   /** on */
   on(
     Actions.executeRunSuccess,
-    Actions.executeRunFailure,
     (state): WorkspaceState => ({
       ...state,
       isExecuting: false,
+      executionError: null,
+    }),
+  ),
+  /** on */
+  on(
+    Actions.executeRunFailure,
+    (state, { error }): WorkspaceState => ({
+      ...state,
+      isExecuting: false,
+      executionError: error,
+    }),
+  ),
+  /** on */
+  on(
+    Actions.updateOpenApiSpec,
+    (state): WorkspaceState => ({
+      ...state,
+      executionError: null,
     }),
   ),
 
@@ -145,11 +168,40 @@ export const fileTreeReducer = createReducer(
   /** on */
   on(
     Actions.setGeneratedFiles,
-    (state, { files }): FileTreeState => ({
-      ...state,
-      files,
-      activeFilePath: files.length > 0 ? files[0].path : null,
-    }),
+    (state, { files }): FileTreeState => {
+      let activeFilePath: string | null = null;
+      if (files.length > 0) {
+        const patterns = [
+          /readme\.md$/i,
+          /client\./i,
+          /api\./i,
+          /index\./i,
+          /main\./i,
+          /\.ts$/,
+          /\.py$/,
+          /\.go$/,
+          /\.rs$/,
+        ];
+        
+        for (const pattern of patterns) {
+          const match = files.find(f => pattern.test(f.path));
+          if (match) {
+            activeFilePath = match.path;
+            break;
+          }
+        }
+        
+        if (!activeFilePath) {
+          activeFilePath = files[0].path;
+        }
+      }
+
+      return {
+        ...state,
+        files,
+        activeFilePath,
+      };
+    },
   ),
   /** on */
   on(

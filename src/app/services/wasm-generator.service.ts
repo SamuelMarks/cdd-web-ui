@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Repository } from '../models/types';
 import { LanguageService } from './language.service';
 import { CddWasmSdk, Ecosystem } from 'cdd-ctl-wasm-sdk';
+import * as yaml from 'js-yaml';
 
 /**
  * A service that generates SDK code from OpenAPI specifications,
@@ -46,11 +47,23 @@ export class WasmGeneratorService {
 
       const wasmBinary = await response.arrayBuffer();
       const ecosystemName = lang.repo as Ecosystem;
+      
+      let finalSpecContent = specContent || '{}';
+      if (typeof finalSpecContent === 'string' && !finalSpecContent.trim().startsWith('{')) {
+        try {
+          const parsed = yaml.load(finalSpecContent);
+          if (parsed && typeof parsed === 'object') {
+            finalSpecContent = JSON.stringify(parsed, null, 2);
+          }
+        } catch (e) {
+          console.warn(`[WasmGenerator] Failed to parse YAML, continuing with raw string.`, e);
+        }
+      }
 
       const generatedFiles = await CddWasmSdk.fromOpenApi({
         ecosystem: ecosystemName,
         target: 'to_sdk',
-        specContent: specContent || '{}',
+        specContent: finalSpecContent,
         wasmBinary: wasmBinary,
         printStdout: false,
       });

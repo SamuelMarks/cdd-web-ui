@@ -9,6 +9,8 @@ import { By } from '@angular/platform-browser';
 import { MatSelectModule } from '@angular/material/select';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { provideMockStore } from '@ngrx/store/testing';
+import { selectExecutionError } from '../../store/selectors';
 
 @Component({
   template: `
@@ -91,6 +93,9 @@ describe('LanguageSelectorComponent', () => {
         { provide: LanguageService, useValue: mockLanguageService },
         { provide: OfflineService, useValue: mockOfflineService },
         { provide: StorageService, useValue: mockStorageService },
+        provideMockStore({
+          selectors: [{ selector: selectExecutionError, value: null }],
+        }),
       ],
     }).compileComponents();
 

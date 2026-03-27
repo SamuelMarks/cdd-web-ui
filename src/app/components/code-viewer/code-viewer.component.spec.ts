@@ -6,10 +6,11 @@ import { NotificationService } from '../../services/notification.service';
 import { ThemeService } from '../../services/theme.service';
 import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 
 // Mock Monaco Editor to avoid dependency issues in isolated tests
 @Component({
-  selector: 'nu-monaco-editor',
+  selector: 'ngx-monaco-editor',
   template: '<div>Mock Code Viewer Editor</div>',
   providers: [
     {
@@ -75,11 +76,7 @@ describe('CodeViewerComponent', () => {
     })
       .overrideComponent(CodeViewerComponent, {
         remove: {
-          imports: [
-            import('ngx-monaco-editor-v2').then(
-              (m) => m.MonacoEditorModule,
-            ) as unknown as import('@angular/core').Type<unknown>,
-          ],
+          imports: [MonacoEditorModule],
         },
         add: {
           imports: [MockMonacoEditorComponent],
