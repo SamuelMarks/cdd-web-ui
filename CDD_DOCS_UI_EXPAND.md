@@ -15,7 +15,7 @@ This document outlines the exhaustive plan to transform `cdd-docs-ui` from a min
   - [x] Add markdown rendering (e.g., `marked` or `markdown-it`).
   - [x] Add Web Component base library (e.g., `Lit` or vanilla `HTMLElement`) for the dynamic mode.
   - [x] Add templating engine (e.g., `Handlebars`, `EJS`, or `Pug`) or leverage a framework like 11ty/Astro for the AOT static generation.
-- [x] **Tooling - [ ] **Tooling & CI/CD** CI/CD**
+- [x] **Tooling & CI/CD**
   - [x] Integrate formatting and linting (Prettier, ESLint).
   - [x] Set up CI pipelines for automated testing, build verification, and coverage reporting.
 
@@ -50,7 +50,7 @@ This document outlines the exhaustive plan to transform `cdd-docs-ui` from a min
 
 ## 4. Accessibility (A11y) Features
 
-- [x] **Keyboard Navigation - [ ] **Keyboard Navigation & Focus Management** Focus Management**
+- [x] **Keyboard Navigation & Focus Management**
   - [x] Ensure all interactive elements are reachable via `Tab` key.
   - [x] Implement visible focus rings for all interactive elements.
   - [x] Implement focus trapping for modals (e.g., mobile sidebar, dialogs).
@@ -75,7 +75,7 @@ This document outlines the exhaustive plan to transform `cdd-docs-ui` from a min
   - [x] Inline critical CSS or emit a single `style.css` file.
   - [x] Ensure all layout features (3-column, responsive) work purely with CSS (e.g., using flexbox/grid, media queries).
   - [x] Implement CSS-only interactivity (e.g., using `<details>` and `<summary>` for schema expansion, CSS `:target` or radio-button hacks for tabs/drawers).
-- [x] **AOT Accessibility - [ ] **AOT Accessibility & SEO** SEO**
+- [x] **AOT Accessibility & SEO**
   - [x] Generate proper `<meta>` tags, canonical URLs, and `<title>` based on the OpenAPI info object.
   - [x] Ensure CSS-only interactive elements (like `<details>`) are inherently accessible without JS.
 
@@ -115,7 +115,7 @@ This document outlines the exhaustive plan to transform `cdd-docs-ui` from a min
 - [x] **Component Documentation (Storybook)**
   - [x] Set up Storybook to document the isolated UI components (Buttons, Tabs, Schema Viewers, Sidebar).
   - [x] Create stories for different states (loading, error, empty, deeply nested schemas, light/dark themes, various viewports).
-- [x] **User - [ ] **User & Integration Guides** Integration Guides**
+- [x] **User & Integration Guides**
   - [x] Write a comprehensive `README.md` covering installation, usage, and CLI flags.
   - [x] Create specific integration guides for Angular, React, Vue, and Vanilla JS.
   - [x] Create an architecture decision record (ADR) detailing the hybrid AOT/Dynamic approach.
