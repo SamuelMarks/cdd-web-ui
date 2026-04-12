@@ -1,0 +1,15 @@
+echo "Running Linters..."
+npm run lint
+
+echo "Running Tests..."
+npx vitest run
+
+echo "Running Build..."
+npm run build
+
+echo "Running E2E Tests..."
+npx playwright test
+
+echo "Updating Coverage Shields..."
+node scripts/update-shields.mjs
+git add README.md
