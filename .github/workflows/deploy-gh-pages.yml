@@ -1,0 +1,75 @@
+name: Deploy Web UI to GitHub Pages
+
+on:
+  push:
+    branches: ["main", "master"]
+
+permissions:
+  contents: write
+
+env:
+  # The GitHub pages location, used to compute the base-href correctly.
+  DEPLOY_LOCATION: samuelmarks.github.io/cdd-web-ui
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout cdd-web-ui
+        uses: actions/checkout@v4
+        with:
+          path: 'cdd-web-ui'
+
+      - name: Checkout cdd-ctl
+        uses: actions/checkout@v4
+        with:
+          repository: 'SamuelMarks/cdd-ctl'
+          path: 'cdd-ctl'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build WASM SDK
+        working-directory: ./cdd-ctl/cdd-ctl-wasm-sdk
+        run: |
+          npm install --ignore-scripts
+          npm run build
+
+      - name: Fetch WASM Binaries
+        working-directory: ./cdd-ctl
+        run: |
+          chmod +x ./scripts/fetch_wasm.sh
+          ./scripts/fetch_wasm.sh
+          # Move binaries into Angular public/wasm so they get bundled
+          mkdir -p ../cdd-web-ui/public/wasm
+          cp cdd-ctl-wasm-sdk/assets/wasm/*.wasm ../cdd-web-ui/public/wasm/ 2>/dev/null || true
+
+      - name: Install UI Dependencies
+        working-directory: ./cdd-web-ui
+        run: npm ci --ignore-scripts
+
+      - name: Compute base-href and Build Angular App
+        working-directory: ./cdd-web-ui
+        run: |
+          # Extract everything after the first / (e.g. "cdd-web-ui")
+          # Example input: samuelmarks.github.io/cdd-web-ui
+          # Evaluates to: /cdd-web-ui/
+          BASE_PATH=$(echo $DEPLOY_LOCATION | sed -e 's/^[^\/]*//')
+          if [ -z "$BASE_PATH" ] || [ "$BASE_PATH" == "/" ]; then
+             BASE_HREF="/"
+          else
+             BASE_HREF="$BASE_PATH/"
+          fi
+          echo "Building Angular with --base-href=$BASE_HREF"
+          
+          # Run the angular production build with the calculated base-href
+          npx ng build --configuration production --base-href $BASE_HREF
+
+      - name: Deploy using angular-cli-ghpages
+        working-directory: ./cdd-web-ui
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # The new Angular esbuild application builder outputs to `dist/tmp-app/browser`
+        run: npx angular-cli-ghpages --dir=dist/tmp-app/browser --no-silent
