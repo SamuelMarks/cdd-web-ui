@@ -42,7 +42,7 @@ export class WasmGeneratorService {
     }
 
     try {
-      const response = await fetch(`/assets/wasm/${lang.repo}.wasm`);
+      const response = await fetch(`https://github.com/SamuelMarks/cdd-web-ui/releases/download/latest/${lang.repo}.wasm`);
       if (!response.ok) throw new Error('WASM binary not found');
 
       const wasmBinary = await response.arrayBuffer();
@@ -205,7 +205,7 @@ export class ${apiName}Client {
 
     try {
       // Real WASM integration path
-      const response = await fetch(`/assets/wasm/${lang.repo}.wasm`);
+      const response = await fetch(`https://github.com/SamuelMarks/cdd-web-ui/releases/download/latest/${lang.repo}.wasm`);
       if (!response.ok) throw new Error('WASM binary not found');
       // Instantiate just to verify loadability
       const buffer = await response.arrayBuffer();

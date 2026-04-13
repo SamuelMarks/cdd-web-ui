@@ -30,22 +30,40 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install Binaryen
+        run: sudo apt-get update && sudo apt-get install -y binaryen
+
       - name: Build WASM SDK
         working-directory: ./cdd-ctl/cdd-ctl-wasm-sdk
         run: |
           npm install --ignore-scripts
           npm run build
 
-      - name: Fetch WASM Binaries
+      - name: Fetch and Optimize WASM Binaries
         working-directory: ./cdd-ctl
         run: |
           chmod +x ./scripts/fetch_wasm.sh
           ./scripts/fetch_wasm.sh
-          # Move binaries into Angular public/wasm so they get bundled
-          mkdir -p ../cdd-web-ui/public/wasm
-          cp cdd-ctl-wasm-sdk/assets/wasm/*.wasm ../cdd-web-ui/public/wasm/ 2>/dev/null || true
-          # Note: cdd-ts.wasm is > 100MB and fails GitHub Pages push limitations. It is skipped.
-          rm -f ../cdd-web-ui/public/wasm/cdd-ts.wasm
+          
+          mkdir -p ./optimized-wasm
+          for wasm_file in cdd-ctl-wasm-sdk/assets/wasm/*.wasm; do
+            filename=$(basename "$wasm_file")
+            echo "Optimizing $filename..."
+            wasm-opt -O3 "$wasm_file" -o "./optimized-wasm/$filename" || cp "$wasm_file" "./optimized-wasm/$filename"
+          done
+
+      - name: Publish to GitHub Releases (latest)
+        working-directory: ./cdd-web-ui
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Ensure git tags are loaded
+          git fetch --tags
+          # Delete the 'latest' release and tag if they exist
+          gh release delete latest --cleanup-tag -y || true
+          
+          # Create a new release and upload all optimized wasm files
+          gh release create latest ../cdd-ctl/optimized-wasm/*.wasm --title "Latest WASM Assets" --notes "Auto-generated WASM binaries optimized with -O3" --target ${{ github.sha }}
 
       - name: Install UI Dependencies
         working-directory: ./cdd-web-ui
