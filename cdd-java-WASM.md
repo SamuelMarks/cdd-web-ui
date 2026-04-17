@@ -1,3 +1,7 @@
+> **Filename:** `cdd-java-WASM.md`
+> **Purpose:** Tracks the WebAssembly (WASM) support status and build instructions for integrating the `cdd-java` compiler into the CDD Web UI.
+> **Current State:** Supported. The Web UI currently provides an offline-first browser execution environment that runs `cdd-java` completely client-side.
+
 # WASM Support for cdd-java
 
 ## Status: Supported ✅

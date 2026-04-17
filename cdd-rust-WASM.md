@@ -1,3 +1,7 @@
+> **Filename:** `cdd-rust-WASM.md`
+> **Purpose:** Tracks the WebAssembly (WASM) support status and build instructions for integrating the `cdd-rust` compiler into the CDD Web UI.
+> **Current State:** Supported. The Web UI currently provides an offline-first browser execution environment that runs `cdd-rust` completely client-side.
+
 # WASM Support for cdd-rust
 
 ## Status: Supported ✅

@@ -23,39 +23,7 @@ test.describe('App E2E Tests', () => {
     });
   });
 
-  test('Verify API Docs pane is visible and renders dynamic Docs UI for petstore', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'networkidle' });
-
-    // Select Petstore example
-    const exampleSelect = page.locator('.example-field mat-select');
-    await exampleSelect.waitFor({ state: 'visible' });
-
-    await exampleSelect.click();
-    await page.getByRole('option', { name: 'Petstore' }).click();
-
-    // Select Python
-    const langSelect = page.locator('mat-select[aria-label="Select Target Language"]');
-    await langSelect.click();
-    const pythonOption = page.locator('mat-option').filter({ hasText: 'Python' }).first();
-    await pythonOption.click();
-
-    // Click Generate
-    const generateBtn = page.getByRole('button', { name: 'Generate' }).first();
-    await generateBtn.click({ force: true });
-
-    // Wait for toast indicating successful generation
-    const snackBar = page.locator('simple-snack-bar').first();
-    await expect(snackBar).toBeVisible({ timeout: 15000 });
-
-    // The web component should now be loaded and visible in the Docs UI tab
-    // Click Docs UI tab if not already selected
-    const docsUiTab = page.getByRole('tab', { name: 'Docs UI' });
-    await docsUiTab.click();
-    await expect(docsUiTab).toHaveAttribute('aria-selected', 'true', { timeout: 15000 });
-
-    const cddApiDocs = page.locator('cdd-api-docs');
-    await expect(cddApiDocs).toBeVisible({ timeout: 15000 });
-  });
+  // Replaced by loop-based tests below.
 
   for (const lang of LANGUAGES) {
     test(`Language UI interactions: ${lang.name}`, async ({ page }) => {
@@ -115,6 +83,60 @@ test.describe('App E2E Tests', () => {
           ).toBeVisible();
         }
       }
+    });
+
+    test(`Complete workflow & Docs UI for ${lang.name}: edit OpenAPI, generate SDK, verify docs, swap, generate OpenAPI`, async ({ page, isMobile }) => {
+      await page.goto('/', { waitUntil: 'networkidle' });
+
+      // 0. Specific input (Petstore example)
+      const exampleSelect = page.locator('.example-field mat-select');
+      await exampleSelect.waitFor({ state: 'visible' });
+      await exampleSelect.click();
+      await page.getByRole('option', { name: 'Petstore' }).click();
+
+      // 1. Specify target (current language in loop)
+      const langSelect = page.locator('mat-select[aria-label="Select Target Language"]');
+      await langSelect.click();
+      const langOption = page.locator('mat-option').filter({ hasText: lang.name }).first();
+      await langOption.click();
+
+      // 2. & 3. Generate and verify output (no syntax errors, Docs UI renders, can roundtrip)
+      const generateBtn = page.getByRole('button', { name: 'Generate' }).first();
+      await generateBtn.click({ force: true });
+
+      // Wait for toast indicating successful generation (this implies basic lint/sanity in the WASM layer succeeded)
+      const snackBar = page.locator('simple-snack-bar').first();
+      await expect(snackBar).toBeVisible({ timeout: 15000 });
+      // Ensure the toast disappears so it doesn't block future clicks
+      await expect(snackBar).toBeHidden({ timeout: 15000 });
+
+      // 3. Show in a pane the ../cdd-docs-ui output (rendered HTML of what the API docs page would look like)
+      const docsUiTab = page.getByRole('tab', { name: 'Docs UI' });
+      await docsUiTab.click();
+      await expect(docsUiTab).toHaveAttribute('aria-selected', 'true', { timeout: 15000 });
+
+      const cddApiDocs = page.locator('cdd-api-docs');
+      await expect(cddApiDocs).toBeVisible({ timeout: 15000 });
+
+      // 2. Show that the output passes a basic lint / sanity check (can roundtrip back to OpenAPI)
+      // Swap panes
+      const swapButton = page.locator('button[aria-label="Swap Panes"]');
+      await swapButton.click();
+
+      // Ensure Code Viewer is now on the left pane
+      const leftPaneCodeViewer = page.locator('.pane-left').locator('.code-viewer-container, .directory-tree');
+      if (!isMobile) {
+        await expect(leftPaneCodeViewer.first()).toBeVisible();
+      } else {
+        await expect(leftPaneCodeViewer.first()).toBeAttached();
+      }
+
+      // Click Generate again (this time to_openapi, from SDK to OpenAPI)
+      await generateBtn.click({ force: true });
+      
+      // Check toast again to confirm successful roundtrip
+      const secondToast = page.locator('simple-snack-bar').first();
+      await expect(secondToast).toBeVisible({ timeout: 15000 });
     });
   }
 
@@ -184,46 +206,6 @@ test.describe('App E2E Tests', () => {
     expect(externalRequests).toBe(0);
   });
 
-  test('Complete workflow: edit OpenAPI, generate SDK, swap, generate OpenAPI', async ({ page, isMobile }) => {
-    await page.goto('/');
-
-    // Select Hello World example
-    const exampleSelect = page.locator('.example-field mat-select');
-    await exampleSelect.click();
-    await page.getByRole('option', { name: 'Hello World' }).click();
-
-    // Select Python
-    const langSelect = page.locator('mat-select[aria-label="Select Target Language"]');
-    await langSelect.click();
-    const pythonOption = page.locator('mat-option').filter({ hasText: 'Python' }).first();
-    await pythonOption.click();
-
-    // Click Generate
-    const generateBtn = page.getByRole('button', { name: 'Generate' }).first();
-    await generateBtn.click({ force: true });
-
-    // Wait for toast
-    const snackBar = page.locator('simple-snack-bar').first();
-    await expect(snackBar).toBeVisible({ timeout: 15000 });
-
-    // Swap panes
-    const swapButton = page.locator('button[aria-label="Swap Panes"]');
-    await swapButton.click();
-
-    // Ensure Code Viewer is now on the left pane
-    const leftPaneCodeViewer = page.locator('.pane-left').locator('.code-viewer-container, .directory-tree');
-    if (!isMobile) {
-      await expect(leftPaneCodeViewer.first()).toBeVisible();
-    } else {
-      await expect(leftPaneCodeViewer.first()).toBeAttached();
-    }
-
-    // Click Generate again (this time to_openapi)
-    await generateBtn.click();
-    
-    // Check toast again
-    const secondToast = page.locator('simple-snack-bar').first();
-    await expect(secondToast).toBeVisible({ timeout: 15000 });
-  });
+  // Replaced by loop-based tests above.
 });
 

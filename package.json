@@ -16,6 +16,7 @@
     "doc:coverage": "compodoc -p tsconfig.json --coverageTest 100",
     "test:coverage": "vitest run --coverage",
     "build:wasm": "node scripts/build-wasm.mjs",
+    "build:wasm:local": "node scripts/build-wasm.mjs --local",
     "deploy:gh": "npx angular-cli-ghpages --dir=dist/tmp-app/browser"
   },
   "private": true,

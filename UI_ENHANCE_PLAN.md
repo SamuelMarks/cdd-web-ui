@@ -1,3 +1,7 @@
+> **Filename:** `UI_ENHANCE_PLAN.md`
+> **Purpose:** Exhaustive plan for embedding API Documentation as a preview pane.
+> **Current State:** Mostly Completed (101/106 tasks done). Remaining tasks include scroll sync, two-way sync, and CSP updates.
+
 # UI Enhancement Plan: Embedded API Documentation (Exhaustive)
 
 This document outlines an exhaustive, production-ready checklist of features, edge cases, and architectural tasks required to robustly embed `cdd-docs-ui` as a preview pane below the main editor workspace.

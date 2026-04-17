@@ -92,3 +92,16 @@ public/assets/wasm/*.wasm
 *.pkg
 *.c
 /*.wasm
+
+# Additional temporary files
+*.rej
+*.patch
+patch-*
+update-*
+*-improved.*
+*-backup.*
+replacement-*.txt
+run_pw.js
+test-*.html
+plan.txt
+improved-*

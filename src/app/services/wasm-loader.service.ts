@@ -49,15 +49,12 @@ export class WasmLoaderService {
 
       const buffer = await response.arrayBuffer();
 
-      // Basic check for WASM magic number (\0asm)
+      // Basic check for WASM magic number (\0asm) or ZIP magic number (PK\x03\x04) for Pyodide bundles
       const view = new Uint8Array(buffer);
-      if (
-        view.length < 4 ||
-        view[0] !== 0x00 ||
-        view[1] !== 0x61 ||
-        view[2] !== 0x73 ||
-        view[3] !== 0x6d
-      ) {
+      const isWasm = view.length >= 4 && view[0] === 0x00 && view[1] === 0x61 && view[2] === 0x73 && view[3] === 0x6d;
+      const isZip = view.length >= 4 && view[0] === 0x50 && view[1] === 0x4B && view[2] === 0x03 && view[3] === 0x04;
+
+      if (!isWasm && !isZip) {
         throw new Error(`Invalid WASM binary downloaded for ${ecosystem}: Missing magic number.`);
       }
 
