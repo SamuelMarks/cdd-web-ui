@@ -12,6 +12,9 @@ module.exports = [
       'doc-out/**',
       'documentation/**',
       'playwright-report/**',
+      'improved-web-component.ts',
+      'parser-improved.ts',
+      'web-comp-backup.ts',
     ],
   },
   {

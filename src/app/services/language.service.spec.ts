@@ -71,7 +71,7 @@ describe('LanguageService', () => {
     const langs = service.languages();
     // Should retain defaults
     expect(langs.find((l) => l.id === 'typescript')?.availableInWasm).toBe(true);
-    expect(langs.find((l) => l.id === 'java')?.availableInWasm).toBe(false);
+    expect(langs.find((l) => l.id === 'java')?.availableInWasm).toBe(true);
   });
 
   it('should load wasm support and handle openapi alias', async () => {

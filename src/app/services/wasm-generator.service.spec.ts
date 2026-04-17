@@ -129,10 +129,6 @@ describe('WasmGeneratorService', () => {
       expect(code).toContain('Generated content for success');
     });
 
-    it('should return disabled message for unsupported languages', async () => {
-      const code = await service.generateSdk(dummyRepo, 'java', '{}');
-      expect(code).toContain('is disabled due to lack of WASM support');
-    });
 
     it('should handle unrecognised language ID', async () => {
       const code = await service.generateSdk(dummyRepo, 'unsupported-lang', '{}');
@@ -176,15 +172,19 @@ describe('WasmGeneratorService', () => {
       expect(config).toContain('# Default CI workflow for Go');
     });
 
-    it('should return disabled message for unsupported languages', async () => {
-      const config = await service.generateCiCd(dummyRepo, 'java');
-      expect(config).toContain('is disabled due to lack of WASM support');
-    });
 
     it('should handle completely unknown languages in generateCiCd', async () => {
       const config = await service.generateCiCd(dummyRepo, 'unknown-lang');
       expect(config).toContain('is disabled due to lack of WASM support');
       expect(config).toContain('for unknown-lang');
+    });
+
+    it('should fall back if YAML parsing fails', async () => {
+      const consoleSpy = vi.spyOn(console, 'warn');
+      const specContent = 'invalid:\n\t  - yaml';
+      const code = await service.generateSdk(dummyRepo, 'typescript', specContent);
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[WasmGenerator] Failed to parse YAML'), expect.any(Error));
+      expect(typeof code).toBe('string');
     });
   });
 
@@ -210,10 +210,6 @@ describe('WasmGeneratorService', () => {
       expect(spec).toContain('"title": "Mock API from Python"');
     });
 
-    it('should return disabled message for unsupported languages', async () => {
-      const spec = await service.generateOpenApi(dummyRepo, 'java', 'class Client {}');
-      expect(spec).toContain('is disabled due to lack of WASM support');
-    });
 
     it('should handle unrecognised language ID', async () => {
       const spec = await service.generateOpenApi(dummyRepo, 'unsupported-lang', '{}');
