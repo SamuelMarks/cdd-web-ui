@@ -3,9 +3,13 @@ import { CddWasmSdk } from 'cdd-ctl-wasm-sdk';
 import * as yaml from 'js-yaml';
 
 // Intercept console.log and other methods to send back to the main thread
+/** Original console.log reference */
 const originalLog = console.log;
+/** Original console.info reference */
 const originalInfo = console.info;
+/** Original console.warn reference */
 const originalWarn = console.warn;
+/** Original console.error reference */
 const originalError = console.error;
 
 console.log = (...args) => {

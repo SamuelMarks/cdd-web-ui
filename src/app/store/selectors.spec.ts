@@ -35,6 +35,11 @@ describe('Selectors', () => {
     expect(Selectors.selectIsExecuting(mockState)).toBe(true);
   });
 
+  it('should select executionError', () => {
+    const state = { ...mockState, workspace: { ...mockState.workspace, executionError: 'err' } };
+    expect(Selectors.selectExecutionError(state)).toBe('err');
+  });
+
   it('should select selectedLanguageId', () => {
     expect(Selectors.selectSelectedLanguageId(mockState)).toBe('rust');
   });

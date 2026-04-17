@@ -1,5 +1,4 @@
-
-import { of } from "rxjs";
+import { Subject } from "rxjs";
 import { TestBed, ComponentFixture } from "@angular/core/testing";
 import { BottomPanelComponent } from "./bottom-panel.component";
 import { LoggingService, LogEntry } from "../../services/logging.service";
@@ -10,6 +9,8 @@ import { provideMockActions } from "@ngrx/effects/testing";
 import { provideMockStore } from "@ngrx/store/testing";
 import { VisualisationsComponent } from "../visualisations/visualisations.component";
 import { ApiDocsViewerComponent } from "../api-docs-viewer/api-docs-viewer.component";
+import { Action } from "@ngrx/store";
+import * as WorkspaceActions from "../../store/actions";
 
 @Component({ selector: "app-visualisations", template: "" })
 class MockVisualisationsComponent {}
@@ -20,11 +21,13 @@ class MockApiDocsViewerComponent {}
 describe("BottomPanelComponent", () => {
   let component: BottomPanelComponent;
   let fixture: ComponentFixture<BottomPanelComponent>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let actions$: Subject<Action>;
 
   let loggingServiceMock: { logs: unknown, clear: unknown };
 
   beforeEach(async () => {
+    actions$ = new Subject<Action>();
+
     loggingServiceMock = {
       logs: signal<LogEntry[]>([{ level: "INFO", message: "Test log", timestamp: new Date().toISOString() }]),
       clear: vi.fn(),
@@ -34,7 +37,7 @@ describe("BottomPanelComponent", () => {
       imports: [BottomPanelComponent, NoopAnimationsModule],
       providers: [
         { provide: LoggingService, useValue: loggingServiceMock },
-        provideMockActions(() => of()),
+        provideMockActions(() => actions$),
         provideMockStore()
       ]
     })
@@ -56,5 +59,17 @@ describe("BottomPanelComponent", () => {
   it("should call clearLogs when clear button is clicked", () => {
     component.clearLogs();
     expect(loggingServiceMock.clear).toHaveBeenCalled();
+  });
+
+  it("should select Docs UI tab on executeRunSuccess", () => {
+    component.selectedTabIndex.set(0);
+    actions$.next(WorkspaceActions.executeRunSuccess());
+    expect(component.selectedTabIndex()).toBe(2);
+  });
+
+  it("should select Logs tab on executeRunFailure", () => {
+    component.selectedTabIndex.set(2);
+    actions$.next(WorkspaceActions.executeRunFailure({ error: 'failed' }));
+    expect(component.selectedTabIndex()).toBe(0);
   });
 });

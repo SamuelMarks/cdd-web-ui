@@ -1,9 +1,14 @@
 import { Injectable, signal } from '@angular/core';
 
+/** Represents a single log entry */
 export interface LogEntry {
+  /** Severity level */
   level: 'INFO' | 'WARN' | 'ERROR';
+  /** Log message */
   message: string;
+  /** ISO timestamp */
   timestamp: string;
+  /** Optional parameters */
   params?: unknown[];
 }
 
@@ -14,7 +19,9 @@ export interface LogEntry {
   providedIn: 'root',
 })
 export class LoggingService {
+  /** doc */
   private logsSignal = signal<LogEntry[]>([]);
+  /** doc */
   public readonly logs = this.logsSignal.asReadonly();
 
   /**
@@ -47,10 +54,12 @@ export class LoggingService {
     this.addLog('ERROR', message, optionalParams);
   }
 
+  /** doc */
   clear(): void {
     this.logsSignal.set([]);
   }
 
+  /** doc */
   private addLog(level: 'INFO' | 'WARN' | 'ERROR', message: string, params: unknown[]): void {
     this.logsSignal.update(logs => [...logs, { level, message, timestamp: new Date().toISOString(), params }]);
   }

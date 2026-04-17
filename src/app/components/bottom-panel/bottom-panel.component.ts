@@ -10,6 +10,9 @@ import { Actions, ofType } from '@ngrx/effects';
 import * as WorkspaceActions from '../../store/actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
+/**
+ * Component for rendering the bottom panel containing logs, visualisations, and Docs UI.
+ */
 @Component({
   selector: 'app-bottom-panel',
   imports: [CommonModule, MatTabsModule, MatIconModule, MatButtonModule, VisualisationsComponent, ApiDocsViewerComponent],
@@ -49,12 +52,20 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BottomPanelComponent {
+  /** Service for accessing logs */
   private loggingService = inject(LoggingService);
+  /** NgRx Actions stream */
   private actions$ = inject(Actions);
 
+  /** Signal containing the current logs */
   logs = this.loggingService.logs;
+  
+  /** Signal indicating the currently selected tab index */
   selectedTabIndex = signal(0);
 
+  /**
+   * Initializes the component and subscribes to execution actions to switch tabs.
+   */
   constructor() {
     this.actions$.pipe(
       ofType(WorkspaceActions.executeRunSuccess),
@@ -71,6 +82,9 @@ export class BottomPanelComponent {
     });
   }
 
+  /**
+   * Clears the current logs.
+   */
   clearLogs(): void {
     this.loggingService.clear();
   }

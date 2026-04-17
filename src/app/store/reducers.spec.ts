@@ -64,6 +64,13 @@ describe('Reducers', () => {
       state = workspaceReducer(initialWorkspaceState, Actions.executeRunStart());
       state = workspaceReducer(state, Actions.executeRunFailure({ error: 'err' }));
       expect(state.isExecuting).toBe(false);
+      expect(state.executionError).toBe('err');
+    });
+
+    it('should clear executionError on updateOpenApiSpec', () => {
+      const stateWithErr = { ...initialWorkspaceState, executionError: 'err' };
+      const state = workspaceReducer(stateWithErr, Actions.updateOpenApiSpec({ content: 'new' }));
+      expect(state.executionError).toBe(null);
     });
 
     it('should toggle api docs pane', () => {
@@ -113,6 +120,26 @@ describe('Reducers', () => {
       const state = fileTreeReducer(initialFileTreeState, Actions.setGeneratedFiles({ files }));
       expect(state.files).toEqual(files);
       expect(state.activeFilePath).toBe('test1.ts');
+    });
+
+    it('should select a file on setGeneratedFiles preferring README', () => {
+      const files: GeneratedFile[] = [
+        { path: 'main.ts', content: new Uint8Array() },
+        { path: 'README.md', content: new Uint8Array() },
+      ];
+      const state = fileTreeReducer(initialFileTreeState, Actions.setGeneratedFiles({ files }));
+      expect(state.files).toEqual(files);
+      expect(state.activeFilePath).toBe('README.md');
+    });
+
+    it('should select first file on setGeneratedFiles if no matching pattern', () => {
+      const files: GeneratedFile[] = [
+        { path: 'file1.txt', content: new Uint8Array() },
+        { path: 'file2.txt', content: new Uint8Array() },
+      ];
+      const state = fileTreeReducer(initialFileTreeState, Actions.setGeneratedFiles({ files }));
+      expect(state.files).toEqual(files);
+      expect(state.activeFilePath).toBe('file1.txt');
     });
 
     it('should clear active file path if no files are generated', () => {

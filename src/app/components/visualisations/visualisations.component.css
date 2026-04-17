@@ -16,7 +16,7 @@
 }
 
 ::ng-deep .node circle {
-  fill: #fff;
+  fill: var(--mat-sys-surface);
   stroke: var(--mat-sys-primary);
   stroke-width: 1.5px;
 }

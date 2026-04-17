@@ -408,7 +408,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** ngOnDestroy */
   /** Toggles the API Docs pane visibility */
   toggleApiDocs(): void {
     this.store.dispatch(Actions.toggleApiDocsPane());
@@ -422,6 +421,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** cleanup */
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();

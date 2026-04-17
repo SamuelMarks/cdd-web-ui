@@ -16,14 +16,16 @@ describe("ApiDocsViewerComponent", () => {
   let component: ApiDocsViewerComponent;
   let fixture: ComponentFixture<ApiDocsViewerComponent>;
   let store: MockStore<AppState>;
+  let themeServiceMock: { isDarkTheme: ReturnType<typeof signal<boolean>> };
 
   beforeEach(async () => {
+    themeServiceMock = { isDarkTheme: signal(false) };
     await TestBed.configureTestingModule({
       imports: [ApiDocsViewerComponent],
       providers: [
         {
           provide: ThemeService,
-          useValue: { isDarkTheme: signal(false) },
+          useValue: themeServiceMock,
         },
         provideMockStore({
           selectors: [
@@ -60,5 +62,17 @@ describe("ApiDocsViewerComponent", () => {
     expect(dispatchSpy).toHaveBeenCalledWith(
       WorkspaceActions.setApiDocsVisibility({ visible: true }),
     );
+  });
+
+  it("should return correct theme string based on isDarkTheme", () => {
+    expect(component.theme()).toBe("light");
+    themeServiceMock.isDarkTheme.set(true);
+    expect(component.theme()).toBe("dark");
+  });
+
+  it("should map sdk examples correctly", () => {
+    store.overrideSelector(selectGeneratedFiles, [{ path: 'test.ts', content: new Uint8Array([116, 101, 115, 116]) }]);
+    store.refreshState();
+    expect(component.mappedSdkExamples()).toEqual([{ language: 'typescript', filepath: 'test.ts', content: 'test' }]);
   });
 });

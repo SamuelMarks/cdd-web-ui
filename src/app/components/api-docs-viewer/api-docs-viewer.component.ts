@@ -6,7 +6,8 @@ import {
   inject,
   OnInit,
   OnDestroy,
-  effect
+  effect,
+  computed
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Store } from "@ngrx/store";
@@ -27,7 +28,7 @@ import "cdd-docs-ui";
       <cdd-api-docs
         [attr.spec-content]="specContent()"
         [attr.theme]="theme()"
-        [sdkExamples]="generatedFiles()"
+        [sdkExamples]="mappedSdkExamples()"
       ></cdd-api-docs>
     </div>
   `,
@@ -53,21 +54,38 @@ import "cdd-docs-ui";
   `]
 })
 export class ApiDocsViewerComponent implements OnInit, OnDestroy {
+  /** Redux store */
   private store = inject(Store<AppState>);
+  /** Theme service */
   private themeService = inject(ThemeService);
 
+  /** OpenAPI spec content */
   specContent = this.store.selectSignal(selectOpenApiSpecContent);
+  /** Generated files */
   generatedFiles = this.store.selectSignal(selectGeneratedFiles);
 
-  /** Active theme signal derived from ThemeService */
-  theme = () => this.themeService.isDarkTheme() ? "dark" : "light";
+  /** Mapped SDK examples for the Lit component */
+  mappedSdkExamples = computed(() => {
+    const decoder = new TextDecoder('utf-8');
+    return this.generatedFiles().map(file => ({
+      language: 'typescript', // Generic fallback
+      filepath: file.path,
+      content: decoder.decode(file.content)
+    }));
+  });
 
+  /** Active theme signal derived from ThemeService */
+  theme = computed(() => this.themeService.isDarkTheme() ? "dark" : "light");
+
+  /** Init lifecycle */
   ngOnInit() {
     this.store.dispatch(WorkspaceActions.apiDocsIframeLoaded());
   }
 
+  /** Destroy lifecycle */
   ngOnDestroy() {}
 
+  /** Retries loading the docs */
   retryLoad() {
     this.store.dispatch(WorkspaceActions.setApiDocsVisibility({ visible: true }));
   }

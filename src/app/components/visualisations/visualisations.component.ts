@@ -8,18 +8,31 @@ import { AppState } from '../../store/state';
 import * as Selectors from '../../store/selectors';
 import { load } from 'js-yaml';
 
+/** Data structure for D3 nodes */
 interface NodeData {
+  /** Node ID */
   id: string;
+  /** Display name */
   name: string;
+  /** Type of node */
   type: 'root' | 'category' | 'path' | 'method' | 'schema';
+  /** Child nodes */
   children?: NodeData[];
+  /** Hidden child nodes */
   _children?: NodeData[];
+  /** Previous X position */
   x0?: number;
+  /** Previous Y position */
   y0?: number;
+  /** X position */
   x?: number;
+  /** Y position */
   y?: number;
 }
 
+/**
+ * Component to visualize the API structure using D3.js.
+ */
 @Component({
   selector: 'app-visualisations',
   imports: [CommonModule],
@@ -34,29 +47,44 @@ interface NodeData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VisualisationsComponent implements OnDestroy {
+  /** doc */
   @ViewChild('svgContainer', { static: true }) svgContainer!: ElementRef<HTMLDivElement>;
   
+  /** doc */
   private store = inject(Store<AppState>);
+  /** doc */
   private specContent = this.store.selectSignal(Selectors.selectOpenApiSpecContent);
   
+  /** doc */
   hasData = false;
+  /** doc */
   private svg: any;
+  /** doc */
   private root: any;
+  /** doc */
   private tree: any;
+  /** doc */
   private i = 0;
+  /** doc */
   private duration = 0;
+  /** doc */
   private margin = { top: 20, right: 120, bottom: 20, left: 120 };
+  /** doc */
   private width = 960 - this.margin.right - this.margin.left;
+  /** doc */
   private height = 800 - this.margin.top - this.margin.bottom;
+  /** doc */
   private resizeObserver: ResizeObserver;
 
+  /** doc */
   constructor() {
     effect(() => {
       const content = this.specContent();
       if (content) {
         this.parseAndRender(content);
       } else {
-        this.hasData = false;
+        this./** doc */
+  hasData = false;
         this.clearSvg();
       }
     });
@@ -66,15 +94,18 @@ export class VisualisationsComponent implements OnDestroy {
     });
   }
 
+  /** doc */
   ngAfterViewInit() {
     this.resizeObserver.observe(this.svgContainer.nativeElement);
   }
 
+  /** doc */
   ngOnDestroy() {
     this.resizeObserver.disconnect();
   }
 
   /* istanbul ignore next */
+  /** doc */
   private handleResize() {
     if (!this.svgContainer || !this.hasData) return;
     const rect = this.svgContainer.nativeElement.getBoundingClientRect();
@@ -87,12 +118,14 @@ export class VisualisationsComponent implements OnDestroy {
     }
   }
 
+  /** doc */
   private clearSvg() {
     if (this.svgContainer) {
       d3.select(this.svgContainer.nativeElement).selectAll('svg').remove();
     }
   }
 
+  /** doc */
   private parseAndRender(content: string) {
     try {
       const parsed: any = load(content);
@@ -141,11 +174,13 @@ export class VisualisationsComponent implements OnDestroy {
       this.update(this.root);
     } catch (e) {
       console.error('Error parsing OpenAPI spec for visualisation', e);
-      this.hasData = false;
+      this./** doc */
+  hasData = false;
       this.clearSvg();
     }
   }
 
+  /** doc */
   private collapse(d: any) {
     if (d.children) {
       d._children = d.children;
@@ -154,8 +189,10 @@ export class VisualisationsComponent implements OnDestroy {
     }
   }
 
+  /** doc */
   public zoomCallback: any;
 
+  /** doc */
   private initSvg() {
     this.clearSvg();
     const container = this.svgContainer.nativeElement;
@@ -181,6 +218,7 @@ export class VisualisationsComponent implements OnDestroy {
     this.tree = d3.tree().nodeSize([30, 150]); // Use nodeSize instead of size for better scrolling/panning
   }
 
+  /** doc */
   private update(source: any) {
     if (!this.svg) return;
 
@@ -201,7 +239,7 @@ export class VisualisationsComponent implements OnDestroy {
     nodeEnter.append('circle')
       .attr('class', 'node-circle')
       .attr('r', 1e-6)
-      .style('fill', (d: any) => d._children ? 'var(--mat-sys-primary)' : '#fff')
+      .style('fill', (d: any) => d._children ? 'var(--mat-sys-primary)' : 'var(--mat-sys-surface)')
       .style('stroke', 'var(--mat-sys-primary)')
       .style('stroke-width', '1.5px');
 
@@ -221,7 +259,7 @@ export class VisualisationsComponent implements OnDestroy {
 
     nodeUpdate.select('circle.node-circle')
       .attr('r', 6)
-      .style('fill', (d: any) => d._children ? 'var(--mat-sys-primary)' : '#fff')
+      .style('fill', (d: any) => d._children ? 'var(--mat-sys-primary)' : 'var(--mat-sys-surface)')
       .attr('cursor', 'pointer');
 
     const nodeExit = node.exit().transition()
@@ -268,6 +306,7 @@ export class VisualisationsComponent implements OnDestroy {
     });
   }
 
+  /** doc */
   private diagonal(s: any, d: any) {
     return `M ${s.y} ${s.x}
             C ${(s.y + d.y) / 2} ${s.x},
@@ -275,6 +314,7 @@ export class VisualisationsComponent implements OnDestroy {
               ${d.y} ${d.x}`;
   }
 
+  /** doc */
   private click(event: any, d: any) {
     if (d.children) {
       d._children = d.children;

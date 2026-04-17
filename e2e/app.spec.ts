@@ -23,20 +23,15 @@ test.describe('App E2E Tests', () => {
     });
   });
 
-  test.skip('Verify API Docs pane is visible, scrollable, and renders dynamic Swagger HTML', async ({ page }) => {
-    // Enable API docs view via localstorage before navigating
-    await page.addInitScript(() => {
-      window.localStorage.setItem('apiDocsVisible', 'true');
-    });
-    
+  test('Verify API Docs pane is visible and renders dynamic Docs UI for petstore', async ({ page }) => {
     await page.goto('/', { waitUntil: 'networkidle' });
 
-    // Select Hello World example
+    // Select Petstore example
     const exampleSelect = page.locator('.example-field mat-select');
     await exampleSelect.waitFor({ state: 'visible' });
 
     await exampleSelect.click();
-    await page.getByRole('option', { name: 'Hello World' }).click();
+    await page.getByRole('option', { name: 'Petstore' }).click();
 
     // Select Python
     const langSelect = page.locator('mat-select[aria-label="Select Target Language"]');
@@ -49,12 +44,17 @@ test.describe('App E2E Tests', () => {
     await generateBtn.click({ force: true });
 
     // Wait for toast indicating successful generation
-    const snackBar = page.locator('.toast-success').first();
+    const snackBar = page.locator('simple-snack-bar').first();
     await expect(snackBar).toBeVisible({ timeout: 15000 });
 
-    // The iframe should now be loaded and visible
-    const iframe = page.locator('iframe[title="API Documentation Preview"]');
-    await expect(iframe).toBeVisible({ timeout: 15000 });
+    // The web component should now be loaded and visible in the Docs UI tab
+    // Click Docs UI tab if not already selected
+    const docsUiTab = page.getByRole('tab', { name: 'Docs UI' });
+    await docsUiTab.click();
+    await expect(docsUiTab).toHaveAttribute('aria-selected', 'true', { timeout: 15000 });
+
+    const cddApiDocs = page.locator('cdd-api-docs');
+    await expect(cddApiDocs).toBeVisible({ timeout: 15000 });
   });
 
   for (const lang of LANGUAGES) {
@@ -178,7 +178,7 @@ test.describe('App E2E Tests', () => {
     await runButton.click();
 
     // We expect a snack bar toast
-    const snackBar = page.locator('.toast-success').first();
+    const snackBar = page.locator('simple-snack-bar').first();
     await expect(snackBar).toBeVisible({ timeout: 15000 });
 
     expect(externalRequests).toBe(0);
@@ -203,7 +203,7 @@ test.describe('App E2E Tests', () => {
     await generateBtn.click({ force: true });
 
     // Wait for toast
-    const snackBar = page.locator('.toast-success').first();
+    const snackBar = page.locator('simple-snack-bar').first();
     await expect(snackBar).toBeVisible({ timeout: 15000 });
 
     // Swap panes
@@ -222,7 +222,7 @@ test.describe('App E2E Tests', () => {
     await generateBtn.click();
     
     // Check toast again
-    const secondToast = page.locator('.toast-success').first();
+    const secondToast = page.locator('simple-snack-bar').first();
     await expect(secondToast).toBeVisible({ timeout: 15000 });
   });
 });
