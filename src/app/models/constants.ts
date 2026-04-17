@@ -17,7 +17,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** repo */
     repo: 'cdd-c',
     /** availableInWasm */
-    availableInWasm: false,
+    availableInWasm: true,
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
@@ -31,7 +31,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** repo */
     repo: 'cdd-cpp',
     /** availableInWasm */
-    availableInWasm: false,
+    availableInWasm: true,
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
@@ -45,7 +45,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** repo */
     repo: 'cdd-csharp',
     /** availableInWasm */
-    availableInWasm: false,
+    availableInWasm: true,
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
@@ -59,7 +59,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** repo */
     repo: 'cdd-go',
     /** availableInWasm */
-    availableInWasm: false,
+    availableInWasm: true,
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
@@ -73,7 +73,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** repo */
     repo: 'cdd-java',
     /** availableInWasm */
-    availableInWasm: false,
+    availableInWasm: true,
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
@@ -87,7 +87,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** repo */
     repo: 'cdd-kotlin',
     /** availableInWasm */
-    availableInWasm: false,
+    availableInWasm: true,
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
@@ -101,7 +101,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** repo */
     repo: 'cdd-php',
     /** availableInWasm */
-    availableInWasm: false,
+    availableInWasm: true,
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
@@ -129,7 +129,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** repo */
     repo: 'cdd-ruby',
     /** availableInWasm */
-    availableInWasm: false,
+    availableInWasm: true,
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
@@ -157,7 +157,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** repo */
     repo: 'cdd-sh',
     /** availableInWasm */
-    availableInWasm: false,
+    availableInWasm: true,
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
@@ -171,7 +171,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** repo */
     repo: 'cdd-swift',
     /** availableInWasm */
-    availableInWasm: false,
+    availableInWasm: true,
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
