@@ -36,7 +36,7 @@ describe('WorkspaceEffects', () => {
     };
     languageServiceMock = {
       languages: vi.fn().mockReturnValue([
-        { id: 'python', name: 'Python', repo: 'cdd-python', availableInWasm: true },
+        { id: 'python', name: 'Python', repo: 'cdd-python-all', availableInWasm: true },
         { id: 'java', name: 'Java', repo: 'cdd-java', availableInWasm: false },
         { id: 'openapi', name: 'OpenAPI', repo: 'cdd-cpp', availableInWasm: true },
       ]),
@@ -113,7 +113,7 @@ describe('WorkspaceEffects', () => {
 
       const result = await effects.executeRun$.toPromise();
       expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith(
-        'cdd-python',
+        'cdd-python-all',
         '{}',
         'to_sdk',
         {},
@@ -150,7 +150,7 @@ describe('WorkspaceEffects', () => {
       );
       expect(wasmWorkerServiceMock.generateCode).toHaveBeenNthCalledWith(
         2,
-        'cdd-python',
+        'cdd-python-all',
         upgradedSpecContent,
         'to_sdk',
         {},
@@ -177,7 +177,7 @@ describe('WorkspaceEffects', () => {
       const result = await effects.executeRun$.toPromise();
       expect(wasmWorkerServiceMock.generateCode).toHaveBeenNthCalledWith(
         2,
-        'cdd-python',
+        'cdd-python-all',
         'old_spec',
         'to_sdk',
         {},
@@ -249,7 +249,7 @@ describe('WorkspaceEffects', () => {
 
       const result = await effects.executeRun$.toPromise();
       expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith(
-        'cdd-python',
+        'cdd-python-all',
         'console.log("hello")',
         'to_openapi',
         {}
@@ -301,7 +301,7 @@ describe('WorkspaceEffects', () => {
       actions$ = of(Actions.executeRun());
 
       const result = await effects.executeRun$.toPromise();
-      expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith('cdd-python', '', 'to_openapi', {});
+      expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith('cdd-python-all', '', 'to_openapi', {});
       expect(result).toEqual(Actions.executeRunFailure({ error: 'String error' }));
     });
   });

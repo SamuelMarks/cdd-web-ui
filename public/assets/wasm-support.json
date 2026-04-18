@@ -3,7 +3,7 @@
   "cpp": true,
   "csharp": true,
   "go": true,
-  "java": true,
+  "java": false,
   "kotlin": true,
   "php": true,
   "python": true,

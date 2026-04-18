@@ -16,7 +16,7 @@ describe('WasmGeneratorService', () => {
     vi.spyOn(CddWasmSdk, 'fromOpenApi').mockImplementation(
       (opts: import('cdd-ctl-wasm-sdk').GenerateOptions) => {
         if (opts.ecosystem === 'cdd-go' || opts.ecosystem === 'go') return Promise.resolve([]);
-        if (opts.ecosystem === 'cdd-python' && opts.specContent === 'success-spec') {
+        if (opts.ecosystem === 'cdd-python-all' && opts.specContent === 'success-spec') {
           const encoder = new TextEncoder();
           return Promise.resolve([
             {

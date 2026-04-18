@@ -37,7 +37,7 @@ const REPOS = {
   'java': 'SamuelMarks/cdd-java',
   'kotlin': 'offscale/cdd-kotlin',
   'php': 'SamuelMarks/cdd-php',
-  'python': 'offscale/cdd-python',
+  'python': 'offscale/cdd-python-all',
   'ruby': 'SamuelMarks/cdd-ruby',
   'rust': 'SamuelMarks/cdd-rust',
   'sh': 'SamuelMarks/cdd-sh',
@@ -46,6 +46,8 @@ const REPOS = {
 };
 
 const supportMap = {};
+
+// ... (skipping some unchanged lines, but I need to do a full replace or just two replaces)
 
 function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
@@ -128,7 +130,7 @@ async function run() {
   }
 
   for (const [lang, repo] of Object.entries(REPOS)) {
-    const tool = `cdd-${lang}`;
+    const tool = repo.split('/')[1];
     const wasmDest = path.join(DEST_DIR, `${tool}.wasm`);
     let supported = false;
 

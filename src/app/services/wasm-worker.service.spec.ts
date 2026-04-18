@@ -91,14 +91,14 @@ describe('WasmWorkerService', () => {
   });
 
   it('should return generated files on success', async () => {
-    const files = await service.generateCode('cdd-python', '{}');
+    const files = await service.generateCode('cdd-python-all', '{}');
     expect(files.length).toBe(1);
     expect(files[0].path).toBe('test.ts');
-    expect(mockLoaderService.loadWasmBinary).toHaveBeenCalledWith('cdd-python');
+    expect(mockLoaderService.loadWasmBinary).toHaveBeenCalledWith('cdd-python-all');
   });
 
   it('should handle log messages and pass to LoggingService', async () => {
-    const files = await service.generateCode('cdd-python', 'log_test');
+    const files = await service.generateCode('cdd-python-all', 'log_test');
     expect(files.length).toBe(1);
     expect(mockLoggingService.info).toHaveBeenCalledWith('Info test');
     expect(mockLoggingService.warn).toHaveBeenCalledWith('Warn test');
@@ -118,7 +118,7 @@ describe('WasmWorkerService', () => {
     };
     (service as never).worker = errorWorker;
 
-    await expect(service.generateCode('cdd-python', '{}')).rejects.toThrow('Unknown worker error');
+    await expect(service.generateCode('cdd-python-all', '{}')).rejects.toThrow('Unknown worker error');
   });
 
   it('should handle worker errors', async () => {
@@ -134,12 +134,12 @@ describe('WasmWorkerService', () => {
     };
     (service as never).worker = errorWorker;
 
-    await expect(service.generateCode('cdd-python', '{}')).rejects.toThrow('WASM crashed');
+    await expect(service.generateCode('cdd-python-all', '{}')).rejects.toThrow('WASM crashed');
   });
 
   it('should throw an error if worker is missing (e.g. environment without workers)', async () => {
     (service as never).worker = null;
-    await expect(service.generateCode('cdd-python', '{}')).rejects.toThrow(
+    await expect(service.generateCode('cdd-python-all', '{}')).rejects.toThrow(
       'Web Worker not initialized.',
     );
   });

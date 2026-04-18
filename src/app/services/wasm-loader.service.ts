@@ -15,7 +15,7 @@ export class WasmLoaderService {
    * Asynchronously loads a WASM binary by language name.
    * Caches the result to optimize future loads.
    *
-   * @param ecosystem The target ecosystem name (e.g., 'cdd-python').
+   * @param ecosystem The target ecosystem name (e.g., 'cdd-python-all').
    * @returns A Promise resolving to the WASM binary as an ArrayBuffer.
    * @throws Error if the WASM file is missing, incompatible, or fetch fails.
    */

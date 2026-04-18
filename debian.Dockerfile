@@ -14,7 +14,7 @@ RUN git clone https://github.com/SamuelMarks/cdd-c.git || true; \
     git clone https://github.com/SamuelMarks/cdd-java.git || true; \
     git clone https://github.com/SamuelMarks/cdd-kotlin.git || true; \
     git clone https://github.com/SamuelMarks/cdd-php.git || true; \
-    git clone https://github.com/offscale/cdd-python-client.git || true; \
+    git clone https://github.com/offscale/cdd-python-all.git || true; \
     git clone https://github.com/SamuelMarks/cdd-ruby.git || true; \
     git clone https://github.com/offscale/cdd-rust.git || true; \
     git clone https://github.com/SamuelMarks/cdd-sh.git || true; \

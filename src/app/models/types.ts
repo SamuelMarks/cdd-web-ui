@@ -12,7 +12,7 @@ export type Ecosystem =
   | 'cdd-java'
   | 'cdd-kotlin'
   | 'cdd-php'
-  | 'cdd-python'
+  | 'cdd-python-all'
   | 'cdd-ruby'
   | 'cdd-rust'
   | 'cdd-swift'

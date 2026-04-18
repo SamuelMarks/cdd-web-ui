@@ -113,7 +113,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** name */
     name: 'Python',
     /** repo */
-    repo: 'cdd-python',
+    repo: 'cdd-python-all',
     /** availableInWasm */
     availableInWasm: true,
     /** selectedByDefault */

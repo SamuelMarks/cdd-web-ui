@@ -66,7 +66,7 @@ describe('LanguageSelectorComponent', () => {
         {
           id: 'python',
           name: 'Python',
-          repo: 'cdd-python',
+          repo: 'cdd-python-all',
           availableInWasm: true,
           selectedByDefault: false,
         },
