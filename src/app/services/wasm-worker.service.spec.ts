@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { TestBed } from '@angular/core/testing';
 import { WasmWorkerService } from './wasm-worker.service';
 import { WasmLoaderService } from './wasm-loader.service';
@@ -8,7 +6,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 class MockWorker {
   onmessage: ((ev: MessageEvent) => void) | null = null;
-  postMessage(data: any): void {
+  postMessage(data: { action?: string; payload?: { specContent?: string } }): void {
     if (data.action === 'generateSdk') {
       setTimeout(() => {
         if (this.onmessage) {
@@ -58,7 +56,7 @@ class MockWorker {
   }
   addEventListener(type: string, listener: EventListenerOrEventListenerObject) {
     if (type === 'message') {
-      this.onmessage = listener as any;
+      this.onmessage = listener as (ev: MessageEvent) => void;
     }
   }
   removeEventListener(type: string, listener: EventListenerOrEventListenerObject) {
@@ -85,8 +83,8 @@ describe('WasmWorkerService', () => {
       error: vi.fn(),
     };
 
-    originalWorker = global.Worker;
-    (global as never).Worker = MockWorker as any;
+    originalWorker = globalThis.Worker;
+    globalThis.Worker = MockWorker as unknown as typeof Worker;
 
     TestBed.configureTestingModule({
       providers: [
@@ -98,7 +96,7 @@ describe('WasmWorkerService', () => {
   });
 
   afterEach(() => {
-    global.Worker = originalWorker;
+    globalThis.Worker = originalWorker;
     service.terminate();
   });
 
@@ -123,7 +121,10 @@ describe('WasmWorkerService', () => {
 
   it('should handle worker errors without explicit message', async () => {
     const errorWorker = new MockWorker();
-    errorWorker.postMessage = function (data: unknown) {
+    errorWorker.postMessage = function (data: {
+      action?: string;
+      payload?: { specContent?: string };
+    }) {
       if (this.onmessage) {
         this.onmessage(
           new MessageEvent('message', {
@@ -132,7 +133,7 @@ describe('WasmWorkerService', () => {
         );
       }
     };
-    (service as never).worker = errorWorker;
+    (service as unknown as { worker: Worker | null }).worker = errorWorker as unknown as Worker;
 
     await expect(service.generateCode('cdd-python-all', '{}')).rejects.toThrow(
       'Unknown worker error',
@@ -141,7 +142,10 @@ describe('WasmWorkerService', () => {
 
   it('should handle worker errors', async () => {
     const errorWorker = new MockWorker();
-    errorWorker.postMessage = function (data: unknown) {
+    errorWorker.postMessage = function (data: {
+      action?: string;
+      payload?: { specContent?: string };
+    }) {
       if (this.onmessage) {
         this.onmessage(
           new MessageEvent('message', {
@@ -150,22 +154,22 @@ describe('WasmWorkerService', () => {
         );
       }
     };
-    (service as never).worker = errorWorker;
+    (service as unknown as { worker: Worker | null }).worker = errorWorker as unknown as Worker;
 
     await expect(service.generateCode('cdd-python-all', '{}')).rejects.toThrow('WASM crashed');
   });
 
   it('should throw an error if worker is missing (e.g. environment without workers)', async () => {
-    (service as never).worker = null;
+    (service as unknown as { worker: Worker | null }).worker = null;
     await expect(service.generateCode('cdd-python-all', '{}')).rejects.toThrow(
       'Web Worker not initialized.',
     );
   });
 
   it('should log warning if Worker is undefined', () => {
-    const origWorker = global.Worker;
+    const origWorker = globalThis.Worker;
     // @ts-ignore
-    delete global.Worker;
+    delete globalThis.Worker;
     const warnSpy = vi.spyOn(console, 'warn');
 
     TestBed.resetTestingModule();
@@ -184,7 +188,7 @@ describe('WasmWorkerService', () => {
       'Web Workers are not supported in this environment. WASM operations may block UI.',
     );
 
-    global.Worker = origWorker;
+    globalThis.Worker = origWorker;
     warnSpy.mockRestore();
   });
 });

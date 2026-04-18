@@ -10,7 +10,7 @@ import {
 import * as Selectors from '../../store/selectors';
 import * as Actions from '../../store/actions';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Component, input, output } from '@angular/core';
+import { Component, input, TemplateRef, output } from '@angular/core';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { ThemeService } from '../../services/theme.service';
 import { NotificationService } from '../../services/notification.service';

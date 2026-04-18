@@ -72,6 +72,7 @@ public/assets/wasm/*.wasm
 
 # Temporary development scripts and patches
 /fix-*.js
+/fix_*.js
 /create-*.js
 /replace-*.js
 /test-*.js
@@ -82,6 +83,9 @@ public/assets/wasm/*.wasm
 /update*.patch
 /update*.py
 /update*.txt
+
+# Compodoc
+/compodoc-out/
 
 # Temporary files and backups
 *.bak

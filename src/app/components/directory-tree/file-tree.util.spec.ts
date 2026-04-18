@@ -59,7 +59,6 @@ describe('FileTreeUtil', () => {
       path: 'empty',
       isDirectory: true,
       isExpanded: false,
-      depth: 0,
     };
     FileTreeUtil.setAllExpanded([node], true);
     expect(node.isExpanded).toBe(true);

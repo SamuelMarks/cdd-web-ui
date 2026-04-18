@@ -65,7 +65,7 @@ describe('BottomPanelComponent', () => {
 
   it('should select Docs UI tab on executeRunSuccess', () => {
     component.selectedTabIndex.set(0);
-    actions$.next(WorkspaceActions.executeRunSuccess());
+    actions$.next(WorkspaceActions.executeRunSuccess({ result: 'Success' }));
     expect(component.selectedTabIndex()).toBe(2);
   });
 

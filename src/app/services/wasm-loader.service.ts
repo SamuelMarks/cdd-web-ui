@@ -11,6 +11,7 @@ import { BackendConfigService } from './backend-config.service';
 export class WasmLoaderService {
   /** Cache of loaded WASM binaries to prevent re-fetching. */
   private binaryCache = new Map<string, ArrayBuffer>();
+  /** The backend config service. */
   private config = inject(BackendConfigService);
 
   /**

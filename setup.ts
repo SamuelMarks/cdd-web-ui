@@ -30,7 +30,7 @@ CddWasmSdk.fromOpenApi = async (options: GenerateOptions) => {
 try {
   getTestBed().initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting());
 } catch (e) {}
-global.ResizeObserver = class ResizeObserver {
+globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}

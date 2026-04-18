@@ -26,7 +26,7 @@ describe('WorkspaceEffects', () => {
   let actions$: Observable<Action>;
   let effects: WorkspaceEffects;
   let store: MockStore<AppState>;
-  let wasmWorkerServiceMock: Record<string, import('vitest').Mock>;
+  let wasmWorkerServiceMock: { generateCode: import('vitest').Mock };
   let languageServiceMock: Record<string, import('vitest').Mock>;
   let notificationServiceMock: { error: import('vitest').Mock; success: import('vitest').Mock };
 

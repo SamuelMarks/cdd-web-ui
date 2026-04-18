@@ -181,7 +181,7 @@ describe('OpenApiEditorComponent', () => {
   it('should capture editor init', () => {
     const mockEditor = { id: 1 };
     component.onEditorInit(mockEditor);
-    expect((component as unknown as HTMLElement).editorInstance).toBe(mockEditor);
+    expect((component as unknown as Record<string, unknown>)['editorInstance']).toBe(mockEditor);
   });
 
   it('should correctly configure editor options based on theme', () => {

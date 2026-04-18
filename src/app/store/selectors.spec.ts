@@ -8,6 +8,7 @@ describe('Selectors', () => {
     workspace: {
       orientation: 'openapi-right',
       isExecuting: true,
+      executionError: null,
       selectedLanguageId: 'rust',
       target: 'to_sdk',
       languageOptions: {},
@@ -23,6 +24,7 @@ describe('Selectors', () => {
     },
     openApi: {
       specContent: 'openapi: 3.0.0',
+      inputFormat: 'openapi_older',
       validationErrors: ['error1'],
     },
   };

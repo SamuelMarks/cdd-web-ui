@@ -131,8 +131,7 @@ export class OpenApiEditorComponent {
   private notificationService = inject(NotificationService);
 
   /** Monaco editor instance reference. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private editorInstance: any;
+  private editorInstance: unknown;
 
   /** Computed options for the Monaco editor. */
   editorOptions = computed(() => ({
@@ -187,8 +186,7 @@ export class OpenApiEditorComponent {
    * Called when the Monaco editor initializes.
    * @param editor The monaco editor instance.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onEditorInit(editor: any): void {
+  onEditorInit(editor: unknown): void {
     this.editorInstance = editor;
   }
 

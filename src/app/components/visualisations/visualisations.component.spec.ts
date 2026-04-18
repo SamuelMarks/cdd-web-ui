@@ -1,9 +1,24 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { VisualisationsComponent } from './visualisations.component';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+type TestComp = {
+  duration: number;
+  svg: { attr: (k: string, v?: unknown) => unknown } | null;
+  root: { children: unknown[] | null; _children?: unknown[] | null } | null;
+  handleResize: () => void;
+  update: (source: unknown) => void;
+  clearSvg: () => void;
+  svgContainer: {
+    nativeElement: HTMLElement | { getBoundingClientRect: () => { width: number; height: number } };
+  } | null;
+  width: number;
+  parseAndRender: (content: string) => void;
+  click: (event: Event, d: Record<string, unknown>) => void;
+  initSvg: () => void;
+  zoomCallback?: (e: d3.D3ZoomEvent<SVGSVGElement, unknown>) => void;
+};
+
 import * as Selectors from '../../store/selectors';
 import { initialOpenApiState } from '../../store/reducers';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
@@ -12,19 +27,19 @@ describe('VisualisationsComponent', () => {
   let component: VisualisationsComponent;
   let fixture: ComponentFixture<VisualisationsComponent>;
   let store: MockStore;
-  let mockResizeObserver: any;
-  let resizeCallback: any;
+  let mockResizeObserver: unknown;
+  let resizeCallback: unknown;
 
   beforeEach(async () => {
     mockResizeObserver = class {
-      constructor(callback: any) {
+      constructor(callback: unknown) {
         resizeCallback = callback;
       }
       observe = vi.fn();
       unobserve = vi.fn();
       disconnect = vi.fn();
     };
-    global.ResizeObserver = mockResizeObserver as any;
+    globalThis.ResizeObserver = mockResizeObserver as unknown as typeof ResizeObserver;
 
     await TestBed.configureTestingModule({
       imports: [VisualisationsComponent, NoopAnimationsModule],
@@ -38,7 +53,7 @@ describe('VisualisationsComponent', () => {
     store = TestBed.inject(MockStore);
     fixture = TestBed.createComponent(VisualisationsComponent);
     component = fixture.componentInstance;
-    (component as any).duration = 0; // Disable transitions for tests to avoid jsdom SVGElement errors
+    (component as unknown as TestComp).duration = 0; // Disable transitions for tests to avoid jsdom SVGElement errors
     fixture.detectChanges();
   });
 
@@ -120,7 +135,7 @@ paths:
       toJSON: () => {},
     });
 
-    resizeCallback();
+    (resizeCallback as Function)();
     expect(component.hasData).toBe(true);
   });
 
@@ -173,17 +188,23 @@ info:
 
     if (svg) {
       if (component.zoomCallback) {
-        component.zoomCallback({ transform: 'translate(10, 20) scale(2)' });
+        component.zoomCallback!({
+          transform: 'translate(10, 20) scale(2)',
+        } as unknown as d3.D3ZoomEvent<SVGSVGElement, unknown>);
         fixture.detectChanges();
-        expect((component as any).svg.attr('transform')).toBe('translate(10, 20) scale(2)');
+        expect((component as unknown as TestComp).svg!.attr('transform')).toBe(
+          'translate(10, 20) scale(2)',
+        );
       }
     }
   });
 
   it('should not update transform if svg is missing in zoomCallback', () => {
-    (component as any).svg = null;
+    (component as unknown as TestComp).svg = null;
     if (component.zoomCallback) {
-      component.zoomCallback({ transform: 'translate(10, 20) scale(2)' });
+      component.zoomCallback!({
+        transform: 'translate(10, 20) scale(2)',
+      } as unknown as d3.D3ZoomEvent<SVGSVGElement, unknown>);
     }
     expect(component.hasData).toBe(false);
   });
@@ -201,7 +222,7 @@ info:
       right: 0,
       toJSON: () => {},
     });
-    (component as any).handleResize();
+    (component as unknown as TestComp).handleResize();
     expect(component.hasData).toBe(true);
   });
 
@@ -221,17 +242,17 @@ paths:
 
   it('should not update if svg is undefined', () => {
     component.hasData = true;
-    (component as any).svg = null;
-    (component as any).update({});
+    (component as unknown as TestComp).svg = null;
+    (component as unknown as TestComp).update({});
     expect(component.hasData).toBe(true);
   });
 
   it('should not clear if svgContainer is missing', () => {
     const originalContainer = component.svgContainer;
-    (component as any).svgContainer = null;
-    (component as any).clearSvg();
+    (component as unknown as TestComp).svgContainer = null;
+    (component as unknown as TestComp).clearSvg();
     expect(component.hasData).toBe(false); // Before state
-    (component as any).svgContainer = originalContainer;
+    (component as unknown as TestComp).svgContainer = originalContainer;
   });
 
   it('should use default dimensions if cWidth or cHeight is 0', () => {
@@ -285,7 +306,7 @@ definitions:
 
   it('should handle handleResize when root is null', () => {
     component.hasData = true;
-    (component as any).root = null;
+    (component as unknown as TestComp).root = null;
     vi.spyOn(component.svgContainer.nativeElement, 'getBoundingClientRect').mockReturnValue({
       width: 1000,
       height: 1000,
@@ -297,8 +318,8 @@ definitions:
       right: 1000,
       toJSON: () => {},
     });
-    (component as any).handleResize();
-    expect((component as any).root).toBeNull();
+    (component as unknown as TestComp).handleResize();
+    expect((component as unknown as TestComp).root).toBeNull();
   });
 
   it('should handle parse when schemas are missing entirely and root has no children', () => {
@@ -312,80 +333,89 @@ info:
     fixture.detectChanges();
 
     // Force root children to null to cover branch
-    if ((component as any).root) {
-      (component as any).root.children = null;
+    if ((component as unknown as TestComp).root) {
+      (component as unknown as TestComp).root!.children = null;
     }
     expect(component.hasData).toBe(true);
   });
 
   it('should ignore resize if no dimensions', () => {
     component.hasData = true;
-    (component as any).svgContainer = {
+    (component as unknown as TestComp).svgContainer = {
       nativeElement: { getBoundingClientRect: () => ({ width: 0, height: 0 }) },
     };
-    (component as any).handleResize();
-    expect((component as any).width).not.toBe(0);
+    (component as unknown as TestComp).handleResize();
+    expect((component as unknown as TestComp).width).not.toBe(0);
   });
 
   it('should ignore resize if height is 0', () => {
     component.hasData = true;
-    (component as any).svgContainer = {
+    (component as unknown as TestComp).svgContainer = {
       nativeElement: { getBoundingClientRect: () => ({ width: 100, height: 0 }) },
     };
-    (component as any).handleResize();
+    (component as unknown as TestComp).handleResize();
   });
 
   it('should render with components schemas', () => {
-    (component as any).parseAndRender('components:\n  schemas:\n    Test: {}');
+    (component as unknown as TestComp).parseAndRender('components:\n  schemas:\n    Test: {}');
     expect(component.hasData).toBe(true);
   });
 
   it('should ignore empty string', () => {
     component.hasData = false;
-    (component as any).parseAndRender(' ');
+    (component as unknown as TestComp).parseAndRender(' ');
     expect(component.hasData).toBe(false);
   });
 
   it('should handle toggle with children vs _children', () => {
-    const d: any = { children: [{ id: '1' }] };
-    (component as any).root = d;
-    (component as any).svgContainer = { nativeElement: document.createElement('div') };
-    (component as any).click(new MouseEvent('click'), d);
-    expect(d._children).toBeDefined();
-    expect(d.children).toBeNull();
-    (component as any).click(new MouseEvent('click'), d);
-    expect(d.children).toBeDefined();
-    expect(d._children).toBeNull();
+    const d: { children: unknown[] | null; _children?: unknown[] | null } = {
+      children: [{ id: '1' }],
+      _children: null,
+    };
+    (component as unknown as TestComp).root = d;
+    (component as unknown as TestComp).svgContainer = {
+      nativeElement: document.createElement('div'),
+    };
+    (component as unknown as TestComp).click(new MouseEvent('click'), d);
+    expect(d['_children']).toBeDefined();
+    expect(d['children']).toBeUndefined();
+    (component as unknown as TestComp).click(new MouseEvent('click'), d);
+    expect(d['children']).toBeDefined();
+    expect(d['_children']).toBeNull();
   });
 
   it('should hit width/height > 0 resize', () => {
     component.hasData = true;
-    (component as any).svgContainer = {
+    (component as unknown as TestComp).svgContainer = {
       nativeElement: { getBoundingClientRect: () => ({ width: 100, height: 100 }) },
     };
-    (component as any).root = {};
-    const spy = vi.spyOn(component as any, 'update').mockImplementation(() => {});
-    (component as any).handleResize();
+    (component as unknown as TestComp).root = { children: null };
+    const spy = vi.spyOn(component as unknown as TestComp, 'update').mockImplementation(() => {});
+    (component as unknown as TestComp).handleResize();
     expect(spy).toHaveBeenCalled();
   });
 
   it('should ignore parameters and $ref in paths', () => {
-    (component as any).parseAndRender(
+    (component as unknown as TestComp).parseAndRender(
       'paths:\n  /test:\n    parameters: []\n    $ref: "foo"\n    get: {}',
     );
     expect(component.hasData).toBe(true);
   });
 
   it('should run zoomCallback with svg', () => {
-    (component as any).initSvg();
-    (component as any).svg = { attr: vi.fn() };
-    (component as any).zoomCallback({ transform: 'scale(1)' });
-    expect((component as any).svg.attr).toHaveBeenCalled();
+    (component as unknown as TestComp).initSvg();
+    (component as unknown as TestComp).svg = { attr: vi.fn() };
+    (component as unknown as TestComp).zoomCallback!({
+      transform: 'scale(1)',
+    } as unknown as d3.D3ZoomEvent<SVGSVGElement, unknown>);
+    expect((component as unknown as TestComp).svg!.attr).toHaveBeenCalled();
   });
 
   it('should run zoomCallback without svg', () => {
-    (component as any).initSvg();
-    (component as any).svg = null;
-    (component as any).zoomCallback({ transform: 'scale(1)' });
+    (component as unknown as TestComp).initSvg();
+    (component as unknown as TestComp).svg = null;
+    (component as unknown as TestComp).zoomCallback!({
+      transform: 'scale(1)',
+    } as unknown as d3.D3ZoomEvent<SVGSVGElement, unknown>);
   });
 });

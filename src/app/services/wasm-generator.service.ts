@@ -14,12 +14,19 @@ import * as yaml from 'js-yaml';
   providedIn: 'root',
 })
 export class WasmGeneratorService {
+  /** Language service. */
   private langService = inject(LanguageService);
+  /** Config service. */
   private configService = inject(BackendConfigService);
+  /** Http client. */
   private http = inject(HttpClient);
 
-  constructor() {}
-
+  /**
+   * Generates SDK from OpenAPI spec.
+   * @param repository The repo.
+   * @param languageId The language id.
+   * @param specContent The OpenAPI spec.
+   */
   async generateSdk(
     repository: Repository,
     languageId: string | number,
@@ -118,6 +125,11 @@ export class WasmGeneratorService {
     }
   }
 
+  /**
+   * Gets mock output for tests/fallbacks.
+   * @param languageId The language.
+   * @param apiName The api name.
+   */
   private getMockOutput(languageId: string, apiName: string): string {
     switch (languageId) {
       case 'python':
@@ -131,6 +143,11 @@ export class WasmGeneratorService {
     }
   }
 
+  /**
+   * Generates CI/CD config.
+   * @param repository The repo.
+   * @param languageId The language id.
+   */
   async generateCiCd(repository: Repository, languageId: string | number): Promise<string> {
     const lang = this.langService.languages().find((l) => l.id === languageId);
     if (!lang || !lang.availableInWasm) {
@@ -148,6 +165,12 @@ export class WasmGeneratorService {
     }
   }
 
+  /**
+   * Generates OpenAPI spec from SDK.
+   * @param repository The repo.
+   * @param languageId The language id.
+   * @param sdkContent The SDK content.
+   */
   async generateOpenApi(
     repository: Repository,
     languageId: string | number,
@@ -195,6 +218,10 @@ export class WasmGeneratorService {
     }
   }
 
+  /**
+   * Extracts info from spec string.
+   * @param spec The spec string.
+   */
   private extractInfoFromSpec(spec: string): { title?: string } {
     try {
       const parsed = JSON.parse(spec);

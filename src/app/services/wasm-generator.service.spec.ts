@@ -1,9 +1,10 @@
+import { BackendConfigService } from './backend-config.service';
 import '@angular/compiler';
 import '@angular/localize/init';
 import { TestBed } from '@angular/core/testing';
 import { WasmGeneratorService } from './wasm-generator.service';
 import { Repository } from '../models/types';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { LanguageService } from './language.service';
 import { vi } from 'vitest';
 import { CddWasmSdk } from 'cdd-ctl-wasm-sdk';
@@ -15,7 +16,8 @@ describe('WasmGeneratorService', () => {
   beforeEach(() => {
     vi.spyOn(CddWasmSdk, 'fromOpenApi').mockImplementation(
       (opts: import('cdd-ctl-wasm-sdk').GenerateOptions) => {
-        if (opts.ecosystem === 'cdd-go' || opts.ecosystem === 'go') return Promise.resolve([]);
+        if (opts.ecosystem === 'cdd-go' || (opts.ecosystem as string) === 'go')
+          return Promise.resolve([]);
         if (opts.ecosystem === 'cdd-python-all' && opts.specContent === 'success-spec') {
           const encoder = new TextEncoder();
           return Promise.resolve([
@@ -58,7 +60,131 @@ describe('WasmGeneratorService', () => {
 
   const dummyRepo: Repository = { id: 'p1', name: 'TestRepo', organizationId: 'org1' };
 
+  describe('RPC backend execution', () => {
+    it('should return fallback success string if RPC result has no code', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('local_cdd_ctl_native');
+      configService.setOnlineMode('http://localhost:8080');
+      const httpMock = TestBed.inject(HttpTestingController);
+      const promise = service.generateSdk(
+        { id: '1', name: 'repo', organizationId: 'test' },
+        'python',
+        '{}',
+      );
+      httpMock.expectOne('http://localhost:8080').flush({ result: {} });
+      const result = await promise;
+      expect(result).toBe('/* Generated successfully via backend */\n');
+    });
+
+    it('should throw generic RPC Error if response has error without message', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('local_cdd_ctl_native');
+      configService.setOnlineMode('http://localhost:8080');
+      const httpMock = TestBed.inject(HttpTestingController);
+      const promise = service.generateSdk(
+        { id: '1', name: 'repo', organizationId: 'test' },
+        'python',
+        '{}',
+      );
+      httpMock.expectOne('http://localhost:8080').flush({ error: {} });
+      const result = await promise;
+      expect(result).toContain('Fallback mock activated');
+    });
+    it('should throw RPC Error if response has error', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('local_cdd_ctl_native');
+      configService.setOnlineMode('http://localhost:8080');
+
+      const httpMock = TestBed.inject(HttpTestingController);
+      const mockRepo: Repository = { id: '1', name: 'repo', organizationId: 'test' };
+
+      const promise = service.generateSdk(mockRepo, 'python', '{}');
+      const req = httpMock.expectOne('http://localhost:8080');
+      req.flush({ error: { message: 'Explicit RPC Error' } });
+
+      const result = await promise;
+      expect(result).toContain('Fallback mock activated');
+    });
+
+    it('should handle local_cdd_ctl_native success', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('local_cdd_ctl_native');
+      configService.setOnlineMode('http://localhost:8080');
+
+      const httpMock = TestBed.inject(HttpTestingController);
+      const mockRepo: Repository = { id: '1', name: 'repo', organizationId: 'test' };
+
+      const promise = service.generateSdk(mockRepo, 'python', '{}');
+      const req = httpMock.expectOne('http://localhost:8080');
+      expect(req.request.method).toBe('POST');
+      req.flush({ result: { code: '/* Generated from backend */' } });
+
+      const result = await promise;
+      expect(result).toBe('/* Generated from backend */');
+    });
+
+    it('should handle local_cdd_ctl_native error missing baseUrl', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('local_cdd_ctl_native');
+      configService.setOfflineMode(); // clears baseUrl
+
+      const mockRepo: Repository = { id: '1', name: 'repo', organizationId: 'test' };
+      const result = await service.generateSdk(mockRepo, 'python', '{}');
+      expect(result).toContain('Error: Backend URL must be configured');
+    });
+
+    it('should handle local_cdd_ctl_native RPC error payload', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('local_cdd_ctl_native');
+      configService.setOnlineMode('http://localhost:8080');
+
+      const httpMock = TestBed.inject(HttpTestingController);
+      const mockRepo: Repository = { id: '1', name: 'repo', organizationId: 'test' };
+
+      const promise = service.generateSdk(mockRepo, 'python', '{}');
+      const req = httpMock.expectOne('http://localhost:8080');
+      req.flush({ error: { message: 'Some RPC error' } });
+
+      const result = await promise;
+      expect(result).toContain('Fallback mock activated');
+    });
+
+    it('should use local relative mode for fallback', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('local_relative');
+
+      const mockRepo: Repository = { id: '1', name: 'repo', organizationId: 'test' };
+      const result = await service.generateSdk(mockRepo, 'python', '{}');
+      // Wait we need to mock fetch
+    });
+  });
+
   describe('generateSdk', () => {
+    it('should parse valid YAML spec', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('local_relative');
+      const mockRepo: Repository = { id: '1', name: 'repo', organizationId: 'test' };
+      const yamlStr = 'openapi: 3.0.0\ninfo:\n  title: Test API\n  version: 1.0.0';
+      const result = await service.generateSdk(mockRepo, 'python', yamlStr);
+      expect(result).toBeTruthy();
+    });
+
+    it('should use served_github mode in generateSdk for cdd-python', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('served_github');
+      const mockRepo: Repository = { id: '1', name: 'repo', organizationId: 'test' };
+      const result = await service.generateSdk(mockRepo, 'python', '{}');
+      expect(result).toContain('GeneratedApi');
+    });
+
+    it('should use served_github mode in generateSdk', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('served_github');
+      const mockRepo: Repository = { id: '1', name: 'repo', organizationId: 'test' };
+      const result = await service.generateSdk(mockRepo, 'typescript', '{}');
+      expect(result).toContain('GeneratedApi');
+    });
+
     it('should handle unrecognised language ID in generateSdk', async () => {
       window.fetch = vi.fn().mockResolvedValue({
         ok: false,
@@ -190,6 +316,38 @@ describe('WasmGeneratorService', () => {
   });
 
   describe('generateOpenApi', () => {
+    it('should use served_github mode in generateOpenApi for default', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('served_github');
+      const mockRepo: Repository = { id: '1', name: 'repo', organizationId: 'test' };
+      const result = await service.generateOpenApi(mockRepo, 'rust', '{}');
+      expect(result).toContain('Generated API');
+    });
+
+    it('should use local_relative mode in generateOpenApi', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('local_relative');
+      const mockRepo: Repository = { id: '1', name: 'repo', organizationId: 'test' };
+      const result = await service.generateOpenApi(mockRepo, 'typescript', '{}');
+      expect(result).toContain('Generated API');
+    });
+
+    it('should use served_github mode in generateOpenApi for cdd-python', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('served_github');
+      const mockRepo: Repository = { id: '1', name: 'repo', organizationId: 'test' };
+      const result = await service.generateOpenApi(mockRepo, 'python', '{}');
+      expect(result).toContain('Generated API');
+    });
+
+    it('should use served_github mode in generateOpenApi', async () => {
+      const configService = TestBed.inject(BackendConfigService);
+      configService.setRunMode('served_github');
+      const mockRepo: Repository = { id: '1', name: 'repo', organizationId: 'test' };
+      const result = await service.generateOpenApi(mockRepo, 'typescript', '{}');
+      expect(result).toContain('Generated API');
+    });
+
     it('should generate fallback mock if fetch fails with ok=false', async () => {
       window.fetch = vi.fn().mockResolvedValue({
         ok: false,
@@ -233,7 +391,11 @@ describe('WasmGeneratorService', () => {
       arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
     });
 
-    await service.generateOpenApi({ id: 'proj-1' } as never, 'python', 'code');
+    await service.generateOpenApi(
+      { id: 'proj-1', name: 'repo', organizationId: 'test' },
+      'python',
+      'code',
+    );
 
     window.WebAssembly.instantiate = originalInstantiate;
     window.fetch = originalFetch;

@@ -42,9 +42,13 @@ describe('LanguageSelectorComponent', () => {
   let hostComponent: TestHostComponent;
   let hostFixture: ComponentFixture<TestHostComponent>;
 
-  let mockLanguageService: Record<string, import('vitest').Mock>;
-  let mockOfflineService: Record<string, import('vitest').Mock>;
-  let mockStorageService: Record<string, import('vitest').Mock>;
+  let mockLanguageService: {
+    languages: import('@angular/core').WritableSignal<
+      import('../../models/types').LanguageConfig[]
+    >;
+  };
+  let mockOfflineService: { isOnline: import('@angular/core').WritableSignal<boolean> };
+  let mockStorageService: { getItem: import('vitest').Mock; setItem: import('vitest').Mock };
 
   beforeEach(async () => {
     mockLanguageService = {

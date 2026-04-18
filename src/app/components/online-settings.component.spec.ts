@@ -199,4 +199,11 @@ describe('OnlineSettingsComponent', () => {
     fixture.detectChanges();
     expect(component.errorMsg()).toBe('GitHub OAuth flow failed. Check backend configuration.');
   });
+
+  it('should change run mode', () => {
+    component.onRunModeChange('local_cdd_ctl_native');
+    expect(configSpy.setRunMode).toHaveBeenCalledWith('local_cdd_ctl_native');
+    expect(component.successMsg()).toBe('Execution mode updated.');
+    expect(component.errorMsg()).toBe('');
+  });
 });

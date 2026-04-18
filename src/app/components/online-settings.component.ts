@@ -269,6 +269,7 @@ export class OnlineSettingsComponent {
     this.errorMsg.set('');
   }
 
+  /** Sets the backend URL. */
   onSetUrl(): void {
     if (this.urlForm.valid && this.urlForm.value.url) {
       try {
