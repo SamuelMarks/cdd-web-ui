@@ -51,10 +51,19 @@ export class WorkspaceEffects {
         this.store.select(selectTarget),
         this.store.select(selectCurrentLanguageOptions),
         this.store.select(selectOpenApiInputFormat),
-        this.store.select(selectActiveFileContent)
+        this.store.select(selectActiveFileContent),
       ),
       switchMap(
-        ([_, orientation, languageId, specContent, target, languageOptions, inputFormat, activeFileContent]) => {
+        ([
+          _,
+          orientation,
+          languageId,
+          specContent,
+          target,
+          languageOptions,
+          inputFormat,
+          activeFileContent,
+        ]) => {
           // Dispatch start action immediately to show loading state
           this.store.dispatch(WorkspaceActions.executeRunStart());
 
@@ -122,25 +131,29 @@ export class WorkspaceEffects {
               );
           } else {
             // Direction: to_openapi -> Spec Generation
-            return this.wasmWorkerService.generateCode(
-              lang.repo,
-              activeFileContent || '',
-              'to_openapi',
-              languageOptions
-            ).then((files) => {
-              const specFile = files.find(
-                (f) =>
-                  f.path.endsWith('.yaml') ||
-                  f.path.endsWith('.json') ||
-                  f.path.includes('openapi')
+            return this.wasmWorkerService
+              .generateCode(lang.repo, activeFileContent || '', 'to_openapi', languageOptions)
+              .then((files) => {
+                const specFile = files.find(
+                  (f) =>
+                    f.path.endsWith('.yaml') ||
+                    f.path.endsWith('.json') ||
+                    f.path.includes('openapi'),
+                );
+                if (specFile) {
+                  return WorkspaceActions.executeRunSuccess({
+                    result: new TextDecoder().decode(specFile.content),
+                  });
+                }
+                return WorkspaceActions.executeRunFailure({
+                  error: 'No OpenAPI specification generated.',
+                });
+              })
+              .catch((error) =>
+                WorkspaceActions.executeRunFailure({
+                  error: error instanceof Error ? error.message : String(error),
+                }),
               );
-              if (specFile) {
-                return WorkspaceActions.executeRunSuccess({ result: new TextDecoder().decode(specFile.content) });
-              }
-              return WorkspaceActions.executeRunFailure({ error: 'No OpenAPI specification generated.' });
-            }).catch((error) => WorkspaceActions.executeRunFailure({
-              error: error instanceof Error ? error.message : String(error)
-            }));
           }
         },
       ),

@@ -61,6 +61,9 @@ export class LoggingService {
 
   /** doc */
   private addLog(level: 'INFO' | 'WARN' | 'ERROR', message: string, params: unknown[]): void {
-    this.logsSignal.update(logs => [...logs, { level, message, timestamp: new Date().toISOString(), params }]);
+    this.logsSignal.update((logs) => [
+      ...logs,
+      { level, message, timestamp: new Date().toISOString(), params },
+    ]);
   }
 }

@@ -21,8 +21,10 @@ describe('OnlineSettingsComponent', () => {
   let configSpy: {
     isOnline: import('@angular/core').WritableSignal<boolean>;
     backendUrl: import('@angular/core').WritableSignal<string | null>;
+    runMode: import('@angular/core').WritableSignal<string>;
     setOnlineMode: ReturnType<typeof vi.fn>;
     setOfflineMode: ReturnType<typeof vi.fn>;
+    setRunMode: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -35,8 +37,10 @@ describe('OnlineSettingsComponent', () => {
     configSpy = {
       isOnline: signal(false),
       backendUrl: signal(null),
+      runMode: signal('local_cdd_ctl_wasm'),
       setOnlineMode: vi.fn(),
       setOfflineMode: vi.fn(),
+      setRunMode: vi.fn(),
     };
 
     await TestBed.configureTestingModule({

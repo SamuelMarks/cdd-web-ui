@@ -166,43 +166,40 @@ export const initialFileTreeState: FileTreeState = {
 export const fileTreeReducer = createReducer(
   initialFileTreeState,
   /** on */
-  on(
-    Actions.setGeneratedFiles,
-    (state, { files }): FileTreeState => {
-      let activeFilePath: string | null = null;
-      if (files.length > 0) {
-        const patterns = [
-          /readme\.md$/i,
-          /client\./i,
-          /api\./i,
-          /index\./i,
-          /main\./i,
-          /\.ts$/,
-          /\.py$/,
-          /\.go$/,
-          /\.rs$/,
-        ];
-        
-        for (const pattern of patterns) {
-          const match = files.find(f => pattern.test(f.path));
-          if (match) {
-            activeFilePath = match.path;
-            break;
-          }
-        }
-        
-        if (!activeFilePath) {
-          activeFilePath = files[0].path;
+  on(Actions.setGeneratedFiles, (state, { files }): FileTreeState => {
+    let activeFilePath: string | null = null;
+    if (files.length > 0) {
+      const patterns = [
+        /readme\.md$/i,
+        /client\./i,
+        /api\./i,
+        /index\./i,
+        /main\./i,
+        /\.ts$/,
+        /\.py$/,
+        /\.go$/,
+        /\.rs$/,
+      ];
+
+      for (const pattern of patterns) {
+        const match = files.find((f) => pattern.test(f.path));
+        if (match) {
+          activeFilePath = match.path;
+          break;
         }
       }
 
-      return {
-        ...state,
-        files,
-        activeFilePath,
-      };
-    },
-  ),
+      if (!activeFilePath) {
+        activeFilePath = files[0].path;
+      }
+    }
+
+    return {
+      ...state,
+      files,
+      activeFilePath,
+    };
+  }),
   /** on */
   on(
     Actions.selectFile,

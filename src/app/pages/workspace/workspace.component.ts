@@ -415,7 +415,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   /** Handles global keyboard shortcuts */
   handleKeyboardEvent(event: KeyboardEvent): void {
-    if (event.key.toLowerCase() === "d" && (event.ctrlKey || event.metaKey) && event.shiftKey) {
+    if (event.key.toLowerCase() === 'd' && (event.ctrlKey || event.metaKey) && event.shiftKey) {
       event.preventDefault();
       this.toggleApiDocs();
     }

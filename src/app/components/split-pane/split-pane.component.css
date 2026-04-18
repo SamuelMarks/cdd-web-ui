@@ -123,4 +123,8 @@
     transform: rotate(90deg);
   }
 }
-.big-swap-icon { font-size: 24px; font-weight: bold; line-height: 24px; }
+.big-swap-icon {
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 24px;
+}

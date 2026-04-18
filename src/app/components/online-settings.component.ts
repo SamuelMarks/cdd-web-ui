@@ -5,7 +5,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
 import { BackendConfigService } from '../services/backend-config.service';
+import { RunMode } from '../models/types';
 import { ApiService } from '../services/api.service';
 
 /**
@@ -21,11 +23,29 @@ import { ApiService } from '../services/api.service';
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
+    MatSelectModule,
   ],
   /** template */
   template: `
     <h2 mat-dialog-title id="dialog-title" i18n="@@onlineSettingsTitle">Online Mode Settings</h2>
     <mat-dialog-content>
+      <div class="run-mode-section">
+        <h3 id="run-mode-heading" i18n="@@runModeHeading">Execution Mode</h3>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label i18n="@@runModeLabel">Select how code is generated</mat-label>
+          <mat-select
+            [value]="config.runMode()"
+            (selectionChange)="onRunModeChange($event.value)"
+            aria-labelledby="run-mode-heading"
+          >
+            <mat-option value="local_relative">Locally (relative paths to wasm)</mat-option>
+            <mat-option value="local_cdd_ctl_wasm">Locally (cdd-ctl wasm)</mat-option>
+            <mat-option value="local_cdd_ctl_native">Locally (cdd-ctl native runtimes)</mat-option>
+            <mat-option value="served_github">Served (GitHub releases)</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
       @if (config.isOnline()) {
         <p i18n="@@currentlyOnline">Currently Online: {{ config.backendUrl() }}</p>
         <button
@@ -147,6 +167,9 @@ import { ApiService } from '../services/api.service';
       .full-width {
         width: 100%;
       }
+      .run-mode-section {
+        margin-bottom: 2rem;
+      }
       .auth-section {
         margin-top: 2rem;
         border-top: 1px solid var(--border-color, #ccc);
@@ -238,6 +261,14 @@ export class OnlineSettingsComponent {
   });
 
   /** Connects to the provided URL. */
+
+  /** Changes the run mode. */
+  onRunModeChange(mode: RunMode): void {
+    this.config.setRunMode(mode);
+    this.successMsg.set('Execution mode updated.');
+    this.errorMsg.set('');
+  }
+
   onSetUrl(): void {
     if (this.urlForm.valid && this.urlForm.value.url) {
       try {

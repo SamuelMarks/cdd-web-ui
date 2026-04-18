@@ -46,7 +46,9 @@ import { StorageService } from '../../services/storage.service';
           appearance="outline"
           class="language-selector-field"
           [class.has-error]="hasError()"
-          [matTooltip]="hasError() ? (errorMessage() || 'Failed to generate code for this language') : ''"
+          [matTooltip]="
+            hasError() ? errorMessage() || 'Failed to generate code for this language' : ''
+          "
           subscriptSizing="dynamic"
           [color]="hasError() ? 'warn' : 'primary'"
         >
@@ -67,7 +69,9 @@ import { StorageService } from '../../services/storage.service';
                     class="language-icon"
                   />
                 }
-                <span class="language-name" [class.error-text]="hasError()">{{ selectedLanguage()?.name }}</span>
+                <span class="language-name" [class.error-text]="hasError()">{{
+                  selectedLanguage()?.name
+                }}</span>
               </div>
             </mat-select-trigger>
             @for (lang of processedLanguages(); track lang.id) {

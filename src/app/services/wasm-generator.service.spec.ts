@@ -129,7 +129,6 @@ describe('WasmGeneratorService', () => {
       expect(code).toContain('Generated content for success');
     });
 
-
     it('should handle unrecognised language ID', async () => {
       const code = await service.generateSdk(dummyRepo, 'unsupported-lang', '{}');
       expect(code).toContain('is disabled due to lack of WASM support');
@@ -172,7 +171,6 @@ describe('WasmGeneratorService', () => {
       expect(config).toContain('# Default CI workflow for Go');
     });
 
-
     it('should handle completely unknown languages in generateCiCd', async () => {
       const config = await service.generateCiCd(dummyRepo, 'unknown-lang');
       expect(config).toContain('is disabled due to lack of WASM support');
@@ -183,7 +181,10 @@ describe('WasmGeneratorService', () => {
       const consoleSpy = vi.spyOn(console, 'warn');
       const specContent = 'invalid:\n\t  - yaml';
       const code = await service.generateSdk(dummyRepo, 'typescript', specContent);
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[WasmGenerator] Failed to parse YAML'), expect.any(Error));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[WasmGenerator] Failed to parse YAML'),
+        expect.any(Error),
+      );
       expect(typeof code).toBe('string');
     });
   });
@@ -209,7 +210,6 @@ describe('WasmGeneratorService', () => {
       const spec = await service.generateOpenApi(dummyRepo, 'python', 'class Client: pass');
       expect(spec).toContain('"title": "Mock API from Python"');
     });
-
 
     it('should handle unrecognised language ID', async () => {
       const spec = await service.generateOpenApi(dummyRepo, 'unsupported-lang', '{}');

@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { BackendConfigService } from './backend-config.service';
 
 /**
  * Service responsible for asynchronously loading WASM binaries.
@@ -10,6 +11,7 @@ import { Injectable } from '@angular/core';
 export class WasmLoaderService {
   /** Cache of loaded WASM binaries to prevent re-fetching. */
   private binaryCache = new Map<string, ArrayBuffer>();
+  private config = inject(BackendConfigService);
 
   /**
    * Asynchronously loads a WASM binary by language name.
@@ -26,7 +28,25 @@ export class WasmLoaderService {
 
     try {
       // Load from local assets for offline support
-      const response = await fetch(`/assets/wasm/${ecosystem}.wasm`);
+
+      let url = `/assets/wasm/${ecosystem}.wasm`;
+      const runMode = this.config.runMode();
+
+      if (runMode === 'served_github') {
+        const repoOrg =
+          ecosystem.startsWith('cdd-python') || ecosystem === 'cdd-ts' || ecosystem === 'cdd-kotlin'
+            ? 'offscale'
+            : 'SamuelMarks';
+        // Note: github releases format for cdd-* repos
+        url = `https://github.com/${repoOrg}/${ecosystem}/releases/latest/download/${ecosystem.replace('cdd-', '')}.wasm`;
+      } else if (runMode === 'local_cdd_ctl_wasm' || runMode === 'local_cdd_ctl_native') {
+        // When using cdd-ctl backend, we might not even need the browser to download WASM if we use RPC.
+        // But if we still do, we could fetch from the backend url.
+        // Assuming we just use local assets as fallback if runMode is backend but WASM is requested in browser.
+        url = `/assets/wasm/${ecosystem}.wasm`;
+      }
+
+      const response = await fetch(url);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -51,8 +71,18 @@ export class WasmLoaderService {
 
       // Basic check for WASM magic number (\0asm) or ZIP magic number (PK\x03\x04) for Pyodide bundles
       const view = new Uint8Array(buffer);
-      const isWasm = view.length >= 4 && view[0] === 0x00 && view[1] === 0x61 && view[2] === 0x73 && view[3] === 0x6d;
-      const isZip = view.length >= 4 && view[0] === 0x50 && view[1] === 0x4B && view[2] === 0x03 && view[3] === 0x04;
+      const isWasm =
+        view.length >= 4 &&
+        view[0] === 0x00 &&
+        view[1] === 0x61 &&
+        view[2] === 0x73 &&
+        view[3] === 0x6d;
+      const isZip =
+        view.length >= 4 &&
+        view[0] === 0x50 &&
+        view[1] === 0x4b &&
+        view[2] === 0x03 &&
+        view[3] === 0x04;
 
       if (!isWasm && !isZip) {
         throw new Error(`Invalid WASM binary downloaded for ${ecosystem}: Missing magic number.`);

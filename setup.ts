@@ -30,10 +30,16 @@ CddWasmSdk.fromOpenApi = async (options: GenerateOptions) => {
 try {
   getTestBed().initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting());
 } catch (e) {}
-global.ResizeObserver = class ResizeObserver { observe() {} unobserve() {} disconnect() {} };
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
 
 if (typeof window !== 'undefined' && window.SVGElement) {
   Object.defineProperty(window.SVGElement.prototype, 'transform', {
-    get() { return { baseVal: { consolidate: () => null } }; }
+    get() {
+      return { baseVal: { consolidate: () => null } };
+    },
   });
 }

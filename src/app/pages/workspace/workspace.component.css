@@ -166,7 +166,7 @@
     justify-content: flex-start;
     height: auto;
   }
-  
+
   .input-controls {
     flex: 1 1 100%;
     margin-bottom: 0.5rem;
@@ -179,7 +179,7 @@
   .output-controls {
     flex: 1 1 100%;
   }
-  
+
   .toolbar-spacer {
     display: none;
   }
@@ -190,8 +190,9 @@
     flex-direction: column;
     align-items: stretch;
   }
-  
-  .toolbar-field, .example-field {
+
+  .toolbar-field,
+  .example-field {
     width: 100%;
   }
 
@@ -211,5 +212,3 @@
     border-bottom: 1px solid var(--border-color);
   }
 }
-
-

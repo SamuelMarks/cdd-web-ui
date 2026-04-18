@@ -1,4 +1,3 @@
-
 import {
   Component,
   ChangeDetectionStrategy,
@@ -7,19 +6,19 @@ import {
   OnInit,
   OnDestroy,
   effect,
-  computed
-} from "@angular/core";
-import { CommonModule } from "@angular/common";
-import { Store } from "@ngrx/store";
-import { AppState } from "../../store/state";
-import { selectOpenApiSpecContent, selectGeneratedFiles } from "../../store/selectors";
-import * as WorkspaceActions from "../../store/actions";
-import { ThemeService } from "../../services/theme.service";
-import "cdd-docs-ui";
+  computed,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Store } from '@ngrx/store';
+import { AppState } from '../../store/state';
+import { selectOpenApiSpecContent, selectGeneratedFiles } from '../../store/selectors';
+import * as WorkspaceActions from '../../store/actions';
+import { ThemeService } from '../../services/theme.service';
+import 'cdd-docs-ui';
 
 /** Component for viewing API documentation dynamically via Web Component. */
 @Component({
-  selector: "app-api-docs-viewer",
+  selector: 'app-api-docs-viewer',
   imports: [CommonModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,26 +31,28 @@ import "cdd-docs-ui";
       ></cdd-api-docs>
     </div>
   `,
-  styles: [`
-    :host {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      width: 100%;
-      background: var(--surface-color, #fff);
-      overflow: hidden;
-    }
-    .api-docs-content {
-      flex: 1;
-      height: 100%;
-      width: 100%;
-    }
-    cdd-api-docs {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-  `]
+  styles: [
+    `
+      :host {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        width: 100%;
+        background: var(--surface-color, #fff);
+        overflow: hidden;
+      }
+      .api-docs-content {
+        flex: 1;
+        height: 100%;
+        width: 100%;
+      }
+      cdd-api-docs {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+    `,
+  ],
 })
 export class ApiDocsViewerComponent implements OnInit, OnDestroy {
   /** Redux store */
@@ -67,15 +68,15 @@ export class ApiDocsViewerComponent implements OnInit, OnDestroy {
   /** Mapped SDK examples for the Lit component */
   mappedSdkExamples = computed(() => {
     const decoder = new TextDecoder('utf-8');
-    return this.generatedFiles().map(file => ({
+    return this.generatedFiles().map((file) => ({
       language: 'typescript', // Generic fallback
       filepath: file.path,
-      content: decoder.decode(file.content)
+      content: decoder.decode(file.content),
     }));
   });
 
   /** Active theme signal derived from ThemeService */
-  theme = computed(() => this.themeService.isDarkTheme() ? "dark" : "light");
+  theme = computed(() => (this.themeService.isDarkTheme() ? 'dark' : 'light'));
 
   /** Init lifecycle */
   ngOnInit() {

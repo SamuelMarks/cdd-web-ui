@@ -13,10 +13,26 @@ class MockWorker {
       setTimeout(() => {
         if (this.onmessage) {
           if (data.payload?.specContent === 'log_test') {
-             this.onmessage(new MessageEvent('message', { data: { status: 'log', level: 'INFO', message: 'Info test' } }));
-             this.onmessage(new MessageEvent('message', { data: { status: 'log', level: 'WARN', message: 'Warn test' } }));
-             this.onmessage(new MessageEvent('message', { data: { status: 'log', level: 'ERROR', message: 'Error test' } }));
-             this.onmessage(new MessageEvent('message', { data: { status: 'log', level: 'UNKNOWN', message: 'Unknown test' } }));
+            this.onmessage(
+              new MessageEvent('message', {
+                data: { status: 'log', level: 'INFO', message: 'Info test' },
+              }),
+            );
+            this.onmessage(
+              new MessageEvent('message', {
+                data: { status: 'log', level: 'WARN', message: 'Warn test' },
+              }),
+            );
+            this.onmessage(
+              new MessageEvent('message', {
+                data: { status: 'log', level: 'ERROR', message: 'Error test' },
+              }),
+            );
+            this.onmessage(
+              new MessageEvent('message', {
+                data: { status: 'log', level: 'UNKNOWN', message: 'Unknown test' },
+              }),
+            );
           }
           this.onmessage(
             new MessageEvent('message', {
@@ -75,7 +91,7 @@ describe('WasmWorkerService', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: WasmLoaderService, useValue: mockLoaderService },
-        { provide: LoggingService, useValue: mockLoggingService }
+        { provide: LoggingService, useValue: mockLoggingService },
       ],
     });
     service = TestBed.inject(WasmWorkerService);
@@ -118,7 +134,9 @@ describe('WasmWorkerService', () => {
     };
     (service as never).worker = errorWorker;
 
-    await expect(service.generateCode('cdd-python-all', '{}')).rejects.toThrow('Unknown worker error');
+    await expect(service.generateCode('cdd-python-all', '{}')).rejects.toThrow(
+      'Unknown worker error',
+    );
   });
 
   it('should handle worker errors', async () => {
@@ -152,11 +170,11 @@ describe('WasmWorkerService', () => {
 
     TestBed.resetTestingModule();
 
-    const loaderService = new WasmLoaderService(null as never);
+    const loaderServiceMock = { loadWasmBinary: vi.fn() };
     TestBed.configureTestingModule({
       providers: [
-        { provide: WasmLoaderService, useValue: loaderService },
-        { provide: LoggingService, useValue: mockLoggingService }
+        { provide: WasmLoaderService, useValue: loaderServiceMock },
+        { provide: LoggingService, useValue: mockLoggingService },
       ],
     });
 

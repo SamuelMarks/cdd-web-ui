@@ -15,10 +15,21 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
  */
 @Component({
   selector: 'app-bottom-panel',
-  imports: [CommonModule, MatTabsModule, MatIconModule, MatButtonModule, VisualisationsComponent, ApiDocsViewerComponent],
+  imports: [
+    CommonModule,
+    MatTabsModule,
+    MatIconModule,
+    MatButtonModule,
+    VisualisationsComponent,
+    ApiDocsViewerComponent,
+  ],
   template: `
     <div class="bottom-panel-container">
-      <mat-tab-group class="bottom-panel-tabs" [selectedIndex]="selectedTabIndex()" (selectedIndexChange)="selectedTabIndex.set($event)">
+      <mat-tab-group
+        class="bottom-panel-tabs"
+        [selectedIndex]="selectedTabIndex()"
+        (selectedIndexChange)="selectedTabIndex.set($event)"
+      >
         <mat-tab label="Logs">
           <div class="console-tab-content">
             <div class="console-toolbar">
@@ -29,7 +40,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
             <div class="console-content">
               @for (log of logs(); track log.timestamp + $index) {
                 <div class="log-entry log-{{ log.level.toLowerCase() }}">
-                  <span class="log-timestamp">[{{ log.timestamp | date:'HH:mm:ss.SSS' }}]</span>
+                  <span class="log-timestamp">[{{ log.timestamp | date: 'HH:mm:ss.SSS' }}]</span>
                   <span class="log-level">{{ log.level }}</span>
                   <span class="log-message">{{ log.message }}</span>
                 </div>
@@ -59,7 +70,7 @@ export class BottomPanelComponent {
 
   /** Signal containing the current logs */
   logs = this.loggingService.logs;
-  
+
   /** Signal indicating the currently selected tab index */
   selectedTabIndex = signal(0);
 
@@ -67,19 +78,17 @@ export class BottomPanelComponent {
    * Initializes the component and subscribes to execution actions to switch tabs.
    */
   constructor() {
-    this.actions$.pipe(
-      ofType(WorkspaceActions.executeRunSuccess),
-      takeUntilDestroyed()
-    ).subscribe(() => {
-      this.selectedTabIndex.set(2);
-    });
+    this.actions$
+      .pipe(ofType(WorkspaceActions.executeRunSuccess), takeUntilDestroyed())
+      .subscribe(() => {
+        this.selectedTabIndex.set(2);
+      });
 
-    this.actions$.pipe(
-      ofType(WorkspaceActions.executeRunFailure),
-      takeUntilDestroyed()
-    ).subscribe(() => {
-      this.selectedTabIndex.set(0);
-    });
+    this.actions$
+      .pipe(ofType(WorkspaceActions.executeRunFailure), takeUntilDestroyed())
+      .subscribe(() => {
+        this.selectedTabIndex.set(0);
+      });
   }
 
   /**

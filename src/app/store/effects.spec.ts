@@ -242,7 +242,9 @@ describe('WorkspaceEffects', () => {
       store.overrideSelector(selectActiveFileContent, 'console.log("hello")');
 
       const mockSpecContent = 'openapi: 3.0.0';
-      const mockFiles: GeneratedFile[] = [{ path: 'openapi.yaml', content: new TextEncoder().encode(mockSpecContent) }];
+      const mockFiles: GeneratedFile[] = [
+        { path: 'openapi.yaml', content: new TextEncoder().encode(mockSpecContent) },
+      ];
       wasmWorkerServiceMock.generateCode.mockResolvedValue(mockFiles);
 
       actions$ = of(Actions.executeRun());
@@ -252,7 +254,7 @@ describe('WorkspaceEffects', () => {
         'cdd-python-all',
         'console.log("hello")',
         'to_openapi',
-        {}
+        {},
       );
       expect(result).toEqual(Actions.executeRunSuccess({ result: mockSpecContent }));
     });
@@ -271,7 +273,9 @@ describe('WorkspaceEffects', () => {
       actions$ = of(Actions.executeRun());
 
       const result = await effects.executeRun$.toPromise();
-      expect(result).toEqual(Actions.executeRunFailure({ error: 'No OpenAPI specification generated.' }));
+      expect(result).toEqual(
+        Actions.executeRunFailure({ error: 'No OpenAPI specification generated.' }),
+      );
     });
 
     it('should catch errors and return executeRunFailure in openapi-right orientation', async () => {
@@ -301,7 +305,12 @@ describe('WorkspaceEffects', () => {
       actions$ = of(Actions.executeRun());
 
       const result = await effects.executeRun$.toPromise();
-      expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith('cdd-python-all', '', 'to_openapi', {});
+      expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith(
+        'cdd-python-all',
+        '',
+        'to_openapi',
+        {},
+      );
       expect(result).toEqual(Actions.executeRunFailure({ error: 'String error' }));
     });
   });

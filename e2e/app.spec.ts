@@ -85,7 +85,10 @@ test.describe('App E2E Tests', () => {
       }
     });
 
-    test(`Complete workflow & Docs UI for ${lang.name}: edit OpenAPI, generate SDK, verify docs, swap, generate OpenAPI`, async ({ page, isMobile }) => {
+    test(`Complete workflow & Docs UI for ${lang.name}: edit OpenAPI, generate SDK, verify docs, swap, generate OpenAPI`, async ({
+      page,
+      isMobile,
+    }) => {
       await page.goto('/', { waitUntil: 'networkidle' });
 
       // 0. Specific input (Petstore example)
@@ -124,7 +127,9 @@ test.describe('App E2E Tests', () => {
       await swapButton.click();
 
       // Ensure Code Viewer is now on the left pane
-      const leftPaneCodeViewer = page.locator('.pane-left').locator('.code-viewer-container, .directory-tree');
+      const leftPaneCodeViewer = page
+        .locator('.pane-left')
+        .locator('.code-viewer-container, .directory-tree');
       if (!isMobile) {
         await expect(leftPaneCodeViewer.first()).toBeVisible();
       } else {
@@ -133,7 +138,7 @@ test.describe('App E2E Tests', () => {
 
       // Click Generate again (this time to_openapi, from SDK to OpenAPI)
       await generateBtn.click({ force: true });
-      
+
       // Check toast again to confirm successful roundtrip
       const secondToast = page.locator('simple-snack-bar').first();
       await expect(secondToast).toBeVisible({ timeout: 15000 });
@@ -208,4 +213,3 @@ test.describe('App E2E Tests', () => {
 
   // Replaced by loop-based tests above.
 });
-

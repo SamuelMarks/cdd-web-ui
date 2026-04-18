@@ -2,7 +2,11 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { WorkspaceComponent } from './workspace.component';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { AppState } from '../../store/state';
-import { initialWorkspaceState, initialFileTreeState, initialOpenApiState } from '../../store/reducers';
+import {
+  initialWorkspaceState,
+  initialFileTreeState,
+  initialOpenApiState,
+} from '../../store/reducers';
 import * as Selectors from '../../store/selectors';
 import * as Actions from '../../store/actions';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -67,10 +71,7 @@ describe('WorkspaceComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [
-        WorkspaceComponent, 
-        NoopAnimationsModule
-      ],
+      imports: [WorkspaceComponent, NoopAnimationsModule],
       providers: [
         provideMockStore({
           initialState: {
@@ -89,38 +90,38 @@ describe('WorkspaceComponent', () => {
             { selector: Selectors.selectGeneratedFiles, value: [] },
             { selector: Selectors.selectActiveFilePath, value: null },
             { selector: Selectors.selectActiveFileContent, value: null },
-          ]
+          ],
         }),
         { provide: ThemeService, useValue: { isDarkTheme: () => false } },
         { provide: NotificationService, useValue: {} },
         { provide: LanguageService, useValue: { languages: () => [] } },
         { provide: OfflineService, useValue: { isOnline: () => true } },
-        { provide: StorageService, useValue: { getItem: () => null, setItem: () => {} } }
-      ]
+        { provide: StorageService, useValue: { getItem: () => null, setItem: () => {} } },
+      ],
     })
-    .overrideComponent(WorkspaceComponent, {
-      remove: {
-        imports: [
-          SplitPaneComponent,
-          OpenApiEditorComponent,
-          DirectoryTreeComponent,
-          CodeViewerComponent,
-          LanguageSelectorComponent,
-          BottomPanelComponent
-        ]
-      },
-      add: {
-        imports: [
-          MockSplitPaneComponent,
-          MockOpenApiEditorComponent,
-          MockDirectoryTreeComponent,
-          MockCodeViewerComponent,
-          MockLanguageSelectorComponent,
-          MockBottomPanelComponent
-        ]
-      }
-    })
-    .compileComponents();
+      .overrideComponent(WorkspaceComponent, {
+        remove: {
+          imports: [
+            SplitPaneComponent,
+            OpenApiEditorComponent,
+            DirectoryTreeComponent,
+            CodeViewerComponent,
+            LanguageSelectorComponent,
+            BottomPanelComponent,
+          ],
+        },
+        add: {
+          imports: [
+            MockSplitPaneComponent,
+            MockOpenApiEditorComponent,
+            MockDirectoryTreeComponent,
+            MockCodeViewerComponent,
+            MockLanguageSelectorComponent,
+            MockBottomPanelComponent,
+          ],
+        },
+      })
+      .compileComponents();
 
     store = TestBed.inject(MockStore);
     fixture = TestBed.createComponent(WorkspaceComponent);
@@ -178,7 +179,9 @@ describe('WorkspaceComponent', () => {
     const spy = vi.spyOn(store, 'dispatch');
     const options = { framework: 'angular' };
     component.onOptionsChanged({ languageId: 'typescript', options });
-    expect(spy).toHaveBeenCalledWith(Actions.setLanguageOptions({ languageId: 'typescript', options }));
+    expect(spy).toHaveBeenCalledWith(
+      Actions.setLanguageOptions({ languageId: 'typescript', options }),
+    );
   });
 
   it('should dispatch setInputFormat on input format change', () => {
@@ -206,18 +209,17 @@ describe('WorkspaceComponent', () => {
 
   it('should dispatch updateOpenApiSpec on example change', () => {
     const spy = vi.spyOn(store, 'dispatch');
-    
+
     component.onExampleChange('petstore');
     expect(spy).toHaveBeenCalledWith(Actions.updateOpenApiSpec({ content: PETSTORE_SPEC }));
-    
+
     component.onExampleChange('hello');
     expect(spy).toHaveBeenCalledWith(Actions.updateOpenApiSpec({ content: HELLO_WORLD_SPEC }));
-    
+
     spy.mockClear();
     component.onExampleChange('custom');
     expect(spy).not.toHaveBeenCalled();
   });
-
 
   describe('API Docs pane controls', () => {
     it('should dispatch toggleApiDocsPane on toggleApiDocs', () => {
@@ -237,7 +239,9 @@ describe('WorkspaceComponent', () => {
       const dispatchSpy = vi.spyOn(store, 'dispatch');
       const event = new KeyboardEvent('keydown', { key: 'd', ctrlKey: false, shiftKey: false });
       component.handleKeyboardEvent(event);
-      expect(dispatchSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: '[Workspace] Toggle API Docs Pane' }));
+      expect(dispatchSpy).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: '[Workspace] Toggle API Docs Pane' }),
+      );
     });
 
     it('should dispatch resizeApiDocsPane on resizer double click', () => {
@@ -266,7 +270,9 @@ describe('WorkspaceComponent', () => {
       const dispatchSpy = vi.spyOn(store, 'dispatch');
       const event = new KeyboardEvent('keydown', { key: 'ArrowLeft' });
       component.onResizerKeydown(event);
-      expect(dispatchSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: '[Workspace] Resize Bottom Pane' }));
+      expect(dispatchSpy).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: '[Workspace] Resize Bottom Pane' }),
+      );
     });
 
     it('should dispatch resizeApiDocsPane during drag (mousemove)', () => {
@@ -285,5 +291,4 @@ describe('WorkspaceComponent', () => {
       document.dispatchEvent(mouseupEvent);
     });
   });
-
 });

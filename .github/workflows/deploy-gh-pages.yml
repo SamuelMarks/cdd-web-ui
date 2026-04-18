@@ -2,7 +2,7 @@ name: Deploy Web UI to GitHub Pages
 
 on:
   push:
-    branches: ["main", "master"]
+    branches: ['main', 'master']
 
 permissions:
   contents: write
@@ -44,7 +44,7 @@ jobs:
         run: |
           chmod +x ./scripts/fetch_wasm.sh
           ./scripts/fetch_wasm.sh
-          
+
           mkdir -p ./optimized-wasm
           for wasm_file in cdd-ctl-wasm-sdk/assets/wasm/*.wasm; do
             filename=$(basename "$wasm_file")
@@ -61,7 +61,7 @@ jobs:
           git fetch --tags
           # Delete the 'latest' release and tag if they exist
           gh release delete latest --cleanup-tag -y || true
-          
+
           # Create a new release and upload all optimized wasm files
           gh release create latest ../cdd-ctl/optimized-wasm/*.wasm --title "Latest WASM Assets" --notes "Auto-generated WASM binaries optimized with -O3" --target ${{ github.sha }}
 

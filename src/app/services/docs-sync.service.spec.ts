@@ -125,7 +125,7 @@ describe('DocsSyncService', () => {
     document.body.appendChild(iframeMock);
 
     service = TestBed.inject(DocsSyncService);
-    
+
     // Send ready
     window.dispatchEvent(new MessageEvent('message', { data: { type: 'DOCS_UI_READY' } }));
     vi.advanceTimersByTime(500);
@@ -138,13 +138,12 @@ describe('DocsSyncService', () => {
 
     expect(postMessageSpy).toHaveBeenCalledWith(
       { type: 'UPDATE_SPEC', payload: 'updated spec' },
-      '*'
+      '*',
     );
 
     document.body.removeChild(iframeMock);
     vi.useRealTimers();
   });
-
 
   it('should ignore unrelated message events', () => {
     vi.useFakeTimers();
@@ -168,7 +167,7 @@ describe('DocsSyncService', () => {
     document.body.appendChild(iframeMock);
 
     service = TestBed.inject(DocsSyncService);
-    
+
     // Send ready
     window.dispatchEvent(new MessageEvent('message', { data: { type: 'DOCS_UI_READY' } }));
     vi.advanceTimersByTime(500);
@@ -179,10 +178,7 @@ describe('DocsSyncService', () => {
     TestBed.flushEffects();
     vi.advanceTimersByTime(500);
 
-    expect(postMessageSpy).toHaveBeenCalledWith(
-      { type: 'SET_THEME', payload: 'dark' },
-      '*'
-    );
+    expect(postMessageSpy).toHaveBeenCalledWith({ type: 'SET_THEME', payload: 'dark' }, '*');
 
     document.body.removeChild(iframeMock);
     vi.useRealTimers();
@@ -191,10 +187,10 @@ describe('DocsSyncService', () => {
   it('should not throw if iframe is not found in DOM', () => {
     vi.useFakeTimers();
     service = TestBed.inject(DocsSyncService);
-    
+
     // Send ready (even if no iframe exists in DOM)
     window.dispatchEvent(new MessageEvent('message', { data: { type: 'DOCS_UI_READY' } }));
-    
+
     // Update theme to trigger postToIframe
     isDarkThemeSignal.set(true);
     TestBed.flushEffects();
@@ -202,8 +198,7 @@ describe('DocsSyncService', () => {
 
     // Should gracefully not throw error
     expect(true).toBe(true);
-    
+
     vi.useRealTimers();
   });
-
 });

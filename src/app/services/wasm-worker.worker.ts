@@ -13,22 +13,22 @@ const originalWarn = console.warn;
 const originalError = console.error;
 
 console.log = (...args) => {
-  postMessage({ status: 'log', level: 'INFO', message: args.map(a => String(a)).join(' ') });
+  postMessage({ status: 'log', level: 'INFO', message: args.map((a) => String(a)).join(' ') });
   originalLog(...args);
 };
 
 console.info = (...args) => {
-  postMessage({ status: 'log', level: 'INFO', message: args.map(a => String(a)).join(' ') });
+  postMessage({ status: 'log', level: 'INFO', message: args.map((a) => String(a)).join(' ') });
   originalInfo(...args);
 };
 
 console.warn = (...args) => {
-  postMessage({ status: 'log', level: 'WARN', message: args.map(a => String(a)).join(' ') });
+  postMessage({ status: 'log', level: 'WARN', message: args.map((a) => String(a)).join(' ') });
   originalWarn(...args);
 };
 
 console.error = (...args) => {
-  postMessage({ status: 'log', level: 'ERROR', message: args.map(a => String(a)).join(' ') });
+  postMessage({ status: 'log', level: 'ERROR', message: args.map((a) => String(a)).join(' ') });
   originalError(...args);
 };
 

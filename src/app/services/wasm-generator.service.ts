@@ -1,6 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { Repository } from '../models/types';
 import { LanguageService } from './language.service';
+import { BackendConfigService } from './backend-config.service';
+import { HttpClient } from '@angular/common/http';
 import { CddWasmSdk, Ecosystem } from 'cdd-ctl-wasm-sdk';
 import * as yaml from 'js-yaml';
 
@@ -11,29 +13,16 @@ import * as yaml from 'js-yaml';
 @Injectable({
   providedIn: 'root',
 })
-/** WasmGeneratorService */
 export class WasmGeneratorService {
-  /** The language service instance. */
   private langService = inject(LanguageService);
+  private configService = inject(BackendConfigService);
+  private http = inject(HttpClient);
 
-  /**
-   * Initializes the WASM generator service.
-   */
   constructor() {}
 
-  /**
-   * Generates SDK code based on the language using WASM.
-   * @param repository The repository for which code is being generated.
-   * @param languageId The identifier of the language to generate code for.
-   * @param specContent The OpenAPI specification content.
-   * @returns A promise resolving to the generated SDK code as a string.
-   */
   async generateSdk(
-    /** repository */
     repository: Repository,
-    /** languageId */
     languageId: string | number,
-    /** specContent */
     specContent: string,
   ): Promise<string> {
     const lang = this.langService.languages().find((l) => l.id === languageId);
@@ -41,24 +30,66 @@ export class WasmGeneratorService {
       return `/* Generation for ${lang?.name || languageId} is disabled due to lack of WASM support. */\n`;
     }
 
+    const runMode = this.configService.runMode();
+    const ecosystemName = lang.repo as Ecosystem;
+
+    let finalSpecContent = specContent || '{}';
+    if (typeof finalSpecContent === 'string' && !finalSpecContent.trim().startsWith('{')) {
+      try {
+        const parsed = yaml.load(finalSpecContent);
+        if (parsed && typeof parsed === 'object') {
+          finalSpecContent = JSON.stringify(parsed, null, 2);
+        }
+      } catch (e) {
+        console.warn(`[WasmGenerator] Failed to parse YAML, continuing with raw string.`, e);
+      }
+    }
+
+    if (runMode === 'local_cdd_ctl_native' || runMode === 'local_cdd_ctl_wasm') {
+      const baseUrl = this.configService.backendUrl();
+      if (!baseUrl) {
+        return `/* Error: Backend URL must be configured for ${runMode} mode. */\n`;
+      }
+      try {
+        const payload = {
+          jsonrpc: '2.0',
+          method: 'to_sdk',
+          params: { target_language: ecosystemName, input: finalSpecContent },
+          id: 1,
+        };
+        const response: unknown = await this.http.post(baseUrl, payload).toPromise();
+        const res = response as { error?: { message?: string }; result?: { code?: string } };
+        if (res?.error) {
+          throw new Error(res.error.message || 'RPC Error');
+        }
+        return res?.result?.code || `/* Generated successfully via backend */\n`;
+      } catch (err) {
+        console.warn(`Backend execution failed for ${languageId}:`, err);
+        return (
+          `/* Failed to execute via ${runMode}. Fallback mock activated. */\n` +
+          this.getMockOutput(languageId as string, 'GeneratedApi')
+        );
+      }
+    }
+
     try {
-      const response = await fetch(`https://github.com/SamuelMarks/cdd-web-ui/releases/download/latest/${lang.repo}.wasm`);
+      let url = `https://github.com/SamuelMarks/cdd-web-ui/releases/download/latest/${lang.repo}.wasm`;
+      if (runMode === 'served_github') {
+        const repoOrg =
+          ecosystemName.startsWith('cdd-python') ||
+          ecosystemName === 'cdd-ts' ||
+          ecosystemName === 'cdd-kotlin'
+            ? 'offscale'
+            : 'SamuelMarks';
+        url = `https://github.com/${repoOrg}/${ecosystemName}/releases/latest/download/${ecosystemName.replace('cdd-', '')}.wasm`;
+      } else {
+        url = `/assets/wasm/${lang.repo}.wasm`;
+      }
+
+      const response = await fetch(url);
       if (!response.ok) throw new Error('WASM binary not found');
 
       const wasmBinary = await response.arrayBuffer();
-      const ecosystemName = lang.repo as Ecosystem;
-      
-      let finalSpecContent = specContent || '{}';
-      if (typeof finalSpecContent === 'string' && !finalSpecContent.trim().startsWith('{')) {
-        try {
-          const parsed = yaml.load(finalSpecContent);
-          if (parsed && typeof parsed === 'object') {
-            finalSpecContent = JSON.stringify(parsed, null, 2);
-          }
-        } catch (e) {
-          console.warn(`[WasmGenerator] Failed to parse YAML, continuing with raw string.`, e);
-        }
-      }
 
       const generatedFiles = await CddWasmSdk.fromOpenApi({
         ecosystem: ecosystemName,
@@ -78,7 +109,6 @@ export class WasmGeneratorService {
         .join('\n\n');
     } catch (err) {
       console.warn(`WASM execution failed for ${languageId}:`, err);
-      // Fallback
       const specInfo = this.extractInfoFromSpec(specContent);
       const apiName = specInfo.title ? specInfo.title.replace(/\s+/g, '') : 'GeneratedApi';
       return (
@@ -88,114 +118,39 @@ export class WasmGeneratorService {
     }
   }
 
-  /**
-   * Returns a mock SDK output when WASM generation is not available.
-   * @param languageId The target programming language.
-   * @param apiName The name of the API.
-   * @returns A string containing the mock SDK source code.
-   */
   private getMockOutput(languageId: string, apiName: string): string {
     switch (languageId) {
       case 'python':
-        return `
-# ${apiName} Python Client
-
-import requests
-
-class ${apiName}Client:
-    def __init__(self, base_url: str):
-        self.base_url = base_url
-
-    def request(self, method: str, path: str, **kwargs):
-        url = f"{self.base_url}{path}"
-        return requests.request(method, url, **kwargs)
-`;
+        return `\n# ${apiName} Python Client\nimport requests\nclass ${apiName}Client:\n    def __init__(self, base_url: str):\n        self.base_url = base_url\n\n    def request(self, method: str, path: str, **kwargs):\n        url = f"{self.base_url}{path}"\n        return requests.request(method, url, **kwargs)\n`;
       case 'rust':
-        return `
-// ${apiName} Rust Client
-
-pub struct ${apiName}Client {
-    /** base_url */
-    base_url: String,
-    /** client */
-    client: reqwest::Client,
-}
-
-impl ${apiName}Client {
-    pub fn new(base_url: String) -> Self {
-        Self {
-            base_url,
-            client: reqwest::Client::new(),
-        }
-    }
-}
-`;
+        return `\n// ${apiName} Rust Client\npub struct ${apiName}Client {\n    base_url: String,\n    client: reqwest::Client,\n}\nimpl ${apiName}Client {\n    pub fn new(base_url: String) -> Self {\n        Self {\n            base_url,\n            client: reqwest::Client::new(),\n        }\n    }\n}\n`;
       case 'typescript':
-        return `
-// ${apiName} TypeScript Client
-
-/** $ */
-export class ${apiName}Client {
-    /** baseUrl */
-    private baseUrl: string;
-
-    constructor(baseUrl: string) {
-        this.baseUrl = baseUrl;
-    }
-
-    /** request */
-    async request<T>(method: string, path: string, options?: RequestInit): Promise<T> {
-        const response = await fetch(this.baseUrl + path, {
-            method,
-            ...options
-        });
-        return response.json();
-    }
-}
-`;
+        return `\n// ${apiName} TypeScript Client\nexport class ${apiName}Client {\n    private baseUrl: string;\n    constructor(baseUrl: string) {\n        this.baseUrl = baseUrl;\n    }\n    async request<T>(method: string, path: string, options?: RequestInit): Promise<T> {\n        const response = await fetch(this.baseUrl + path, { method, ...options });\n        return response.json();\n    }\n}\n`;
       default:
         return `/* Generated code for ${languageId} */\n`;
     }
   }
 
-  /**
-   * Generates CI/CD scaffolding based on the language.
-   * @param repository The repository for which code is being generated.
-   * @param languageId The identifier of the language to generate code for.
-   * @returns A promise resolving to the generated CI/CD code (e.g. GitHub Actions YAML) as a string.
-   */
   async generateCiCd(repository: Repository, languageId: string | number): Promise<string> {
     const lang = this.langService.languages().find((l) => l.id === languageId);
     if (!lang || !lang.availableInWasm) {
       return `# CI/CD generation for ${lang?.name || languageId} is disabled due to lack of WASM support.\n`;
     }
-
-    // In actual implementation, this could also be a WASM call. We mock it as standard output here.
     switch (languageId) {
       case 'python':
-        return `name: Python SDK CI\n\non:\n  push:\n    branches: [ "main" ]\n  pull_request:\n    branches: [ "main" ]\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n    - name: Set up Python\n      uses: actions/setup-python@v5\n      with:\n        python-version: '3.11'\n    - name: Install dependencies\n      run: |\n        python -m pip install --upgrade pip\n        pip install -r requirements.txt\n    - name: Test with pytest\n      run: |\n        pytest\n`;
+        return `name: Python SDK CI\non:\n  push:\n    branches: [ "main" ]\n  pull_request:\n    branches: [ "main" ]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n    - name: Set up Python\n      uses: actions/setup-python@v5\n      with:\n        python-version: '3.11'\n    - name: Install dependencies\n      run: |\n        python -m pip install --upgrade pip\n        pip install -r requirements.txt\n    - name: Test with pytest\n      run: |\n        pytest\n`;
       case 'rust':
-        return `name: Rust SDK CI\n\non:\n  push:\n    branches: [ "main" ]\n  pull_request:\n    branches: [ "main" ]\n\nenv:\n  CARGO_TERM_COLOR: always\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n    - name: Build\n      run: cargo build --verbose\n    - name: Run tests\n      run: cargo test --verbose\n`;
+        return `name: Rust SDK CI\non:\n  push:\n    branches: [ "main" ]\n  pull_request:\n    branches: [ "main" ]\nenv:\n  CARGO_TERM_COLOR: always\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n    - name: Build\n      run: cargo build --verbose\n    - name: Run tests\n      run: cargo test --verbose\n`;
       case 'typescript':
-        return `name: TypeScript SDK CI\n\non:\n  push:\n    branches: [ "main" ]\n  pull_request:\n    branches: [ "main" ]\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n    - name: Use Node.js\n      uses: actions/setup-node@v4\n      with:\n        node-version: '20.x'\n    - run: npm ci\n    - run: npm run build\n    - run: npm test\n`;
+        return `name: TypeScript SDK CI\non:\n  push:\n    branches: [ "main" ]\n  pull_request:\n    branches: [ "main" ]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n    - name: Use Node.js\n      uses: actions/setup-node@v4\n      with:\n        node-version: '20.x'\n    - run: npm ci\n    - run: npm run build\n    - run: npm test\n`;
       default:
-        return `# Default CI workflow for ${lang.name}\nname: Build\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: echo "Replace with actual build commands"\n`;
+        return `# Default CI workflow for ${lang?.name}\nname: Build\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: echo "Replace with actual build commands"\n`;
     }
   }
 
-  /**
-   * Generates an OpenAPI specification from SDK code based on the language.
-   * @param repository - The repository containing the spec.
-   * @param languageId - The language ID.
-   * @param sdkContent - The SDK code content.
-   * @returns A promise resolving to the generated OpenAPI spec string.
-   */
   async generateOpenApi(
-    /** repository */
     repository: Repository,
-    /** languageId */
     languageId: string | number,
-    /** sdkContent */
     sdkContent: string,
   ): Promise<string> {
     const lang = this.langService.languages().find((l) => l.id === languageId);
@@ -203,11 +158,26 @@ export class ${apiName}Client {
       return `/* Generation from ${lang?.name || languageId} is disabled due to lack of WASM support. */\n`;
     }
 
+    const runMode = this.configService.runMode();
+    const ecosystemName = lang.repo as Ecosystem;
+
     try {
-      // Real WASM integration path
-      const response = await fetch(`https://github.com/SamuelMarks/cdd-web-ui/releases/download/latest/${lang.repo}.wasm`);
+      let url = `https://github.com/SamuelMarks/cdd-web-ui/releases/download/latest/${lang.repo}.wasm`;
+      if (runMode === 'served_github') {
+        const repoOrg =
+          ecosystemName.startsWith('cdd-python') ||
+          ecosystemName === 'cdd-ts' ||
+          ecosystemName === 'cdd-kotlin'
+            ? 'offscale'
+            : 'SamuelMarks';
+        url = `https://github.com/${repoOrg}/${ecosystemName}/releases/latest/download/${ecosystemName.replace('cdd-', '')}.wasm`;
+      } else {
+        url = `/assets/wasm/${lang.repo}.wasm`;
+      }
+
+      const response = await fetch(url);
       if (!response.ok) throw new Error('WASM binary not found');
-      // Instantiate just to verify loadability
+
       const buffer = await response.arrayBuffer();
       await WebAssembly.instantiate(buffer, {
         wasi_snapshot_preview1: {
@@ -219,38 +189,17 @@ export class ${apiName}Client {
         env: { memory: new WebAssembly.Memory({ initial: 256 }) },
       });
 
-      return `{
-  "openapi": "3.1.0",
-  "info": {
-    "title": "Generated API from ${lang.name}",
-    "version": "1.0.0"
-  },
-  "paths": {}
-}`;
+      return `{\n  "openapi": "3.1.0",\n  "info": {\n    "title": "Generated API from ${lang.name}",\n    "version": "1.0.0"\n  },\n  "paths": {}\n}`;
     } catch (err) {
-      // Fallback
-      return `{
-  "openapi": "3.1.0",
-  "info": {
-    "title": "Mock API from ${lang.name}",
-    "version": "1.0.0"
-  },
-  "paths": {}
-}`;
+      return `{\n  "openapi": "3.1.0",\n  "info": {\n    "title": "Mock API from ${lang.name}",\n    "version": "1.0.0"\n  },\n  "paths": {}\n}`;
     }
   }
 
-  /**
-   * Helper method to extract basic information from an OpenAPI specification string.
-   * @param spec The OpenAPI specification string (JSON or YAML).
-   * @returns An object containing the extracted API title.
-   */
   private extractInfoFromSpec(spec: string): { title?: string } {
     try {
       const parsed = JSON.parse(spec);
       return { title: parsed.info?.title };
     } catch {
-      // Very basic yaml/text parser
       const titleMatch = spec.match(/title:\s*['"]?([^'"\n\r]+)['"]?/i);
       if (titleMatch && titleMatch[1]) {
         return { title: titleMatch[1] };

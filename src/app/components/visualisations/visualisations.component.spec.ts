@@ -30,11 +30,9 @@ describe('VisualisationsComponent', () => {
       imports: [VisualisationsComponent, NoopAnimationsModule],
       providers: [
         provideMockStore({
-          selectors: [
-            { selector: Selectors.selectOpenApiSpecContent, value: '' }
-          ]
-        })
-      ]
+          selectors: [{ selector: Selectors.selectOpenApiSpecContent, value: '' }],
+        }),
+      ],
     }).compileComponents();
 
     store = TestBed.inject(MockStore);
@@ -56,7 +54,7 @@ describe('VisualisationsComponent', () => {
     store.overrideSelector(Selectors.selectOpenApiSpecContent, '');
     store.refreshState();
     fixture.detectChanges();
-    
+
     expect(component.hasData).toBe(false);
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.empty-state')?.textContent).toContain('No API Data Available');
@@ -67,7 +65,7 @@ describe('VisualisationsComponent', () => {
     store.overrideSelector(Selectors.selectOpenApiSpecContent, 'invalid: [ yaml');
     store.refreshState();
     fixture.detectChanges();
-    
+
     expect(component.hasData).toBe(false);
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
@@ -90,7 +88,7 @@ components:
     store.overrideSelector(Selectors.selectOpenApiSpecContent, validSpec);
     store.refreshState();
     fixture.detectChanges();
-    
+
     expect(component.hasData).toBe(true);
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('svg')).toBeTruthy();
@@ -119,7 +117,7 @@ paths:
       bottom: 800,
       left: 0,
       right: 1000,
-      toJSON: () => {}
+      toJSON: () => {},
     });
 
     resizeCallback();
@@ -139,20 +137,20 @@ paths:
     store.overrideSelector(Selectors.selectOpenApiSpecContent, validSpec);
     store.refreshState();
     fixture.detectChanges();
-    
+
     expect(component.hasData).toBe(true);
-    
+
     // Find the first node that can be clicked
     const compiled = fixture.nativeElement as HTMLElement;
     const nodeGroups = compiled.querySelectorAll('g.node');
     expect(nodeGroups.length).toBeGreaterThan(0);
-    
+
     // Dispatch a click event to the first node to expand/collapse
     const firstNode = nodeGroups[1] as SVGGElement; // 0 is usually root, 1 is usually Paths or Info
     if (firstNode) {
       firstNode.dispatchEvent(new Event('click'));
       fixture.detectChanges();
-      
+
       // Click again to revert
       firstNode.dispatchEvent(new Event('click'));
       fixture.detectChanges();
@@ -201,7 +199,7 @@ info:
       bottom: 1000,
       left: 0,
       right: 0,
-      toJSON: () => {}
+      toJSON: () => {},
     });
     (component as any).handleResize();
     expect(component.hasData).toBe(true);
@@ -246,7 +244,7 @@ paths:
       bottom: 0,
       left: 0,
       right: 0,
-      toJSON: () => {}
+      toJSON: () => {},
     });
     const spec = `
 openapi: 3.0.0
@@ -269,7 +267,7 @@ info:
       bottom: 1000,
       left: 0,
       right: 1000,
-      toJSON: () => {}
+      toJSON: () => {},
     });
     const specWithDefinitions = `
 openapi: 2.0
@@ -297,7 +295,7 @@ definitions:
       bottom: 1000,
       left: 0,
       right: 1000,
-      toJSON: () => {}
+      toJSON: () => {},
     });
     (component as any).handleResize();
     expect((component as any).root).toBeNull();
@@ -322,14 +320,18 @@ info:
 
   it('should ignore resize if no dimensions', () => {
     component.hasData = true;
-    (component as any).svgContainer = { nativeElement: { getBoundingClientRect: () => ({ width: 0, height: 0 }) } };
+    (component as any).svgContainer = {
+      nativeElement: { getBoundingClientRect: () => ({ width: 0, height: 0 }) },
+    };
     (component as any).handleResize();
     expect((component as any).width).not.toBe(0);
   });
 
   it('should ignore resize if height is 0', () => {
     component.hasData = true;
-    (component as any).svgContainer = { nativeElement: { getBoundingClientRect: () => ({ width: 100, height: 0 }) } };
+    (component as any).svgContainer = {
+      nativeElement: { getBoundingClientRect: () => ({ width: 100, height: 0 }) },
+    };
     (component as any).handleResize();
   });
 
@@ -355,10 +357,12 @@ info:
     expect(d.children).toBeDefined();
     expect(d._children).toBeNull();
   });
-  
+
   it('should hit width/height > 0 resize', () => {
     component.hasData = true;
-    (component as any).svgContainer = { nativeElement: { getBoundingClientRect: () => ({ width: 100, height: 100 }) } };
+    (component as any).svgContainer = {
+      nativeElement: { getBoundingClientRect: () => ({ width: 100, height: 100 }) },
+    };
     (component as any).root = {};
     const spy = vi.spyOn(component as any, 'update').mockImplementation(() => {});
     (component as any).handleResize();
@@ -366,7 +370,9 @@ info:
   });
 
   it('should ignore parameters and $ref in paths', () => {
-    (component as any).parseAndRender('paths:\n  /test:\n    parameters: []\n    $ref: "foo"\n    get: {}');
+    (component as any).parseAndRender(
+      'paths:\n  /test:\n    parameters: []\n    $ref: "foo"\n    get: {}',
+    );
     expect(component.hasData).toBe(true);
   });
 

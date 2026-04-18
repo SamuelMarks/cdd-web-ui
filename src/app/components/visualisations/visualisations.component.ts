@@ -1,6 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Component, ChangeDetectionStrategy, inject, effect, ViewChild, ElementRef, OnDestroy } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  effect,
+  ViewChild,
+  ElementRef,
+  OnDestroy,
+} from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
@@ -49,12 +57,12 @@ interface NodeData {
 export class VisualisationsComponent implements OnDestroy {
   /** doc */
   @ViewChild('svgContainer', { static: true }) svgContainer!: ElementRef<HTMLDivElement>;
-  
+
   /** doc */
   private store = inject(Store<AppState>);
   /** doc */
   private specContent = this.store.selectSignal(Selectors.selectOpenApiSpecContent);
-  
+
   /** doc */
   hasData = false;
   /** doc */
@@ -83,8 +91,7 @@ export class VisualisationsComponent implements OnDestroy {
       if (content) {
         this.parseAndRender(content);
       } else {
-        this./** doc */
-  hasData = false;
+        this /** doc */.hasData = false;
         this.clearSvg();
       }
     });
@@ -136,17 +143,26 @@ export class VisualisationsComponent implements OnDestroy {
         id: 'root',
         name: parsed.info?.title || 'API',
         type: 'root',
-        children: []
+        children: [],
       };
 
       if (parsed.paths) {
         const pathsNode: NodeData = { id: 'paths', name: 'Paths', type: 'category', children: [] };
-        Object.keys(parsed.paths).forEach(pathStr => {
-          const pathNode: NodeData = { id: `path-${pathStr}`, name: pathStr, type: 'path', children: [] };
+        Object.keys(parsed.paths).forEach((pathStr) => {
+          const pathNode: NodeData = {
+            id: `path-${pathStr}`,
+            name: pathStr,
+            type: 'path',
+            children: [],
+          };
           const methods = parsed.paths[pathStr];
-          Object.keys(methods).forEach(method => {
+          Object.keys(methods).forEach((method) => {
             /* istanbul ignore next */ if (method !== 'parameters' && method !== '$ref') {
-               pathNode.children!.push({ id: `method-${pathStr}-${method}`, name: method.toUpperCase(), type: 'method' });
+              pathNode.children!.push({
+                id: `method-${pathStr}-${method}`,
+                name: method.toUpperCase(),
+                type: 'method',
+              });
             }
           });
           pathsNode.children!.push(pathNode);
@@ -154,11 +170,25 @@ export class VisualisationsComponent implements OnDestroy {
         rootData.children!.push(pathsNode);
       }
 
-      let schemas = undefined; if (parsed.components) { schemas = parsed.components.schemas; } else { schemas = parsed.definitions; }
+      let schemas = undefined;
+      if (parsed.components) {
+        schemas = parsed.components.schemas;
+      } else {
+        schemas = parsed.definitions;
+      }
       if (schemas) {
-        const schemasNode: NodeData = { id: 'schemas', name: 'Schemas', type: 'category', children: [] };
-        Object.keys(schemas).forEach(schemaName => {
-          schemasNode.children!.push({ id: `schema-${schemaName}`, name: schemaName, type: 'schema' });
+        const schemasNode: NodeData = {
+          id: 'schemas',
+          name: 'Schemas',
+          type: 'category',
+          children: [],
+        };
+        Object.keys(schemas).forEach((schemaName) => {
+          schemasNode.children!.push({
+            id: `schema-${schemaName}`,
+            name: schemaName,
+            type: 'schema',
+          });
         });
         rootData.children!.push(schemasNode);
       }
@@ -174,8 +204,7 @@ export class VisualisationsComponent implements OnDestroy {
       this.update(this.root);
     } catch (e) {
       console.error('Error parsing OpenAPI spec for visualisation', e);
-      this./** doc */
-  hasData = false;
+      this /** doc */.hasData = false;
       this.clearSvg();
     }
   }
@@ -206,7 +235,8 @@ export class VisualisationsComponent implements OnDestroy {
       }
     };
 
-    const svgEl = d3.select(container)
+    const svgEl = d3
+      .select(container)
       .append('svg')
       .attr('width', '100%')
       .attr('height', '100%')
@@ -226,57 +256,69 @@ export class VisualisationsComponent implements OnDestroy {
     const nodes = treeData.descendants();
     const links = treeData.descendants().slice(1);
 
-    nodes.forEach((d: any) => { d.y = d.depth * 180; });
+    nodes.forEach((d: any) => {
+      d.y = d.depth * 180;
+    });
 
-    const node = this.svg.selectAll('g.node')
-      .data(nodes, (d: any) => d.id || (d.id = ++this.i));
+    const node = this.svg.selectAll('g.node').data(nodes, (d: any) => d.id || (d.id = ++this.i));
 
-    const nodeEnter = node.enter().append('g')
+    const nodeEnter = node
+      .enter()
+      .append('g')
       .attr('class', 'node')
       .attr('transform', (d: any) => `translate(${source.y0},${source.x0})`)
       .on('click', (event: any, d: any) => this.click(event, d));
 
-    nodeEnter.append('circle')
+    nodeEnter
+      .append('circle')
       .attr('class', 'node-circle')
       .attr('r', 1e-6)
-      .style('fill', (d: any) => d._children ? 'var(--mat-sys-primary)' : 'var(--mat-sys-surface)')
+      .style('fill', (d: any) =>
+        d._children ? 'var(--mat-sys-primary)' : 'var(--mat-sys-surface)',
+      )
       .style('stroke', 'var(--mat-sys-primary)')
       .style('stroke-width', '1.5px');
 
-    nodeEnter.append('text')
+    nodeEnter
+      .append('text')
       .attr('dy', '.35em')
-      .attr('x', (d: any) => d.children || d._children ? -13 : 13)
-      .attr('text-anchor', (d: any) => d.children || d._children ? 'end' : 'start')
+      .attr('x', (d: any) => (d.children || d._children ? -13 : 13))
+      .attr('text-anchor', (d: any) => (d.children || d._children ? 'end' : 'start'))
       .text((d: any) => d.data.name)
       .style('fill', 'var(--mat-sys-on-surface)')
       .style('font-size', '12px');
 
     const nodeUpdate = nodeEnter.merge(node);
 
-    nodeUpdate.transition()
+    nodeUpdate
+      .transition()
       .duration(this.duration)
       .attr('transform', (d: any) => `translate(${d.y},${d.x})`);
 
-    nodeUpdate.select('circle.node-circle')
+    nodeUpdate
+      .select('circle.node-circle')
       .attr('r', 6)
-      .style('fill', (d: any) => d._children ? 'var(--mat-sys-primary)' : 'var(--mat-sys-surface)')
+      .style('fill', (d: any) =>
+        d._children ? 'var(--mat-sys-primary)' : 'var(--mat-sys-surface)',
+      )
       .attr('cursor', 'pointer');
 
-    const nodeExit = node.exit().transition()
+    const nodeExit = node
+      .exit()
+      .transition()
       .duration(this.duration)
       .attr('transform', (d: any) => `translate(${source.y},${source.x})`)
       .remove();
 
-    nodeExit.select('circle')
-      .attr('r', 1e-6);
+    nodeExit.select('circle').attr('r', 1e-6);
 
-    nodeExit.select('text')
-      .style('fill-opacity', 1e-6);
+    nodeExit.select('text').style('fill-opacity', 1e-6);
 
-    const link = this.svg.selectAll('path.link')
-      .data(links, (d: any) => d.id);
+    const link = this.svg.selectAll('path.link').data(links, (d: any) => d.id);
 
-    const linkEnter = link.enter().insert('path', 'g')
+    const linkEnter = link
+      .enter()
+      .insert('path', 'g')
       .attr('class', 'link')
       .style('fill', 'none')
       .style('stroke', 'var(--mat-sys-outline)')
@@ -288,11 +330,14 @@ export class VisualisationsComponent implements OnDestroy {
 
     const linkUpdate = linkEnter.merge(link);
 
-    linkUpdate.transition()
+    linkUpdate
+      .transition()
       .duration(this.duration)
       .attr('d', (d: any) => this.diagonal(d, d.parent));
 
-    link.exit().transition()
+    link
+      .exit()
+      .transition()
       .duration(this.duration)
       .attr('d', (d: any) => {
         const o = { x: source.x, y: source.y };
