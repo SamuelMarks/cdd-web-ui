@@ -120,17 +120,20 @@ import { StorageService } from '../../services/storage.service';
           <mat-option value="to_sdk">Client SDK</mat-option>
           <mat-option value="to_sdk_cli">Client CLI</mat-option>
           <mat-option value="to_server">Server</mat-option>
+          @if (selectedLanguageId() === 'typescript') {
+            <mat-option value="to_orm">ORM Entities</mat-option>
+          }
         </mat-select>
       </mat-form-field>
 
       <div class="language-options">
-        @if (selectedLanguageId() === 'typescript' && target() !== 'to_server') {
+        @if (selectedLanguageId() === 'typescript' && target() !== 'to_server' && target() !== 'to_orm') {
           <mat-form-field
             appearance="outline"
             class="framework-selector-field"
             subscriptSizing="dynamic"
           >
-            <mat-label>Framework target</mat-label>
+            <mat-label>Client Framework</mat-label>
             <mat-select
               [value]="options().framework || (target() === 'to_sdk' ? 'angular' : 'fetch')"
               (selectionChange)="onOptionsChange('framework', $event.value)"
@@ -148,6 +151,41 @@ import { StorageService } from '../../services/storage.service';
           >
             Auto-admin
           </mat-checkbox>
+        }
+
+        @if (selectedLanguageId() === 'typescript' && target() === 'to_server') {
+          <mat-form-field
+            appearance="outline"
+            class="framework-selector-field"
+            subscriptSizing="dynamic"
+          >
+            <mat-label>Server Framework</mat-label>
+            <mat-select
+              [value]="options().serverFramework || 'express'"
+              (selectionChange)="onOptionsChange('serverFramework', $event.value)"
+            >
+              <mat-option value="express">Express</mat-option>
+              <mat-option value="node">Node.js HTTP</mat-option>
+              <mat-option value="bun">Bun</mat-option>
+              <mat-option value="deno">Deno</mat-option>
+            </mat-select>
+          </mat-form-field>
+        }
+
+        @if (selectedLanguageId() === 'typescript' && target() === 'to_orm') {
+          <mat-form-field
+            appearance="outline"
+            class="framework-selector-field"
+            subscriptSizing="dynamic"
+          >
+            <mat-label>ORM Engine</mat-label>
+            <mat-select
+              [value]="options().orm || 'typeorm'"
+              (selectionChange)="onOptionsChange('orm', $event.value)"
+            >
+              <mat-option value="typeorm">TypeORM</mat-option>
+            </mat-select>
+          </mat-form-field>
         }
 
         @if (['java', 'php', 'python', 'ruby', 'swift'].includes(selectedLanguageId())) {
@@ -265,10 +303,20 @@ export class LanguageSelectorComponent {
    */
   onTargetChange(newTarget: Target): void {
     this.targetChanged.emit(newTarget);
-    if (this.selectedLanguageId() === 'typescript' && newTarget === 'to_sdk_cli') {
+    if (this.selectedLanguageId() === 'typescript') {
       const currentOpts = this.options();
-      if (!currentOpts.framework || currentOpts.framework === 'angular') {
-        this.onOptionsChange('framework', 'fetch');
+      if (newTarget === 'to_sdk_cli') {
+        if (!currentOpts.framework || currentOpts.framework === 'angular') {
+          this.onOptionsChange('framework', 'fetch');
+        }
+      } else if (newTarget === 'to_server') {
+        if (!currentOpts.serverFramework) {
+          this.onOptionsChange('serverFramework', 'express');
+        }
+      } else if (newTarget === 'to_orm') {
+        if (!currentOpts.orm) {
+          this.onOptionsChange('orm', 'typeorm');
+        }
       }
     }
   }

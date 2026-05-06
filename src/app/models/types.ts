@@ -20,7 +20,7 @@ export type Ecosystem =
   | 'cdd-sh';
 
 /** The target output format for the code generator. */
-export type Target = 'to_sdk' | 'to_sdk_cli' | 'to_server' | 'to_openapi_3_2_0';
+export type Target = 'to_sdk' | 'to_sdk_cli' | 'to_server' | 'to_openapi_3_2_0' | 'to_orm';
 
 /** The supported input formats for the API specification. */
 export type InputFormat = 'openapi_3_2_0' | 'openapi_older' | 'google_discovery';
@@ -36,6 +36,10 @@ export type RunMode =
 export interface LanguageOptions {
   /** The target framework. */
   framework?: string;
+  /** The target server framework. */
+  serverFramework?: string;
+  /** The target ORM. */
+  orm?: string;
   /** Whether to automatically generate admin scaffolding. */
   autoAdmin?: boolean;
   /** Whether to upgrade the OpenAPI spec automatically. */

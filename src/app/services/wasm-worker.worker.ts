@@ -57,7 +57,13 @@ addEventListener('message', async ({ data }) => {
           additionalArgs.push('--admin');
         }
         if (languageOptions.framework) {
-          additionalArgs.push('--framework', languageOptions.framework);
+          additionalArgs.push('--framework', languageOptions.framework as string);
+        }
+        if (languageOptions.serverFramework) {
+          additionalArgs.push('--serverFramework', languageOptions.serverFramework as string);
+        }
+        if (languageOptions.orm) {
+          additionalArgs.push('--orm', languageOptions.orm as string);
         }
         if (languageOptions.noGithubActions) {
           additionalArgs.push('--no-github-actions');
