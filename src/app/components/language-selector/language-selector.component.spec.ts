@@ -297,6 +297,117 @@ describe('LanguageSelectorComponent', () => {
     expect(emitSpy).not.toHaveBeenCalled();
   });
 
+  it('should switch serverFramework to express if target changes to to_server and language is typescript and serverFramework is unset', async () => {
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+    component = hostFixture.debugElement.query(
+      By.directive(LanguageSelectorComponent),
+    ).componentInstance;
+
+    const emitSpy = vi.spyOn(component.optionsChanged, 'emit');
+    hostComponent.selectedLanguageId.set('typescript');
+    hostComponent.options.set({});
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+
+    component.onTargetChange('to_server');
+    expect(emitSpy).toHaveBeenCalledWith({
+      languageId: 'typescript',
+      options: { serverFramework: 'express' },
+    });
+  });
+
+  it('should not switch serverFramework if it is already set', async () => {
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+    component = hostFixture.debugElement.query(
+      By.directive(LanguageSelectorComponent),
+    ).componentInstance;
+
+    const emitSpy = vi.spyOn(component.optionsChanged, 'emit');
+    hostComponent.selectedLanguageId.set('typescript');
+    hostComponent.options.set({ serverFramework: 'bun' });
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+
+    component.onTargetChange('to_server');
+    expect(emitSpy).not.toHaveBeenCalled();
+  });
+
+  it('should switch orm to typeorm if target changes to to_orm and language is typescript and orm is unset', async () => {
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+    component = hostFixture.debugElement.query(
+      By.directive(LanguageSelectorComponent),
+    ).componentInstance;
+
+    const emitSpy = vi.spyOn(component.optionsChanged, 'emit');
+    hostComponent.selectedLanguageId.set('typescript');
+    hostComponent.options.set({});
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+
+    component.onTargetChange('to_orm');
+    expect(emitSpy).toHaveBeenCalledWith({
+      languageId: 'typescript',
+      options: { orm: 'typeorm' },
+    });
+  });
+
+  it('should not switch orm if it is already set', async () => {
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+    component = hostFixture.debugElement.query(
+      By.directive(LanguageSelectorComponent),
+    ).componentInstance;
+
+    const emitSpy = vi.spyOn(component.optionsChanged, 'emit');
+    hostComponent.selectedLanguageId.set('typescript');
+    hostComponent.options.set({ orm: 'prisma' });
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+
+    component.onTargetChange('to_orm');
+    expect(emitSpy).not.toHaveBeenCalled();
+  });
+
+  it('should emit targetChanged but not modify options if language is not typescript', async () => {
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+    component = hostFixture.debugElement.query(
+      By.directive(LanguageSelectorComponent),
+    ).componentInstance;
+
+    const emitTargetSpy = vi.spyOn(component.targetChanged, 'emit');
+    const emitOptsSpy = vi.spyOn(component.optionsChanged, 'emit');
+    
+    hostComponent.selectedLanguageId.set('python');
+    hostComponent.options.set({});
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+
+    component.onTargetChange('to_server');
+    expect(emitTargetSpy).toHaveBeenCalledWith('to_server');
+    expect(emitOptsSpy).not.toHaveBeenCalled();
+  });
+
+  it('should emit targetChanged but not modify options if target changes to to_openapi_3_2_0 for typescript', async () => {
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+    component = hostFixture.debugElement.query(
+      By.directive(LanguageSelectorComponent),
+    ).componentInstance;
+
+    const emitSpy = vi.spyOn(component.optionsChanged, 'emit');
+    hostComponent.selectedLanguageId.set('typescript');
+    hostComponent.options.set({});
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+
+    component.onTargetChange('to_openapi_3_2_0');
+    expect(emitSpy).not.toHaveBeenCalled();
+  });
+
   it('should emit optionsChanged when onOptionsChange is called', async () => {
     hostFixture.detectChanges();
     await hostFixture.whenStable();

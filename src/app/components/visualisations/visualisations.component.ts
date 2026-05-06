@@ -23,6 +23,7 @@ type VisualNode = d3.HierarchyPointNode<NodeData> & {
   y0?: number;
 };
 
+/** Data structure representing a node in the visualised API tree */
 interface NodeData {
   /** Node ID */
   id: string;
@@ -32,15 +33,15 @@ interface NodeData {
   type: 'root' | 'category' | 'path' | 'method' | 'schema';
   /** Child nodes */
   children?: NodeData[];
-  /** Hidden child nodes */
+  /** Hidden child nodes (when collapsed) */
   _children?: NodeData[];
-  /** Previous X position */
+  /** Previous X position (for animations) */
   x0?: number;
-  /** Previous Y position */
+  /** Previous Y position (for animations) */
   y0?: number;
-  /** X position */
+  /** Target X position */
   x?: number;
-  /** Y position */
+  /** Target Y position */
   y?: number;
 }
 

@@ -306,15 +306,15 @@ export class LanguageSelectorComponent {
     if (this.selectedLanguageId() === 'typescript') {
       const currentOpts = this.options();
       if (newTarget === 'to_sdk_cli') {
-        if (!currentOpts.framework || currentOpts.framework === 'angular') {
+        if (currentOpts.framework === undefined || currentOpts.framework === 'angular') {
           this.onOptionsChange('framework', 'fetch');
         }
       } else if (newTarget === 'to_server') {
-        if (!currentOpts.serverFramework) {
+        if (currentOpts.serverFramework === undefined) {
           this.onOptionsChange('serverFramework', 'express');
         }
       } else if (newTarget === 'to_orm') {
-        if (!currentOpts.orm) {
+        if (currentOpts.orm === undefined) {
           this.onOptionsChange('orm', 'typeorm');
         }
       }
