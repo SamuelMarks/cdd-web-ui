@@ -1,12 +1,8 @@
-> **Filename:** `README.md`
-> **Purpose:** Main entry point documentation for the CDD Web UI repository.
-> **Current State:** Up-to-date with Angular 19+, 100% coverage, and offline-first WASM capabilities.
-
 <!-- prettier-ignore -->
 cdd-web-ui
 ==========
 
-![Doc Coverage](https://img.shields.io/badge/Doc_Coverage-99%25-brightgreen.svg)
+![Doc Coverage](https://img.shields.io/badge/Doc_Coverage-100%25-brightgreen.svg)
 ![Test Coverage](https://img.shields.io/badge/Test_Coverage-100%25-brightgreen.svg)
 
 [![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue.svg)](https://opensource.org/licenses/Apache-2.0)

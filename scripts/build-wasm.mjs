@@ -9,6 +9,7 @@ const SUPPORT_FILE_DEST = path.resolve(process.cwd(), 'public/assets', 'wasm-sup
 
 const args = process.argv.slice(2);
 const buildLocally = args.includes('--local');
+const forceRebuild = args.includes('--force') || process.env.FORCE_REBUILD_WASM === 'true' || process.env.FORCE_REBUILD_WASM === '1';
 
 if (buildLocally && !fs.existsSync(CDD_CTL_DIR)) {
   console.error(`Error: cdd-ctl repository not found at ${CDD_CTL_DIR}`);
@@ -151,48 +152,215 @@ async function run() {
     let supported = false;
 
     console.log(`Processing ${tool} (${lang})...`);
-    try {
-      // First try to resolve URL dynamically via API to get actual asset URL, then fallback to redirect url
-      const url = await getGithubReleaseUrl(repo, tool);
-      const isZip = url.endsWith('.zip');
-      const dlDest = isZip ? `${wasmDest}.zip` : wasmDest;
-      await downloadFile(url, dlDest);
-      if (isZip) {
-        execSync(`unzip -p ${dlDest} > ${wasmDest}`);
-        fs.unlinkSync(dlDest);
-      }
-      console.log(`  ✅ Successfully downloaded ${tool}.wasm`);
-      supported = true;
-    } catch (e) {
-      console.log(`  ❌ Failed to download from GitHub releases: ${e.message}`);
-      // Special fallback to v0.0.1 tag manually if latest isn't published
+
+    let builtLocally = false;
+    let localToolDir = path.resolve(process.cwd(), `../${tool}`);
+    if (!fs.existsSync(localToolDir)) {
+      localToolDir = path.resolve(process.cwd(), `../cdd-ctl/sdks/${tool}`);
+    }
+
+    if (fs.existsSync(localToolDir)) {
+      let currentHash = '';
       try {
-        console.log(`  Attempting fallback to v0.0.1 tag...`);
-        const fallbackUrl = `https://github.com/${repo}/releases/download/v0.0.1/${tool}.wasm`;
-        await downloadFile(fallbackUrl, wasmDest);
-        console.log(`  ✅ Successfully downloaded ${tool}.wasm (v0.0.1 fallback)`);
-        supported = true;
-      } catch (e2) {
-        try {
-          console.log(`  Attempting fallback to 0.0.1 tag...`);
-          const fallbackUrl2 = `https://github.com/${repo}/releases/download/0.0.1/${tool}.wasm`;
-          await downloadFile(fallbackUrl2, wasmDest);
-          console.log(`  ✅ Successfully downloaded ${tool}.wasm (0.0.1 fallback)`);
+        currentHash = execSync('git rev-parse HEAD', { cwd: localToolDir, encoding: 'utf-8' }).trim();
+      } catch (e) {
+        // Ignore if not a git repository
+      }
+
+      const hashFile = path.join(DEST_DIR, `${tool}.wasm.hash`);
+      if (!forceRebuild && currentHash && fs.existsSync(hashFile) && fs.existsSync(wasmDest)) {
+        const savedHash = fs.readFileSync(hashFile, 'utf-8').trim();
+        if (savedHash === currentHash) {
+          console.log(`  ⏭️  Skipping local build, git hash hasn't changed.`);
           supported = true;
-        } catch (e3) {
-          try {
-            console.log(`  Attempting fallback to v0.0.1 zip...`);
-            const fallbackUrl3 = `https://github.com/${repo}/releases/download/v0.0.1/${tool}-wasm.zip`;
-            const dlDest = `${wasmDest}.zip`;
-            await downloadFile(fallbackUrl3, dlDest);
-            execSync(`unzip -p ${dlDest} > ${wasmDest}`);
-            fs.unlinkSync(dlDest);
-            console.log(`  ✅ Successfully downloaded ${tool}.wasm (v0.0.1 zip fallback)`);
+          builtLocally = true;
+        }
+      }
+
+      if (!builtLocally) {
+        console.log(`  Found local directory ${localToolDir}, attempting to build WASM locally...`);
+        try {
+          let success = false;
+          const buildWasmScriptRoot = path.join(localToolDir, 'build_wasm.sh');
+          const buildWasmScriptLegacy = path.join(localToolDir, 'scripts', 'build-wasm.sh');
+          const cargoTomlPath = path.join(localToolDir, 'Cargo.toml');
+          const goModPath = path.join(localToolDir, 'go.mod');
+          const packageJsonPath = path.join(localToolDir, 'package.json');
+          const pyProjectPath = path.join(localToolDir, 'pyproject.toml');
+          const makefilePath = path.join(localToolDir, 'Makefile');
+          const cmakePath = path.join(localToolDir, 'CMakeLists.txt');
+          const gradlePath = path.join(localToolDir, 'build.gradle.kts');
+          const mavenPath = path.join(localToolDir, 'pom.xml');
+          const isJavaRaw = fs.existsSync(path.join(localToolDir, 'src', 'main', 'java'));
+
+          if (fs.existsSync(buildWasmScriptRoot)) {
+            console.log(`  Running build_wasm.sh...`);
+            execSync(`bash build_wasm.sh`, { cwd: localToolDir, stdio: 'inherit' });
+            const customWasmSource = path.join(localToolDir, 'target', 'wasm', `${tool}.wasm`);
+            if (fs.existsSync(customWasmSource)) {
+              fs.copyFileSync(customWasmSource, wasmDest);
+              success = true;
+            }
+          } else if (fs.existsSync(buildWasmScriptLegacy)) {
+            console.log(`  Running scripts/build-wasm.sh...`);
+            execSync(`bash scripts/build-wasm.sh`, { cwd: localToolDir, stdio: 'inherit' });
+            const customWasmSource = path.join(localToolDir, 'build', `${tool}.wasm`);
+            if (fs.existsSync(customWasmSource)) {
+              fs.copyFileSync(customWasmSource, wasmDest);
+              success = true;
+            }
+          } else if (fs.existsSync(cargoTomlPath)) {
+            console.log(`  Building via Cargo for wasm32-wasip1...`);
+            try {
+              execSync(`cargo build --target wasm32-wasip1 --release --workspace --bin ${tool}`, {
+                cwd: localToolDir,
+                stdio: 'inherit',
+                env: { ...process.env, RUSTFLAGS: '-C target-feature=+multivalue' },
+              });
+            } catch (e) {
+              try {
+                execSync(`cargo build --target wasm32-wasip1 --release --bin ${tool}`, {
+                  cwd: localToolDir,
+                  stdio: 'inherit',
+                  env: { ...process.env, RUSTFLAGS: '-C target-feature=+multivalue' },
+                });
+              } catch (e2) {
+                execSync('cargo build --target wasm32-wasip1 --release', {
+                  cwd: localToolDir,
+                  stdio: 'inherit',
+                  env: { ...process.env, RUSTFLAGS: '-C target-feature=+multivalue' },
+                });
+              }
+            }
+            const wasmSource = path.join(localToolDir, `target/wasm32-wasip1/release/${tool}.wasm`);
+            if (fs.existsSync(wasmSource)) {
+              fs.copyFileSync(wasmSource, wasmDest);
+              success = true;
+            }
+          } else if (tool === 'cdd-sh') {
+            console.log(`  Running make build_wasm...`);
+            execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
+            const wasmSource = path.join(localToolDir, 'wasm_build', `${tool}.wasm`);
+            if (fs.existsSync(wasmSource)) {
+              fs.copyFileSync(wasmSource, wasmDest);
+              success = true;
+            }
+          } else if (fs.existsSync(goModPath)) {
+            console.log(`  Building via Go compiler for wasip1/wasm...`);
+            execSync(`GOOS=wasip1 GOARCH=wasm go build -o ${wasmDest} ./cmd/${tool}`, {
+              cwd: localToolDir,
+              stdio: 'inherit',
+            });
+            if (fs.existsSync(wasmDest)) {
+              success = true;
+            }
+          } else if (fs.existsSync(packageJsonPath)) {
+            console.log(`  Running make build_wasm...`);
+            execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
+            const wasmSource = path.join(localToolDir, 'bin', `${tool}.wasm`);
+            if (fs.existsSync(wasmSource)) {
+              fs.copyFileSync(wasmSource, wasmDest);
+              success = true;
+            }
+          } else if (
+            fs.existsSync(pyProjectPath) ||
+            fs.existsSync(path.join(localToolDir, 'setup.py'))
+          ) {
+            console.log(`  Zipping Python project...`);
+            if (fs.existsSync(wasmDest)) {
+              fs.unlinkSync(wasmDest);
+            }
+            const sourceFiles = fs.existsSync(pyProjectPath) ? 'src pyproject.toml' : 'cdd setup.py';
+            execSync(`zip -r ${wasmDest} ${sourceFiles}`, { cwd: localToolDir, stdio: 'inherit' });
+            if (fs.existsSync(wasmDest)) {
+              success = true;
+            }
+          } else if (fs.existsSync(makefilePath) || fs.existsSync(cmakePath)) {
+            console.log(`  Running make build_wasm...`);
+            execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
+            const wasmSource = path.join(localToolDir, 'bin', `${tool}.wasm`);
+            const wasmSourceDist = path.join(localToolDir, 'dist', `${tool}.wasm`);
+            const wasmSourceBuild = path.join(localToolDir, 'build/wasm', `${tool}.wasm`);
+            if (fs.existsSync(wasmSource)) {
+              fs.copyFileSync(wasmSource, wasmDest);
+              success = true;
+            } else if (fs.existsSync(wasmSourceDist)) {
+              fs.copyFileSync(wasmSourceDist, wasmDest);
+              success = true;
+            } else if (fs.existsSync(wasmSourceBuild)) {
+              fs.copyFileSync(wasmSourceBuild, wasmDest);
+              success = true;
+            }
+          } else if (fs.existsSync(gradlePath) || fs.existsSync(mavenPath) || isJavaRaw) {
+            console.log(`  Running make build_wasm...`);
+            execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
+            const wasmSource = path.join(localToolDir, 'bin', `${tool}.wasm`);
+            if (fs.existsSync(wasmSource)) {
+              fs.copyFileSync(wasmSource, wasmDest);
+              success = true;
+            }
+          }
+
+          if (success) {
+            console.log(`  ✅ Successfully built and copied local ${tool}.wasm`);
             supported = true;
-          } catch (e4) {
-            console.log(`  ❌ Failed to download fallback: ${e4.message}`);
-            // If we are NOT local, just mark it as not supported and emit a warning
-            console.warn(`  ⚠️  WASM not found on GitHub. Feature will be disabled in the UI.`);
+            builtLocally = true;
+            if (currentHash) {
+              fs.writeFileSync(hashFile, currentHash);
+            }
+          } else {
+            console.warn(`  ⚠️  Local build finished but output wasm not found or unsupported.`);
+          }
+        } catch (e) {
+          console.warn(`  ⚠️  Local build failed: ${e.message}`);
+        }
+      }
+    }
+
+    if (!builtLocally) {
+      try {
+        // First try to resolve URL dynamically via API to get actual asset URL, then fallback to redirect url
+        const url = await getGithubReleaseUrl(repo, tool);
+        const isZip = url.endsWith('.zip');
+        const dlDest = isZip ? `${wasmDest}.zip` : wasmDest;
+        await downloadFile(url, dlDest);
+        if (isZip) {
+          execSync(`unzip -p ${dlDest} > ${wasmDest}`);
+          fs.unlinkSync(dlDest);
+        }
+        console.log(`  ✅ Successfully downloaded ${tool}.wasm`);
+        supported = true;
+      } catch (e) {
+        console.log(`  ❌ Failed to download from GitHub releases: ${e.message}`);
+        // Special fallback to v0.0.1 tag manually if latest isn't published
+        try {
+          console.log(`  Attempting fallback to v0.0.1 tag...`);
+          const fallbackUrl = `https://github.com/${repo}/releases/download/v0.0.1/${tool}.wasm`;
+          await downloadFile(fallbackUrl, wasmDest);
+          console.log(`  ✅ Successfully downloaded ${tool}.wasm (v0.0.1 fallback)`);
+          supported = true;
+        } catch (e2) {
+          try {
+            console.log(`  Attempting fallback to 0.0.1 tag...`);
+            const fallbackUrl2 = `https://github.com/${repo}/releases/download/0.0.1/${tool}.wasm`;
+            await downloadFile(fallbackUrl2, wasmDest);
+            console.log(`  ✅ Successfully downloaded ${tool}.wasm (0.0.1 fallback)`);
+            supported = true;
+          } catch (e3) {
+            try {
+              console.log(`  Attempting fallback to v0.0.1 zip...`);
+              const fallbackUrl3 = `https://github.com/${repo}/releases/download/v0.0.1/${tool}-wasm.zip`;
+              const dlDest = `${wasmDest}.zip`;
+              await downloadFile(fallbackUrl3, dlDest);
+              execSync(`unzip -p ${dlDest} > ${wasmDest}`);
+              fs.unlinkSync(dlDest);
+              console.log(`  ✅ Successfully downloaded ${tool}.wasm (v0.0.1 zip fallback)`);
+              supported = true;
+            } catch (e4) {
+              console.log(`  ❌ Failed to download fallback: ${e4.message}`);
+              // If we are NOT local, just mark it as not supported and emit a warning
+              console.warn(`  ⚠️  WASM not found on GitHub. Feature will be disabled in the UI.`);
+            }
           }
         }
       }

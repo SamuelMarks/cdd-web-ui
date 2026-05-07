@@ -6,9 +6,40 @@ const ALL_LANGUAGES = LANGUAGES.map((l) => l.id);
 test.describe('App E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Mock backend/WASM interception layer for deterministic E2E testing
+    await page.addInitScript(() => {
+      class MockWorker {
+        listeners: Function[] = [];
+        constructor() {}
+        postMessage(msg: { action: string, payload: { target?: string } }) {
+          setTimeout(() => {
+            if (msg.action === 'generateSdk') {
+              let res;
+              if (msg.payload.target && msg.payload.target.startsWith('to_openapi')) {
+                res = { status: 'success', data: [{ path: 'openapi.json', content: new TextEncoder().encode('{}') }] };
+              } else {
+                res = { status: 'success', data: [{ path: 'mock.txt', content: new TextEncoder().encode('mocked') }] };
+              }
+              this.listeners.forEach(l => l({ data: res }));
+            }
+          }, 10);
+        }
+        addEventListener(event: string, handler: Function) {
+          if (event === 'message') this.listeners.push(handler);
+        }
+        removeEventListener(event: string, handler: Function) {
+          if (event === 'message') this.listeners = this.listeners.filter(l => l !== handler);
+        }
+        terminate() {}
+      }
+      (window as unknown as { Worker: typeof MockWorker }).Worker = MockWorker;
+    });
+
     const wasmSupportMap = ALL_LANGUAGES.reduce(
       (acc, lang) => {
-        acc[lang] = true; // Mock all languages as supported for E2E
+        let key = lang;
+        if (lang === 'typescript') key = 'ts';
+        if (lang === 'openapi') key = 'cpp';
+        acc[key] = true; // Mock all languages as supported for E2E
         return acc;
       },
       {} as Record<string, boolean>,
@@ -61,13 +92,13 @@ test.describe('App E2E Tests', () => {
         if (lang.id === 'typescript') {
           if (targetName === 'Client SDK') {
             const fwSelect = page
-              .locator('mat-select', { hasText: /(Framework target|Angular|Fetch|Axios)/i })
+              .locator('mat-select', { hasText: /(Client Framework|Angular|Vanilla JS)/i })
               .first();
             await expect(fwSelect).toBeVisible();
             await expect(page.locator('mat-checkbox', { hasText: 'Auto-admin' })).toBeVisible();
           } else if (targetName === 'Client CLI') {
             const fwSelect = page
-              .locator('mat-select', { hasText: /(Framework target|Fetch|Axios)/i })
+              .locator('mat-select', { hasText: /(Client Framework|Vanilla JS)/i })
               .first();
             await expect(fwSelect).toBeVisible();
             await expect(page.locator('mat-checkbox', { hasText: 'Auto-admin' })).toBeVisible();
@@ -97,6 +128,11 @@ test.describe('App E2E Tests', () => {
       await exampleSelect.click();
       await page.getByRole('option', { name: 'Petstore' }).click();
 
+      // Ensure input format is OpenAPI 3.2.0 to bypass upgrade logic
+      const formatSelect = page.locator('mat-select', { hasText: /Swagger | OpenAPI < 3\.2\.0|OpenAPI 3\.2\.0|Google Discovery/i }).first();
+      await formatSelect.click();
+      await page.getByRole('option', { name: 'OpenAPI 3.2.0' }).click();
+
       // 1. Specify target (current language in loop)
       const langSelect = page.locator('mat-select[aria-label="Select Target Language"]');
       await langSelect.click();
@@ -107,9 +143,9 @@ test.describe('App E2E Tests', () => {
       const generateBtn = page.getByRole('button', { name: 'Generate' }).first();
       await generateBtn.click({ force: true });
 
-      // Wait for toast indicating successful generation (this implies basic lint/sanity in the WASM layer succeeded)
+      // Wait for toast indicating successful generation
       const snackBar = page.locator('simple-snack-bar').first();
-      await expect(snackBar).toBeVisible({ timeout: 15000 });
+      await expect(snackBar).toContainText('Successfully', { timeout: 15000 });
       // Ensure the toast disappears so it doesn't block future clicks
       await expect(snackBar).toBeHidden({ timeout: 15000 });
 
@@ -141,7 +177,7 @@ test.describe('App E2E Tests', () => {
 
       // Check toast again to confirm successful roundtrip
       const secondToast = page.locator('simple-snack-bar').first();
-      await expect(secondToast).toBeVisible({ timeout: 15000 });
+      await expect(secondToast).toContainText('Successfully', { timeout: 15000 });
     });
   }
 
@@ -206,7 +242,7 @@ test.describe('App E2E Tests', () => {
 
     // We expect a snack bar toast
     const snackBar = page.locator('simple-snack-bar').first();
-    await expect(snackBar).toBeVisible({ timeout: 15000 });
+    await expect(snackBar).toContainText('Successfully', { timeout: 15000 });
 
     expect(externalRequests).toBe(0);
   });

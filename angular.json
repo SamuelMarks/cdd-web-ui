@@ -16,6 +16,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
+            "preserveSymlinks": true,
             "browser": "src/main.ts",
             "polyfills": ["zone.js", "@angular/localize/init"],
             "tsConfig": "tsconfig.app.json",

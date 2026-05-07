@@ -5,7 +5,6 @@ import {
   output,
   signal,
   computed,
-  HostListener, // We cannot use @HostListener as decorator, but we'll use Host bindings or document events
   ElementRef,
   inject,
   TemplateRef,

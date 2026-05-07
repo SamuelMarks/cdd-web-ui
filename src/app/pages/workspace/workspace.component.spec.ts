@@ -133,6 +133,12 @@ describe('WorkspaceComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('should dispatch executeRun on init', () => {
+    const spy = vi.spyOn(store, 'dispatch');
+    component.ngOnInit();
+    expect(spy).toHaveBeenCalledWith(Actions.executeRun());
+  });
+
   it('should dispatch toggleOrientation on swap', () => {
     const spy = vi.spyOn(store, 'dispatch');
     component.onSwap();
@@ -145,10 +151,11 @@ describe('WorkspaceComponent', () => {
     expect(spy).toHaveBeenCalledWith(Actions.executeRun());
   });
 
-  it('should dispatch setSelectedLanguage when language changes', () => {
+  it('should dispatch setSelectedLanguage and executeRun when language changes', () => {
     const spy = vi.spyOn(store, 'dispatch');
     component.onLanguageChanged('rust');
     expect(spy).toHaveBeenCalledWith(Actions.setSelectedLanguage({ languageId: 'rust' }));
+    expect(spy).toHaveBeenCalledWith(Actions.executeRun());
   });
 
   it('should dispatch updateOpenApiSpec on spec change', () => {

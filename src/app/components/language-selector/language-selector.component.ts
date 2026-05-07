@@ -8,7 +8,6 @@ import {
   effect,
 } from '@angular/core';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -30,7 +29,6 @@ import { StorageService } from '../../services/storage.service';
   /** imports */
   imports: [
     CommonModule,
-    FormsModule,
     MatSelectModule,
     MatFormFieldModule,
     MatTooltipModule,
@@ -127,7 +125,9 @@ import { StorageService } from '../../services/storage.service';
       </mat-form-field>
 
       <div class="language-options">
-        @if (selectedLanguageId() === 'typescript' && target() !== 'to_server' && target() !== 'to_orm') {
+        @if (
+          selectedLanguageId() === 'typescript' && target() !== 'to_server' && target() !== 'to_orm'
+        ) {
           <mat-form-field
             appearance="outline"
             class="framework-selector-field"
@@ -135,14 +135,13 @@ import { StorageService } from '../../services/storage.service';
           >
             <mat-label>Client Framework</mat-label>
             <mat-select
-              [value]="options().framework || (target() === 'to_sdk' ? 'angular' : 'fetch')"
+              [value]="options().framework || 'vanilla'"
               (selectionChange)="onOptionsChange('framework', $event.value)"
             >
-              @if (target() === 'to_sdk') {
-                <mat-option value="angular">Angular</mat-option>
-              }
-              <mat-option value="fetch">Fetch</mat-option>
-              <mat-option value="axios">Axios</mat-option>
+              <mat-option value="vanilla">Vanilla JS</mat-option>
+              <mat-option value="angular">Angular</mat-option>
+              <mat-option value="react">React</mat-option>
+              <mat-option value="vue">Vue</mat-option>
             </mat-select>
           </mat-form-field>
           <mat-checkbox
@@ -306,8 +305,11 @@ export class LanguageSelectorComponent {
     if (this.selectedLanguageId() === 'typescript') {
       const currentOpts = this.options();
       if (newTarget === 'to_sdk_cli') {
-        if (currentOpts.framework === undefined || currentOpts.framework === 'angular') {
-          this.onOptionsChange('framework', 'fetch');
+        if (
+          currentOpts.framework === undefined ||
+          ['angular', 'react', 'vue'].includes(currentOpts.framework as string)
+        ) {
+          this.onOptionsChange('framework', 'vanilla');
         }
       } else if (newTarget === 'to_server') {
         if (currentOpts.serverFramework === undefined) {

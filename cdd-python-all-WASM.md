@@ -1,7 +1,3 @@
-> **Filename:** `cdd-python-all-WASM.md`
-> **Purpose:** Tracks the WebAssembly (WASM) support status and build instructions for integrating the `cdd-python-all` compiler into the CDD Web UI.
-> **Current State:** Supported. The Web UI currently provides an offline-first browser execution environment that runs `cdd-python-all` completely client-side.
-
 # WASM Support for cdd-python-all
 
 ## Status: Supported ✅

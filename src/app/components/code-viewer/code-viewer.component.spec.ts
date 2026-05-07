@@ -1,7 +1,7 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { CodeViewerComponent } from './code-viewer.component';
 import { By } from '@angular/platform-browser';
-import { Component, signal, forwardRef, Input } from '@angular/core';
+import { Component, signal, forwardRef, input } from '@angular/core';
 import { NotificationService } from '../../services/notification.service';
 import { ThemeService } from '../../services/theme.service';
 import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
@@ -21,8 +21,8 @@ import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
   ],
 })
 class MockMonacoEditorComponent implements ControlValueAccessor {
-  @Input() options: unknown;
-  @Input() model: unknown;
+  options = input<unknown>();
+  model = input<unknown>();
   writeValue(obj: unknown): void {}
   registerOnChange(fn: (val: unknown) => void): void {}
   registerOnTouched(fn: () => void): void {}
@@ -134,6 +134,13 @@ describe('CodeViewerComponent', () => {
     tab.triggerEventHandler('click', null);
 
     expect(hostComponent.lastSelected).toBe(''); // unchanged
+  });
+
+  it('should prevent default when event is provided to selectTab', () => {
+    const mockEvent = new Event('keydown');
+    vi.spyOn(mockEvent, 'preventDefault');
+    component.selectTab('src/test.ts', mockEvent);
+    expect(mockEvent.preventDefault).toHaveBeenCalled();
   });
 
   it('should remove tab and select the last available tab on close', () => {

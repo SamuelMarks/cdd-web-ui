@@ -166,6 +166,12 @@ export const initialFileTreeState: FileTreeState = {
 export const fileTreeReducer = createReducer(
   initialFileTreeState,
   /** on */
+  on(Actions.setSelectedLanguage, (state): FileTreeState => ({
+    ...state,
+    files: [],
+    activeFilePath: null,
+  })),
+  /** on */
   on(Actions.setGeneratedFiles, (state, { files }): FileTreeState => {
     let activeFilePath: string | null = null;
     if (files.length > 0) {
@@ -217,7 +223,7 @@ export const initialOpenApiState: OpenApiState = {
   /** validationErrors */
   validationErrors: [],
   /** inputFormat */
-  inputFormat: 'openapi_3_2_0',
+  inputFormat: 'openapi_older',
 };
 
 /** OpenAPI Reducer */

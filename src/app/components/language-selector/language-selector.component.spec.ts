@@ -260,7 +260,7 @@ describe('LanguageSelectorComponent', () => {
     expect(emitSpy).toHaveBeenCalledWith('to_server');
   });
 
-  it('should switch framework to fetch if target changes to to_sdk_cli and language is typescript and framework is unset/angular', async () => {
+  it('should switch framework to vanilla if target changes to to_sdk_cli and language is typescript and framework is unset/angular', async () => {
     hostFixture.detectChanges();
     await hostFixture.whenStable();
     component = hostFixture.debugElement.query(
@@ -276,7 +276,7 @@ describe('LanguageSelectorComponent', () => {
     component.onTargetChange('to_sdk_cli');
     expect(emitSpy).toHaveBeenCalledWith({
       languageId: 'typescript',
-      options: { framework: 'fetch' },
+      options: { framework: 'vanilla' },
     });
   });
 
@@ -380,7 +380,7 @@ describe('LanguageSelectorComponent', () => {
 
     const emitTargetSpy = vi.spyOn(component.targetChanged, 'emit');
     const emitOptsSpy = vi.spyOn(component.optionsChanged, 'emit');
-    
+
     hostComponent.selectedLanguageId.set('python');
     hostComponent.options.set({});
     hostFixture.detectChanges();
@@ -417,14 +417,14 @@ describe('LanguageSelectorComponent', () => {
 
     const emitSpy = vi.spyOn(component.optionsChanged, 'emit');
     hostComponent.selectedLanguageId.set('typescript');
-    hostComponent.options.set({ framework: 'fetch' });
+    hostComponent.options.set({ framework: 'vanilla' });
     hostFixture.detectChanges();
     await hostFixture.whenStable();
 
     component.onOptionsChange('autoAdmin', true);
     expect(emitSpy).toHaveBeenCalledWith({
       languageId: 'typescript',
-      options: { framework: 'fetch', autoAdmin: true },
+      options: { framework: 'vanilla', autoAdmin: true },
     });
   });
 });

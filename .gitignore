@@ -66,6 +66,7 @@ Thumbs.db
 
 # WASM binaries
 public/assets/wasm/*.wasm
+public/assets/wasm/*.hash
 /documentation
 /parse-coverage*.mjs
 /update.patch

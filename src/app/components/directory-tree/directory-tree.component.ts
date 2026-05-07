@@ -84,8 +84,11 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
           >
             <div
               class="node"
+              tabindex="0"
               [class.active]="!node.isDirectory && node.path === activeFilePath()"
               (click)="onNodeClick(node)"
+              (keydown.enter)="onNodeClick(node)"
+              (keydown.space)="onNodeClick(node)"
             >
               @if (node.isDirectory) {
                 <mat-icon class="icon folder-icon">

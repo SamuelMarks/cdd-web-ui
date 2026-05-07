@@ -302,6 +302,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    */
   onLanguageChanged(languageId: string): void {
     this.store.dispatch(Actions.setSelectedLanguage({ languageId }));
+    this.store.dispatch(Actions.executeRun());
   }
 
   /**

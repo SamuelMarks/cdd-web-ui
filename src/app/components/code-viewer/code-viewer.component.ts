@@ -41,16 +41,22 @@ import { ThemeService } from '../../services/theme.service';
             <div
               class="tab"
               role="tab"
+              tabindex="0"
               [class.active]="tab === activeFilePath()"
               [attr.aria-selected]="tab === activeFilePath()"
               (click)="selectTab(tab)"
+              (keydown.enter)="selectTab(tab, $event)"
+              (keydown.space)="selectTab(tab, $event)"
             >
               <span [title]="tab">{{ getFilename(tab) }}</span>
               <div
                 class="tab-close"
                 role="button"
+                tabindex="0"
                 aria-label="Close Tab"
                 (click)="closeTab(tab, $event)"
+                (keydown.enter)="closeTab(tab, $event)"
+                (keydown.space)="closeTab(tab, $event)"
               >
                 <mat-icon>close</mat-icon>
               </div>
@@ -172,8 +178,12 @@ export class CodeViewerComponent {
   /**
    * Selects a tab to view.
    * @param path The file path to select.
+   * @param event Optional DOM event, used to prevent default behavior on key presses.
    */
-  selectTab(path: string): void {
+  selectTab(path: string, event?: Event): void {
+    if (event) {
+      event.preventDefault();
+    }
     if (path !== this.activeFilePath()) {
       this.fileSelected.emit(path);
     }
@@ -182,9 +192,10 @@ export class CodeViewerComponent {
   /**
    * Closes a tab. If the active tab is closed, automatically selects another open tab or null.
    * @param path The file path to close.
-   * @param event The mouse event to stop propagation.
+   * @param event The DOM event to stop propagation.
    */
-  closeTab(path: string, event: MouseEvent): void {
+  closeTab(path: string, event: Event): void {
+    event.preventDefault();
     event.stopPropagation();
 
     const tabs = this.openTabs();

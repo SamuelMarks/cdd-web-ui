@@ -46,9 +46,9 @@ describe('Reducers', () => {
     it('should set language options', () => {
       const state = workspaceReducer(
         initialWorkspaceState,
-        Actions.setLanguageOptions({ languageId: 'typescript', options: { framework: 'fetch' } }),
+        Actions.setLanguageOptions({ languageId: 'typescript', options: { framework: 'vanilla' } }),
       );
-      expect(state.languageOptions['typescript']).toEqual({ framework: 'fetch' });
+      expect(state.languageOptions['typescript']).toEqual({ framework: 'vanilla' });
     });
 
     it('should handle executeRunStart', () => {
@@ -157,6 +157,18 @@ describe('Reducers', () => {
         Actions.selectFile({ filePath: 'new.ts' }),
       );
       expect(state.activeFilePath).toBe('new.ts');
+    });
+
+    it('should clear files and active file path on setSelectedLanguage', () => {
+      let state = fileTreeReducer(
+        initialFileTreeState,
+        Actions.setGeneratedFiles({
+          files: [{ path: 'test.ts', content: new Uint8Array() }],
+        }),
+      );
+      state = fileTreeReducer(state, Actions.setSelectedLanguage({ languageId: 'python' }));
+      expect(state.files).toEqual([]);
+      expect(state.activeFilePath).toBeNull();
     });
   });
 
