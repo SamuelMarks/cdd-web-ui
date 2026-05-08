@@ -28,6 +28,7 @@ module.exports = [
             'playwright.config.ts',
             'vitest.config.ts',
             'e2e/app.spec.ts',
+            'e2e/wasm.spec.ts',
           ],
         },
         tsconfigRootDir: __dirname,
