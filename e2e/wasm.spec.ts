@@ -88,7 +88,7 @@ test.describe('WASM E2E Tests', () => {
           }
           
           // Check if WASM returned an execution failure
-          if (errorMsg && errorMsg.includes('Execution failed:')) {
+          if (errorMsg && errorMsg.includes("Execution failed:")) {
             throw new Error(`WASM Generator returned error: ${errorMsg}`);
           }
           

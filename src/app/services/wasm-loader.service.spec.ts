@@ -173,7 +173,7 @@ describe('WasmLoaderService', () => {
     } as unknown as Response);
     await service.loadWasmBinary('cdd-python');
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      'https://github.com/offscale/cdd-python/releases/latest/download/python.wasm',
+      'https://github.com/offscale/cdd-python/releases/latest/download/cdd-python.wasm',
     );
   });
 
@@ -188,7 +188,7 @@ describe('WasmLoaderService', () => {
     } as unknown as Response);
     await service.loadWasmBinary('cdd-rust');
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      'https://github.com/SamuelMarks/cdd-rust/releases/latest/download/rust.wasm',
+      'https://github.com/SamuelMarks/cdd-rust/releases/latest/download/cdd-rust.wasm',
     );
   });
 

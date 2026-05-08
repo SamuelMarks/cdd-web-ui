@@ -257,7 +257,11 @@ async function run() {
           } else if (fs.existsSync(packageJsonPath)) {
             console.log(`  Running make build_wasm...`);
             execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
-            const wasmSource = path.join(localToolDir, 'bin', `${tool}.wasm`);
+            let wasmSource = path.join(localToolDir, 'bin', `${tool}.wasm`);
+            const javyWasmSource = path.join(localToolDir, 'bin', `${tool}-javy.wasm`);
+            if (fs.existsSync(javyWasmSource)) {
+              wasmSource = javyWasmSource;
+            }
             if (fs.existsSync(wasmSource)) {
               fs.copyFileSync(wasmSource, wasmDest);
               success = true;

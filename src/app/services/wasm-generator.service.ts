@@ -202,15 +202,7 @@ export class WasmGeneratorService {
       if (!response.ok) throw new Error('WASM binary not found');
 
       const buffer = await response.arrayBuffer();
-      await WebAssembly.instantiate(buffer, {
-        wasi_snapshot_preview1: {
-          fd_write: () => 0,
-          environ_get: () => 0,
-          environ_sizes_get: () => 0,
-          proc_exit: () => 0,
-        },
-        env: { memory: new WebAssembly.Memory({ initial: 256 }) },
-      });
+      await WebAssembly.instantiate(buffer, { wasi_snapshot_preview1: { fd_write: () => 0, environ_get: () => 0, environ_sizes_get: () => 0, proc_exit: () => 0 }, env: { memory: new WebAssembly.Memory({ initial: 256 }) }, interop: { genBacktrace: () => {}, "Date.now": () => Date.now(), "performance.now": () => performance.now(), "stderrWriter.flush": () => {}, "stdoutWriter.flush": () => {}, "runtime.setExitCode": () => {}, llog: () => {}, formatStackTrace: () => {}, getCurrentWorkingDirectory: () => 0, "stdoutWriter.close": () => {}, "stderrWriter.close": () => {}, "stdoutWriter.printChars": () => {}, "stderrWriter.printChars": () => {} }, compat: { f64rem: (x: number, y: number) => x % y, f64log: Math.log, f64log10: Math.log10, f64pow: Math.pow }, jsbody: { "_JSObject.stringValue___String": () => 0, "_JSNumber.javaDouble___Double": () => 0, "_JSConversion.extractJavaScriptProxy___Object_Object": () => 0, "_JSConversion.javaScriptUndefined___Object": () => 0, "_JSConversion.asJavaObjectOrString___Object_Object": () => 0, "_JSConversion.extractJavaScriptString___String_Object": () => 0, "_JSConversion.javaScriptToJava___Object_Object": () => 0, "_JSConversion.unproxy___Object_Object": () => 0, "_JSSymbol.referenceEquals___JSSymbol_JSSymbol_JSBoolean": () => 0, "_JSString.javaString___String": () => 0, "_JSSymbol.javaString___String": () => 0, "_JSObject.typeofString___JSString": () => 0, "_JSObject.get___Object_Object": () => 0, "_JSBoolean.javaBoolean___Boolean": () => 0, "_JSBigInt.javaString___String": () => 0 }, convert: { proxyCharArray: () => {} } });
 
       return `{\n  "openapi": "3.1.0",\n  "info": {\n    "title": "Generated API from ${lang.name}",\n    "version": "1.0.0"\n  },\n  "paths": {}\n}`;
     } catch (err) {

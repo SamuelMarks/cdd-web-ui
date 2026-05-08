@@ -93,26 +93,6 @@ export class WorkspaceEffects {
 
             let upgradePromise = Promise.resolve(specContent);
 
-            if (inputFormat !== 'openapi_3_2_0' && lang.repo !== 'cdd-cpp') {
-              // Need to upgrade spec using cdd-cpp first
-              upgradePromise = this.wasmWorkerService
-                .generateCode('cdd-cpp', specContent, 'to_openapi_3_2_0', {
-                  inputFormat,
-                })
-                .then((files) => {
-                  const specFile = files.find(
-                    (f) =>
-                      f.path.endsWith('.yaml') ||
-                      f.path.endsWith('.json') ||
-                      f.path.includes('openapi'),
-                  );
-                  if (specFile) {
-                    return new TextDecoder().decode(specFile.content);
-                  }
-                  return specContent; // fallback
-                });
-            }
-
             return upgradePromise
               .then((upgradedSpec) =>
                 this.wasmWorkerService.generateCode(

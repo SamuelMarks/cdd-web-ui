@@ -121,69 +121,7 @@ describe('WorkspaceEffects', () => {
       expect(result).toEqual(Actions.executeRunSuccess({ result: mockFiles }));
     });
 
-    it('should upgrade spec if format is not openapi_3_2_0 and language is not cdd-cpp', async () => {
-      store.overrideSelector(selectOrientation, 'openapi-left');
-      store.overrideSelector(selectSelectedLanguageId, 'python');
-      store.overrideSelector(selectOpenApiSpecContent, 'old_spec');
-      store.overrideSelector(selectOpenApiInputFormat, 'google_discovery');
 
-      const upgradedSpecContent = 'upgraded_spec';
-      const upgradedFiles: GeneratedFile[] = [
-        { path: 'api.yaml', content: new TextEncoder().encode(upgradedSpecContent) },
-      ];
-      const finalFiles: GeneratedFile[] = [{ path: 'test.py', content: new Uint8Array() }];
-
-      // Mock first call to cdd-cpp for upgrade
-      wasmWorkerServiceMock.generateCode.mockResolvedValueOnce(upgradedFiles);
-      // Mock second call to actual target
-      wasmWorkerServiceMock.generateCode.mockResolvedValueOnce(finalFiles);
-
-      actions$ = of(Actions.executeRun());
-
-      const result = await effects.executeRun$.toPromise();
-      expect(wasmWorkerServiceMock.generateCode).toHaveBeenNthCalledWith(
-        1,
-        'cdd-cpp',
-        'old_spec',
-        'to_openapi_3_2_0',
-        { inputFormat: 'google_discovery' },
-      );
-      expect(wasmWorkerServiceMock.generateCode).toHaveBeenNthCalledWith(
-        2,
-        'cdd-python-all',
-        upgradedSpecContent,
-        'to_sdk',
-        {},
-      );
-      expect(result).toEqual(Actions.executeRunSuccess({ result: finalFiles }));
-    });
-
-    it('should fallback to original spec if upgrade returns no spec file', async () => {
-      store.overrideSelector(selectOrientation, 'openapi-left');
-      store.overrideSelector(selectSelectedLanguageId, 'python');
-      store.overrideSelector(selectOpenApiSpecContent, 'old_spec');
-      store.overrideSelector(selectOpenApiInputFormat, 'google_discovery');
-
-      const upgradedFiles: GeneratedFile[] = [
-        { path: 'other.txt', content: new TextEncoder().encode('other') },
-      ];
-      const finalFiles: GeneratedFile[] = [{ path: 'test.py', content: new Uint8Array() }];
-
-      wasmWorkerServiceMock.generateCode.mockResolvedValueOnce(upgradedFiles);
-      wasmWorkerServiceMock.generateCode.mockResolvedValueOnce(finalFiles);
-
-      actions$ = of(Actions.executeRun());
-
-      const result = await effects.executeRun$.toPromise();
-      expect(wasmWorkerServiceMock.generateCode).toHaveBeenNthCalledWith(
-        2,
-        'cdd-python-all',
-        'old_spec',
-        'to_sdk',
-        {},
-      );
-      expect(result).toEqual(Actions.executeRunSuccess({ result: finalFiles }));
-    });
 
     it('should override target if language is openapi', async () => {
       store.overrideSelector(selectOrientation, 'openapi-left');

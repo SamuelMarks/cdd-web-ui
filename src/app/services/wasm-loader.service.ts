@@ -39,7 +39,7 @@ export class WasmLoaderService {
             ? 'offscale'
             : 'SamuelMarks';
         // Note: github releases format for cdd-* repos
-        url = `https://github.com/${repoOrg}/${ecosystem}/releases/latest/download/${ecosystem.replace('cdd-', '')}.wasm`;
+        url = `https://github.com/${repoOrg}/${ecosystem}/releases/latest/download/${ecosystem}.wasm`;
       } else if (runMode === 'local_cdd_ctl_wasm' || runMode === 'local_cdd_ctl_native') {
         // When using cdd-ctl backend, we might not even need the browser to download WASM if we use RPC.
         // But if we still do, we could fetch from the backend url.

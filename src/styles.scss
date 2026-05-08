@@ -30,6 +30,8 @@ $dark-theme: mat.define-theme(
 );
 
 html {
+  @include mat.system-level-colors($light-theme);
+  @include mat.system-level-typography($light-theme);
   @include mat.all-component-themes($light-theme);
 
   // Expose these generic variables mapped to M3 tokens for non-Material UI elements
@@ -46,6 +48,7 @@ html {
 }
 
 html.dark-theme {
+  @include mat.system-level-colors($dark-theme);
   @include mat.all-component-colors($dark-theme);
   color-scheme: dark;
 
