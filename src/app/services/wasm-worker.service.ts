@@ -67,9 +67,11 @@ export class WasmWorkerService {
     const wasmBinary = await this.loaderService.loadWasmBinary(ecosystem);
 
     return new Promise((resolve, reject) => {
+      const jobId = Math.random().toString(36).substring(7);
+
       // One-off message handler for this request
       const handleMessage = (event: MessageEvent) => {
-        const { status, data, error, level, message } = event.data;
+        const { status, data, error, level, message, jobId: responseJobId } = event.data;
         if (status === 'log') {
           if (level === 'INFO') {
             this.loggingService.info(message);
@@ -79,6 +81,10 @@ export class WasmWorkerService {
             this.loggingService.error(message);
           }
           return; // Do not resolve or reject, keep listening
+        }
+
+        if (responseJobId !== jobId) {
+          return; // Ignore messages from other jobs
         }
 
         if (status === 'success') {
@@ -95,6 +101,7 @@ export class WasmWorkerService {
       // Actually passing it by reference is fine for small WASMs unless we transfer list
       this.worker!.postMessage({
         action: 'generateSdk',
+        jobId,
         payload: {
           ecosystem,
           specContent,

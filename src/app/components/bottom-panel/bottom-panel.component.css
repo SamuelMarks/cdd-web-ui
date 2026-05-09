@@ -103,3 +103,17 @@
   color: #666666;
   font-style: italic;
 }
+
+app-visualisations,
+app-api-docs-viewer {
+  display: block;
+  height: 100%;
+}
+
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}

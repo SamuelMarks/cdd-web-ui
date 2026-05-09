@@ -33,6 +33,7 @@ console.error = (...args) => {
 };
 
 addEventListener('message', async ({ data }) => {
+  let jobId = data.jobId;
   try {
     const { action, payload } = data;
 
@@ -89,12 +90,16 @@ addEventListener('message', async ({ data }) => {
       });
 
       console.info(`[Worker] Finished generating ${generatedFiles.length} files.`);
-      postMessage({ status: 'success', data: generatedFiles });
+      postMessage({ status: 'success', jobId, data: generatedFiles });
     } else {
-      postMessage({ status: 'error', error: `Unknown action: ${action}` });
+      postMessage({ status: 'error', jobId, error: `Unknown action: ${action}` });
     }
   } catch (error) {
     console.error(`[Worker] Error:`, error);
-    postMessage({ status: 'error', error: error instanceof Error ? error.message : String(error) });
+    postMessage({
+      status: 'error',
+      jobId,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 });

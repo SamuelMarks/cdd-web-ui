@@ -166,11 +166,14 @@ export const initialFileTreeState: FileTreeState = {
 export const fileTreeReducer = createReducer(
   initialFileTreeState,
   /** on */
-  on(Actions.setSelectedLanguage, (state): FileTreeState => ({
-    ...state,
-    files: [],
-    activeFilePath: null,
-  })),
+  on(
+    Actions.setSelectedLanguage,
+    (state): FileTreeState => ({
+      ...state,
+      files: [],
+      activeFilePath: null,
+    }),
+  ),
   /** on */
   on(Actions.setGeneratedFiles, (state, { files }): FileTreeState => {
     let activeFilePath: string | null = null;
@@ -185,6 +188,17 @@ export const fileTreeReducer = createReducer(
         /\.py$/,
         /\.go$/,
         /\.rs$/,
+        /\.cs$/,
+        /\.java$/,
+        /\.kt$/,
+        /\.php$/,
+        /\.rb$/,
+        /\.swift$/,
+        /\.cpp$/,
+        /\.hpp$/,
+        /\.c$/,
+        /\.h$/,
+        /\.sh$/,
       ];
 
       for (const pattern of patterns) {

@@ -377,13 +377,59 @@ describe('WasmGeneratorService', () => {
 
   it('should cover wasi stubs in generateOpenApi', async () => {
     const originalInstantiate = window.WebAssembly.instantiate;
-    window.WebAssembly.instantiate = vi.fn().mockImplementation((buf, imports) => {
-      imports.wasi_snapshot_preview1.fd_write();
-      imports.wasi_snapshot_preview1.environ_get();
-      imports.wasi_snapshot_preview1.environ_sizes_get();
-      imports.wasi_snapshot_preview1.proc_exit();
-      return Promise.resolve();
-    });
+    window.WebAssembly.instantiate = vi
+      .fn()
+      .mockImplementation((buf, imports: Record<string, Record<string, Function>>) => {
+        // Call all the wasi_snapshot_preview1 functions
+        imports.wasi_snapshot_preview1.fd_write();
+        imports.wasi_snapshot_preview1.environ_get();
+        imports.wasi_snapshot_preview1.environ_sizes_get();
+        imports.wasi_snapshot_preview1.proc_exit();
+
+        // Call all the interop functions
+        imports.interop.genBacktrace();
+        imports.interop['Date.now']();
+        imports.interop['performance.now']();
+        imports.interop['stderrWriter.flush']();
+        imports.interop['stdoutWriter.flush']();
+        imports.interop['runtime.setExitCode']();
+        imports.interop.llog();
+        imports.interop.formatStackTrace();
+        imports.interop.getCurrentWorkingDirectory();
+        imports.interop['stdoutWriter.close']();
+        imports.interop['stderrWriter.close']();
+        imports.interop['stdoutWriter.printChars']();
+        imports.interop['stderrWriter.printChars']();
+
+        // Call all the compat functions
+        imports.compat.f64rem(5, 2);
+        // Math.log, Math.log10, Math.pow are built-ins, but we can call them if needed
+        if (typeof imports.compat.f64log === 'function') imports.compat.f64log(2);
+        if (typeof imports.compat.f64log10 === 'function') imports.compat.f64log10(2);
+        if (typeof imports.compat.f64pow === 'function') imports.compat.f64pow(2, 2);
+
+        // Call all the jsbody functions
+        imports.jsbody['_JSObject.stringValue___String']();
+        imports.jsbody['_JSNumber.javaDouble___Double']();
+        imports.jsbody['_JSConversion.extractJavaScriptProxy___Object_Object']();
+        imports.jsbody['_JSConversion.javaScriptUndefined___Object']();
+        imports.jsbody['_JSConversion.asJavaObjectOrString___Object_Object']();
+        imports.jsbody['_JSConversion.extractJavaScriptString___String_Object']();
+        imports.jsbody['_JSConversion.javaScriptToJava___Object_Object']();
+        imports.jsbody['_JSConversion.unproxy___Object_Object']();
+        imports.jsbody['_JSSymbol.referenceEquals___JSSymbol_JSSymbol_JSBoolean']();
+        imports.jsbody['_JSString.javaString___String']();
+        imports.jsbody['_JSSymbol.javaString___String']();
+        imports.jsbody['_JSObject.typeofString___JSString']();
+        imports.jsbody['_JSObject.get___Object_Object']();
+        imports.jsbody['_JSBoolean.javaBoolean___Boolean']();
+        imports.jsbody['_JSBigInt.javaString___String']();
+
+        // Call all the convert functions
+        imports.convert.proxyCharArray();
+
+        return Promise.resolve();
+      });
 
     const originalFetch = window.fetch;
     window.fetch = vi.fn().mockResolvedValue({

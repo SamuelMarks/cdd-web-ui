@@ -6,7 +6,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 class MockWorker {
   onmessage: ((ev: MessageEvent) => void) | null = null;
-  postMessage(data: { action?: string; payload?: { specContent?: string } }): void {
+  postMessage(data: { jobId?: string; action?: string; payload?: { specContent?: string } }): void {
     if (data.action === 'generateSdk') {
       setTimeout(() => {
         if (this.onmessage) {
@@ -36,6 +36,7 @@ class MockWorker {
             new MessageEvent('message', {
               data: {
                 status: 'success',
+                jobId: data.jobId,
                 data: [{ path: 'test.ts', content: new Uint8Array([1, 2, 3]) }],
               },
             }),
@@ -47,7 +48,7 @@ class MockWorker {
         if (this.onmessage) {
           this.onmessage(
             new MessageEvent('message', {
-              data: { status: 'error', error: 'Unknown action' },
+              data: { status: 'error', jobId: data.jobId, error: 'Unknown action' },
             }),
           );
         }
@@ -122,13 +123,14 @@ describe('WasmWorkerService', () => {
   it('should handle worker errors without explicit message', async () => {
     const errorWorker = new MockWorker();
     errorWorker.postMessage = function (data: {
+      jobId?: string;
       action?: string;
       payload?: { specContent?: string };
     }) {
       if (this.onmessage) {
         this.onmessage(
           new MessageEvent('message', {
-            data: { status: 'error' },
+            data: { status: 'error', jobId: data.jobId },
           }),
         );
       }
@@ -143,13 +145,14 @@ describe('WasmWorkerService', () => {
   it('should handle worker errors', async () => {
     const errorWorker = new MockWorker();
     errorWorker.postMessage = function (data: {
+      jobId?: string;
       action?: string;
       payload?: { specContent?: string };
     }) {
       if (this.onmessage) {
         this.onmessage(
           new MessageEvent('message', {
-            data: { status: 'error', error: 'WASM crashed' },
+            data: { status: 'error', jobId: data.jobId, error: 'WASM crashed' },
           }),
         );
       }
@@ -157,6 +160,44 @@ describe('WasmWorkerService', () => {
     (service as unknown as { worker: Worker | null }).worker = errorWorker as unknown as Worker;
 
     await expect(service.generateCode('cdd-python-all', '{}')).rejects.toThrow('WASM crashed');
+  });
+
+  it('should ignore messages with a different jobId', async () => {
+    const mixedJobIdWorker = new MockWorker();
+    mixedJobIdWorker.postMessage = function (data: {
+      jobId?: string;
+      action?: string;
+      payload?: { specContent?: string };
+    }) {
+      if (this.onmessage) {
+        // Send a message with a wrong jobId first
+        this.onmessage(
+          new MessageEvent('message', {
+            data: {
+              status: 'success',
+              jobId: 'wrong-job-id',
+              data: [{ path: 'wrong.ts', content: new Uint8Array([9]) }],
+            },
+          }),
+        );
+        // Send the correct one
+        this.onmessage(
+          new MessageEvent('message', {
+            data: {
+              status: 'success',
+              jobId: data.jobId,
+              data: [{ path: 'right.ts', content: new Uint8Array([1]) }],
+            },
+          }),
+        );
+      }
+    };
+    (service as unknown as { worker: Worker | null }).worker =
+      mixedJobIdWorker as unknown as Worker;
+
+    const files = await service.generateCode('cdd-python-all', '{}');
+    expect(files.length).toBe(1);
+    expect(files[0].path).toBe('right.ts');
   });
 
   it('should throw an error if worker is missing (e.g. environment without workers)', async () => {

@@ -121,8 +121,6 @@ describe('WorkspaceEffects', () => {
       expect(result).toEqual(Actions.executeRunSuccess({ result: mockFiles }));
     });
 
-
-
     it('should override target if language is openapi', async () => {
       store.overrideSelector(selectOrientation, 'openapi-left');
       store.overrideSelector(selectSelectedLanguageId, 'openapi');

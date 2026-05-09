@@ -33,7 +33,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         <mat-tab label="Logs">
           <div class="console-tab-content">
             <div class="console-toolbar">
-              <button mat-icon-button title="Clear Logs" aria-label="Clear Logs" (click)="clearLogs()">
+              <button
+                mat-icon-button
+                title="Clear Logs"
+                aria-label="Clear Logs"
+                (click)="clearLogs()"
+              >
                 <mat-icon>delete</mat-icon>
               </button>
             </div>

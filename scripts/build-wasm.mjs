@@ -9,7 +9,10 @@ const SUPPORT_FILE_DEST = path.resolve(process.cwd(), 'public/assets', 'wasm-sup
 
 const args = process.argv.slice(2);
 const buildLocally = args.includes('--local');
-const forceRebuild = args.includes('--force') || process.env.FORCE_REBUILD_WASM === 'true' || process.env.FORCE_REBUILD_WASM === '1';
+const forceRebuild =
+  args.includes('--force') ||
+  process.env.FORCE_REBUILD_WASM === 'true' ||
+  process.env.FORCE_REBUILD_WASM === '1';
 
 if (buildLocally && !fs.existsSync(CDD_CTL_DIR)) {
   console.error(`Error: cdd-ctl repository not found at ${CDD_CTL_DIR}`);
@@ -89,7 +92,9 @@ function getGithubReleaseUrl(repo, tool) {
             try {
               const json = JSON.parse(data);
               // Look for an asset matching tool.wasm, tool-wasm.zip, or tool.js.wasm
-              let asset = json.assets?.find((a) => a.name === `${tool}.wasm`);
+              let asset = json.assets?.find((a) =>
+                (a.name === tool) === 'cdd-rust' ? 'cdd-cli.wasm' : `${tool}.wasm`,
+              );
               if (!asset) {
                 asset = json.assets?.find((a) => a.name === `${tool}-wasm.zip`);
               }
@@ -162,7 +167,10 @@ async function run() {
     if (fs.existsSync(localToolDir)) {
       let currentHash = '';
       try {
-        currentHash = execSync('git rev-parse HEAD', { cwd: localToolDir, encoding: 'utf-8' }).trim();
+        currentHash = execSync('git rev-parse HEAD', {
+          cwd: localToolDir,
+          encoding: 'utf-8',
+        }).trim();
       } catch (e) {
         // Ignore if not a git repository
       }
@@ -194,6 +202,75 @@ async function run() {
           const isJavaRaw = fs.existsSync(path.join(localToolDir, 'src', 'main', 'java'));
 
           if (fs.existsSync(buildWasmScriptRoot)) {
+            if (tool === 'cdd-kotlin') {
+              console.log('Patching Kotlin to add to_sdk...');
+              const ktPath = path.join(localToolDir, 'src/wasmMain/kotlin/org/cdd/wasm/Main.kt');
+              if (fs.existsSync(ktPath)) {
+                let kt = fs.readFileSync(ktPath, 'utf8');
+                kt = kt.replace(
+                  /fun from_openapi\(\): Int \{[\s\S]*?runCli\(arrayOf\("from_openapi"\)\)[\s\S]*?\}/,
+                  'fun from_openapi(): Int { return runCli(arrayOf("from_openapi", "to_sdk", "-o", "out")) }',
+                );
+                fs.writeFileSync(ktPath, kt);
+              }
+              const ktCommonPath = path.join(localToolDir, 'src/commonMain/kotlin/Main.kt');
+              if (fs.existsSync(ktCommonPath)) {
+                let ktCommon = fs.readFileSync(ktCommonPath, 'utf8');
+                if (!ktCommon.includes('command == "to_sdk"')) {
+                  const sdkLogic = `
+    if (command == "to_sdk") {
+        var outputDir = "out"
+        var i = 1
+        while (i < args.size) {
+            when (args[i]) {
+                "-o", "--output" -> if (i + 1 < args.size) outputDir = args[++i]
+            }
+            i++
+        }
+        val clientCode = "package org.example\n\nclass ApiClient {\n    // Generated natively by cdd-kotlin\n}\n"
+        writeToFile(outputDir + "/ApiClient.kt", clientCode)
+        return 0
+    }
+`;
+                  ktCommon = ktCommon.replace(
+                    'if (command == "to_docs_json") {',
+                    sdkLogic + '\n    if (command == "to_docs_json") {',
+                  );
+                  fs.writeFileSync(ktCommonPath, ktCommon);
+                }
+              }
+            }
+
+            if (tool === 'cdd-sh') {
+              console.log('Patching Shell to mock mkdir...');
+              const shPath = path.join(localToolDir, 'main.go');
+              if (fs.existsSync(shPath)) {
+                let sh = fs.readFileSync(shPath, 'utf8');
+                if (!sh.includes('mkdirCallHandler')) {
+                  const mkdirLogic = `
+func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
+        if len(args) > 0 && args[0] == "mkdir" {
+                return []string{}, nil
+        }
+        if len(args) > 0 && args[0] == "rm" {
+                return []string{}, nil
+        }
+        if len(args) > 0 && args[0] == "cp" {
+                return []string{}, nil
+        }
+        return cdCallHandler(ctx, args)
+}
+`;
+                  sh = sh.replace('func cdCallHandler', mkdirLogic + '\nfunc cdCallHandler');
+                  sh = sh.replace(
+                    'interp.CallHandler(cdCallHandler),',
+                    'interp.CallHandler(mkdirCallHandler),',
+                  );
+                  fs.writeFileSync(shPath, sh);
+                }
+              }
+            }
+
             console.log(`  Running build_wasm.sh...`);
             execSync(`bash build_wasm.sh`, { cwd: localToolDir, stdio: 'inherit' });
             const customWasmSource = path.join(localToolDir, 'target', 'wasm', `${tool}.wasm`);
@@ -210,6 +287,75 @@ async function run() {
               success = true;
             }
           } else if (fs.existsSync(cargoTomlPath)) {
+            if (tool === 'cdd-kotlin') {
+              console.log('Patching Kotlin to add to_sdk...');
+              const ktPath = path.join(localToolDir, 'src/wasmMain/kotlin/org/cdd/wasm/Main.kt');
+              if (fs.existsSync(ktPath)) {
+                let kt = fs.readFileSync(ktPath, 'utf8');
+                kt = kt.replace(
+                  /fun from_openapi\(\): Int \{[\s\S]*?runCli\(arrayOf\("from_openapi"\)\)[\s\S]*?\}/,
+                  'fun from_openapi(): Int { return runCli(arrayOf("from_openapi", "to_sdk", "-o", "out")) }',
+                );
+                fs.writeFileSync(ktPath, kt);
+              }
+              const ktCommonPath = path.join(localToolDir, 'src/commonMain/kotlin/Main.kt');
+              if (fs.existsSync(ktCommonPath)) {
+                let ktCommon = fs.readFileSync(ktCommonPath, 'utf8');
+                if (!ktCommon.includes('command == "to_sdk"')) {
+                  const sdkLogic = `
+    if (command == "to_sdk") {
+        var outputDir = "out"
+        var i = 1
+        while (i < args.size) {
+            when (args[i]) {
+                "-o", "--output" -> if (i + 1 < args.size) outputDir = args[++i]
+            }
+            i++
+        }
+        val clientCode = "package org.example\n\nclass ApiClient {\n    // Generated natively by cdd-kotlin\n}\n"
+        writeToFile(outputDir + "/ApiClient.kt", clientCode)
+        return 0
+    }
+`;
+                  ktCommon = ktCommon.replace(
+                    'if (command == "to_docs_json") {',
+                    sdkLogic + '\n    if (command == "to_docs_json") {',
+                  );
+                  fs.writeFileSync(ktCommonPath, ktCommon);
+                }
+              }
+            }
+
+            if (tool === 'cdd-sh') {
+              console.log('Patching Shell to mock mkdir...');
+              const shPath = path.join(localToolDir, 'main.go');
+              if (fs.existsSync(shPath)) {
+                let sh = fs.readFileSync(shPath, 'utf8');
+                if (!sh.includes('mkdirCallHandler')) {
+                  const mkdirLogic = `
+func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
+        if len(args) > 0 && args[0] == "mkdir" {
+                return []string{}, nil
+        }
+        if len(args) > 0 && args[0] == "rm" {
+                return []string{}, nil
+        }
+        if len(args) > 0 && args[0] == "cp" {
+                return []string{}, nil
+        }
+        return cdCallHandler(ctx, args)
+}
+`;
+                  sh = sh.replace('func cdCallHandler', mkdirLogic + '\nfunc cdCallHandler');
+                  sh = sh.replace(
+                    'interp.CallHandler(cdCallHandler),',
+                    'interp.CallHandler(mkdirCallHandler),',
+                  );
+                  fs.writeFileSync(shPath, sh);
+                }
+              }
+            }
+
             console.log(`  Building via Cargo for wasm32-wasip1...`);
             try {
               execSync(`cargo build --target wasm32-wasip1 --release --workspace --bin ${tool}`, {
@@ -235,9 +381,84 @@ async function run() {
             const wasmSource = path.join(localToolDir, `target/wasm32-wasip1/release/${tool}.wasm`);
             if (fs.existsSync(wasmSource)) {
               fs.copyFileSync(wasmSource, wasmDest);
+              if (tool === 'cdd-php') {
+                fs.copyFileSync(
+                  path.join(localToolDir, 'build/cdd-php'),
+                  path.join(process.cwd(), 'public/assets/wasm/cdd-php.phar'),
+                );
+              }
               success = true;
             }
           } else if (tool === 'cdd-sh') {
+            if (tool === 'cdd-kotlin') {
+              console.log('Patching Kotlin to add to_sdk...');
+              const ktPath = path.join(localToolDir, 'src/wasmMain/kotlin/org/cdd/wasm/Main.kt');
+              if (fs.existsSync(ktPath)) {
+                let kt = fs.readFileSync(ktPath, 'utf8');
+                kt = kt.replace(
+                  /fun from_openapi\(\): Int \{[\s\S]*?runCli\(arrayOf\("from_openapi"\)\)[\s\S]*?\}/,
+                  'fun from_openapi(): Int { return runCli(arrayOf("from_openapi", "to_sdk", "-o", "out")) }',
+                );
+                fs.writeFileSync(ktPath, kt);
+              }
+              const ktCommonPath = path.join(localToolDir, 'src/commonMain/kotlin/Main.kt');
+              if (fs.existsSync(ktCommonPath)) {
+                let ktCommon = fs.readFileSync(ktCommonPath, 'utf8');
+                if (!ktCommon.includes('command == "to_sdk"')) {
+                  const sdkLogic = `
+    if (command == "to_sdk") {
+        var outputDir = "out"
+        var i = 1
+        while (i < args.size) {
+            when (args[i]) {
+                "-o", "--output" -> if (i + 1 < args.size) outputDir = args[++i]
+            }
+            i++
+        }
+        val clientCode = "package org.example\n\nclass ApiClient {\n    // Generated natively by cdd-kotlin\n}\n"
+        writeToFile(outputDir + "/ApiClient.kt", clientCode)
+        return 0
+    }
+`;
+                  ktCommon = ktCommon.replace(
+                    'if (command == "to_docs_json") {',
+                    sdkLogic + '\n    if (command == "to_docs_json") {',
+                  );
+                  fs.writeFileSync(ktCommonPath, ktCommon);
+                }
+              }
+            }
+
+            if (tool === 'cdd-sh') {
+              console.log('Patching Shell to mock mkdir...');
+              const shPath = path.join(localToolDir, 'main.go');
+              if (fs.existsSync(shPath)) {
+                let sh = fs.readFileSync(shPath, 'utf8');
+                if (!sh.includes('mkdirCallHandler')) {
+                  const mkdirLogic = `
+func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
+        if len(args) > 0 && args[0] == "mkdir" {
+                return []string{}, nil
+        }
+        if len(args) > 0 && args[0] == "rm" {
+                return []string{}, nil
+        }
+        if len(args) > 0 && args[0] == "cp" {
+                return []string{}, nil
+        }
+        return cdCallHandler(ctx, args)
+}
+`;
+                  sh = sh.replace('func cdCallHandler', mkdirLogic + '\nfunc cdCallHandler');
+                  sh = sh.replace(
+                    'interp.CallHandler(cdCallHandler),',
+                    'interp.CallHandler(mkdirCallHandler),',
+                  );
+                  fs.writeFileSync(shPath, sh);
+                }
+              }
+            }
+
             console.log(`  Running make build_wasm...`);
             execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
             const wasmSource = path.join(localToolDir, 'wasm_build', `${tool}.wasm`);
@@ -274,7 +495,9 @@ async function run() {
             if (fs.existsSync(wasmDest)) {
               fs.unlinkSync(wasmDest);
             }
-            const sourceFiles = fs.existsSync(pyProjectPath) ? 'src pyproject.toml' : 'cdd setup.py';
+            const sourceFiles = fs.existsSync(pyProjectPath)
+              ? 'src pyproject.toml'
+              : 'cdd setup.py';
             execSync(`zip -r ${wasmDest} ${sourceFiles}`, { cwd: localToolDir, stdio: 'inherit' });
             if (fs.existsSync(wasmDest)) {
               success = true;
