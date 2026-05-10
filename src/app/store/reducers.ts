@@ -175,42 +175,115 @@ export const fileTreeReducer = createReducer(
     }),
   ),
   /** on */
-  on(Actions.setGeneratedFiles, (state, { files }): FileTreeState => {
+  on(Actions.setGeneratedFiles, (state, { files, modelNames }): FileTreeState => {
     let activeFilePath: string | null = null;
     if (files.length > 0) {
-      const patterns = [
-        /readme\.md$/i,
-        /client\./i,
-        /api\./i,
-        /index\./i,
-        /main\./i,
-        /\.ts$/,
-        /\.py$/,
-        /\.go$/,
-        /\.rs$/,
-        /\.cs$/,
-        /\.java$/,
-        /\.kt$/,
-        /\.php$/,
-        /\.rb$/,
-        /\.swift$/,
-        /\.cpp$/,
-        /\.hpp$/,
-        /\.c$/,
-        /\.h$/,
-        /\.sh$/,
+      // Filter out manifest/config files so we prefer actual source code
+      const ignorePatterns = [
+        /package\.swift$/i,
+        /package\.json$/i,
+        /package-lock\.json$/i,
+        /cargo\.toml$/i,
+        /cargo\.lock$/i,
+        /go\.mod$/i,
+        /go\.sum$/i,
+        /composer\.json$/i,
+        /composer\.lock$/i,
+        /gemfile$/i,
+        /gemfile\.lock$/i,
+        /cmakelists\.txt$/i,
+        /pom\.xml$/i,
+        /build\.gradle$/i,
+        /tsconfig\.json$/i,
       ];
 
-      for (const pattern of patterns) {
-        const match = files.find((f) => pattern.test(f.path));
-        if (match) {
-          activeFilePath = match.path;
-          break;
+      const candidateFiles = files.filter((f) => !ignorePatterns.some((p) => p.test(f.path)));
+      const searchFiles = candidateFiles.length > 0 ? candidateFiles : files;
+
+      // 1. Try to find a file containing a model definition based on parsed OpenAPI models
+      if (modelNames && modelNames.length > 0) {
+        // Escape model names for regex
+        const escapedNames = modelNames
+          .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+          .join('|');
+        const modelContentPatterns = [
+          new RegExp(`(?:class|struct|interface|type)\\s+(?:${escapedNames})\\b`, 'i'),
+          new RegExp(`def\\s+(?:${escapedNames})\\b`, 'i'), // Python dataclass/function fallback
+          new RegExp(`type\\s+(?:${escapedNames})\\s+struct`, 'i'), // Go structs
+          new RegExp(`pub\\s+struct\\s+(?:${escapedNames})\\b`, 'i'), // Rust structs
+        ];
+
+        for (const pattern of modelContentPatterns) {
+          const match = searchFiles.find(
+            (f) => f.content && pattern.test(new TextDecoder().decode(f.content)),
+          );
+          if (match) {
+            activeFilePath = match.path;
+            break;
+          }
         }
       }
 
+      // 2. Fall back to finding a file with any model definition (e.g. general fields fallback)
       if (!activeFilePath) {
-        activeFilePath = files[0].path;
+        // Generic fallback for some common names just in case modelNames weren't provided or didn't match
+        const genericModelContentPatterns = [
+          /(?:class|struct|interface|type)\s+(?:Pet|User|Order|Error|Model)\b/i,
+          /def\s+(?:Pet|User|Order|Error|Model)\b/i, // Python dataclass/function fallback
+          /type\s+(?:Pet|User|Order|Error|Model)\s+struct/i, // Go structs
+          /pub\s+struct\s+(?:Pet|User|Order|Error|Model)\b/i, // Rust structs
+        ];
+
+        for (const pattern of genericModelContentPatterns) {
+          const match = searchFiles.find(
+            (f) => f.content && pattern.test(new TextDecoder().decode(f.content)),
+          );
+          if (match) {
+            activeFilePath = match.path;
+            break;
+          }
+        }
+      }
+
+      // 3. Fall back to filename patterns
+      if (!activeFilePath) {
+        const patterns = [
+          /readme\.md$/i,
+          /models/i,
+          /types/i,
+          /client/i,
+          /api/i,
+          /index\./i,
+          /main\./i,
+          /\.ts$/,
+          /\.py$/,
+          /\.go$/,
+          /\.rs$/,
+          /\.cs$/,
+          /\.java$/,
+          /\.kt$/,
+          /\.php$/,
+          /\.rb$/,
+          /\.swift$/,
+          /\.cpp$/,
+          /\.hpp$/,
+          /\.c$/,
+          /\.h$/,
+          /\.sh$/,
+        ];
+
+        for (const pattern of patterns) {
+          const match = searchFiles.find((f) => pattern.test(f.path));
+          if (match) {
+            activeFilePath = match.path;
+            break;
+          }
+        }
+      }
+
+      // 3. Absolute fallback
+      if (!activeFilePath) {
+        activeFilePath = searchFiles[0].path;
       }
     }
 

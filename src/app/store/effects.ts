@@ -18,10 +18,9 @@ import {
 import { WasmWorkerService } from '../services/wasm-worker.service';
 import { LanguageService } from '../services/language.service';
 import { NotificationService } from '../services/notification.service';
+import { OpenApiParser } from '../components/openapi-editor/openapi-parser.util';
 
 /**
- * NgRx Effects for handling side-effects of workspace actions, primarily WASM execution.
- */
 @Injectable()
 /** WorkspaceEffects */
 export class WorkspaceEffects {
@@ -148,10 +147,26 @@ export class WorkspaceEffects {
     () =>
       this.actions$.pipe(
         ofType(WorkspaceActions.executeRunSuccess),
-        tap(({ result }) => {
+        withLatestFrom(this.store.select(selectOpenApiSpecContent)),
+        tap(([{ result }, specContent]) => {
           if (Array.isArray(result)) {
             // It's a list of generated files (from_openapi)
-            this.store.dispatch(WorkspaceActions.setGeneratedFiles({ files: result }));
+            let modelNames: string[] = [];
+            if (specContent) {
+              const parsed = OpenApiParser.parseAndValidate(specContent);
+              if (parsed.isValid && parsed.parsed) {
+                const spec = parsed.parsed as Record<
+                  string,
+                  Record<string, Record<string, unknown>>
+                >;
+                if (spec['components']?.['schemas']) {
+                  modelNames = Object.keys(spec['components']['schemas']);
+                } else if (spec['definitions']) {
+                  modelNames = Object.keys(spec['definitions']);
+                }
+              }
+            }
+            this.store.dispatch(WorkspaceActions.setGeneratedFiles({ files: result, modelNames }));
             this.notificationService.success(`Successfully generated ${result.length} file(s).`);
           } else if (typeof result === 'string') {
             // It's an OpenAPI spec string (to_openapi)

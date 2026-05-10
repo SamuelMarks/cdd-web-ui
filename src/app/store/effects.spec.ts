@@ -255,11 +255,14 @@ describe('WorkspaceEffects', () => {
     it('should dispatch setGeneratedFiles and show success toast if result is an array', () => {
       const mockFiles: GeneratedFile[] = [{ path: 'test.py', content: new Uint8Array() }];
       actions$ = of(Actions.executeRunSuccess({ result: mockFiles }));
-      const spy = vi.spyOn(store, 'dispatch');
+      store.overrideSelector(selectOpenApiSpecContent, '');
 
+      const spy = vi.spyOn(store, 'dispatch');
       effects.handleExecutionSuccess$.subscribe();
 
-      expect(spy).toHaveBeenCalledWith(Actions.setGeneratedFiles({ files: mockFiles }));
+      expect(spy).toHaveBeenCalledWith(
+        Actions.setGeneratedFiles({ files: mockFiles, modelNames: [] }),
+      );
       expect(notificationServiceMock.success).toHaveBeenCalledWith(
         'Successfully generated 1 file(s).',
       );

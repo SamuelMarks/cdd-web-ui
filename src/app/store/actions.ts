@@ -57,7 +57,7 @@ export const selectFile = createAction('[FileTree] Select File', props<{ filePat
 export const setGeneratedFiles = createAction(
   '[FileTree] Set Generated Files',
   /** props */
-  props<{ files: GeneratedFile[] }>(),
+  props<{ files: GeneratedFile[]; modelNames?: string[] }>(),
 );
 
 /** Triggers the execution of WASM generation (from_openapi or to_openapi based on layout). */
