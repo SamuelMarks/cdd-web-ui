@@ -93,7 +93,7 @@ function getGithubReleaseUrl(repo, tool) {
               const json = JSON.parse(data);
               // Look for an asset matching tool.wasm, tool-wasm.zip, or tool.js.wasm
               let asset = json.assets?.find((a) =>
-                (a.name === tool) === 'cdd-rust' ? 'cdd-cli.wasm' : `${tool}.wasm`,
+                tool === 'cdd-rust' ? a.name === 'cdd-cli.wasm' : a.name === `${tool}.wasm`,
               );
               if (!asset) {
                 asset = json.assets?.find((a) => a.name === `${tool}-wasm.zip`);
