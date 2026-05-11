@@ -536,7 +536,9 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
               fs.writeFileSync(hashFile, currentHash);
             }
           } else {
-            console.warn(`  ⚠️  Local build finished but output wasm not found or unsupported.`);
+            console.log(
+              `  ℹ️  Local build finished but output wasm not found or unsupported. Falling back to download.`,
+            );
           }
         } catch (e) {
           console.warn(`  ⚠️  Local build failed: ${e.message}`);
