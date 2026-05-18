@@ -4,48 +4,26 @@ import { execSync } from 'child_process';
 let linesPct = 'unknown';
 let testColor = 'red';
 try {
-  let output = '';
-  try {
-    output = execSync(
-      'npx vitest run --coverage.enabled=true --coverage.reporter=text-summary --coverage.reporter=text',
-      { stdio: 'pipe' },
-    ).toString();
-  } catch (e) {
-    output = e.stdout ? e.stdout.toString() : '';
-  }
-
-  // Strip ansi color codes
-  output = output.replace(
-    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
-    '',
-  );
-
-  const match = output.match(
-    /All files\s+\|\s+([0-9.]+)\s+\|\s+([0-9.]+)\s+\|\s+([0-9.]+)\s+\|\s+([0-9.]+)/,
-  );
-  if (match && match[4]) {
-    linesPct = match[4];
-    const pct = parseFloat(linesPct);
-    testColor = 'brightgreen';
-    if (pct < 80) testColor = 'yellow';
-    if (pct < 50) testColor = 'red';
-  } else {
-    console.log('Could not find coverage in output.');
-  }
+  const coverageData = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf-8'));
+  const pct = coverageData.total.lines.pct;
+  linesPct = pct.toString();
+  testColor = 'brightgreen';
+  if (pct < 80) testColor = 'yellow';
+  if (pct < 50) testColor = 'red';
 } catch (e) {
-  console.log('Error running test coverage.');
+  console.log('Could not parse test coverage.', e.message);
 }
 
 let docPct = 'unknown';
 let docColor = 'red';
 try {
-  execSync('npx compodoc -p tsconfig.app.json --exportFormat json', { stdio: 'pipe' });
+  execSync('npx @compodoc/compodoc -p tsconfig.app.json --exportFormat json', { stdio: 'pipe' });
   const docData = JSON.parse(fs.readFileSync('documentation/documentation.json', 'utf-8'));
   const countObj = docData.coverage;
   if (typeof countObj === 'number') {
-    docPct = countObj;
+    docPct = countObj.toString();
   } else if (countObj && countObj.count !== undefined) {
-    docPct = countObj.count;
+    docPct = countObj.count.toString();
   }
 
   if (docPct !== 'unknown') {

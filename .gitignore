@@ -110,3 +110,57 @@ run_pw.js
 test-*.html
 plan.txt
 improved-*
+
+# --- Comprehensive Wildcards ---
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+ng.log
+
+# OS-Specific
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+
+# Archives & Media
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+*.tgz
+
+# Editor / Temp / Patch
+*~
+*.swp
+*.swo
+*.swn
+*.temp
+*.conflict
+*.merge
+
+# Node & Tooling Caches
+.npm/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+.node_repl_history
+.nyc_output/
+
+# AI & Agents
+.gemini/
+tool-outputs/
+
+# Broader Angular/Build ignores
+.angular/

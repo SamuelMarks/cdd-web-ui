@@ -7,7 +7,7 @@ import {
   computed,
   signal,
 } from '@angular/core';
-import { fromEvent, Subject, takeUntil, tap } from 'rxjs';
+import { fromEvent, Subject, takeUntil, tap, finalize } from 'rxjs';
 import { DOCUMENT, NgOptimizedImage } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { Store } from '@ngrx/store';
@@ -53,13 +53,15 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   /** template */
   template: `
     <div class="workspace-container">
-      <div class="workspace-toolbar" role="toolbar" aria-label="Workspace Tools">
+      <div class="workspace-toolbar" role="toolbar" aria-label="Workspace Tools" i18n-aria-label>
         <div class="input-controls">
           <mat-form-field appearance="outline" class="toolbar-field" subscriptSizing="dynamic">
-            <mat-label>Input Format</mat-label>
+            <mat-label i18n>Input Format</mat-label>
             <mat-select
               [value]="inputFormat() || 'openapi_3_2_0'"
               (selectionChange)="onInputFormatChange($event.value)"
+              aria-label="Select Input Format"
+              i18n-aria-label
             >
               <mat-select-trigger>
                 <div class="format-option-trigger">
@@ -94,7 +96,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                     alt=""
                     class="format-icon"
                   />
-                  <span class="format-name">OpenAPI 3.2.0</span>
+                  <span class="format-name" i18n>OpenAPI 3.2.0</span>
                 </div>
               </mat-option>
               <mat-option value="openapi_older">
@@ -106,7 +108,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                     alt=""
                     class="format-icon"
                   />
-                  <span class="format-name">Swagger / OpenAPI &lt; 3.2.0</span>
+                  <span class="format-name" i18n>Swagger / OpenAPI &lt; 3.2.0</span>
                 </div>
               </mat-option>
               <mat-option value="google_discovery">
@@ -118,7 +120,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                     alt=""
                     class="format-icon"
                   />
-                  <span class="format-name">Google Discovery</span>
+                  <span class="format-name" i18n>Google Discovery</span>
                 </div>
               </mat-option>
             </mat-select>
@@ -129,20 +131,22 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             class="toolbar-field example-field"
             subscriptSizing="dynamic"
           >
-            <mat-label>Example</mat-label>
+            <mat-label i18n>Example</mat-label>
             <mat-select
               [value]="selectedExample()"
               (selectionChange)="onExampleChange($event.value)"
+              aria-label="Select Example"
+              i18n-aria-label
             >
-              <mat-option value="petstore">Petstore</mat-option>
-              <mat-option value="hello">Hello World</mat-option>
-              <mat-option value="custom" [disabled]="true">Custom</mat-option>
+              <mat-option value="petstore" i18n>Petstore</mat-option>
+              <mat-option value="hello" i18n>Hello World</mat-option>
+              <mat-option value="custom" [disabled]="true" i18n>Custom</mat-option>
             </mat-select>
           </mat-form-field>
         </div>
 
         <div class="arrow-container">
-          <mat-icon class="flow-arrow">arrow_forward</mat-icon>
+          <mat-icon class="flow-arrow" aria-hidden="true">arrow_forward</mat-icon>
         </div>
 
         <div class="output-controls">
@@ -174,6 +178,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           tabindex="0"
           role="separator"
           aria-orientation="horizontal"
+          aria-label="Resize API Docs Pane"
+          i18n-aria-label
           (mousedown)="onResizerMouseDown($event)"
           (dblclick)="onResizerDoubleClick()"
           (keydown)="onResizerKeydown($event)"
@@ -311,6 +317,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    */
   onTargetChanged(target: Target): void {
     this.store.dispatch(Actions.setTarget({ target }));
+    this.store.dispatch(Actions.executeRun());
   }
 
   /**
@@ -319,6 +326,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    */
   onOptionsChanged(event: { languageId: string; options: LanguageOptions }): void {
     this.store.dispatch(Actions.setLanguageOptions(event));
+    this.store.dispatch(Actions.executeRun());
   }
 
   /**
@@ -374,13 +382,23 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     const startY = event.clientY;
     const startHeight = this.apiDocsPaneHeight();
 
+    const target = event.target as HTMLElement | null;
+    const workspaceContent = target ? target.parentElement : null;
+    const containerHeight = workspaceContent ? workspaceContent.clientHeight : window.innerHeight;
+
+    // Disable pointer events on panes to avoid iframes/editors swallowing mouse events
+    if (workspaceContent) {
+      workspaceContent.classList.add('resizing');
+    }
+
     const mouseMove$ = fromEvent<MouseEvent>(this.document, 'mousemove').pipe(
       tap((e: MouseEvent) => {
         const delta = startY - e.clientY;
         let newHeight = startHeight + delta;
         // Enforce min/max constraints
         const minHeight = 150;
-        const maxHeight = window.innerHeight * 0.8;
+        // top-pane has min-height: 300px, resizer is 6px.
+        const maxHeight = Math.max(minHeight, containerHeight - 306);
         newHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
 
         this.store.dispatch(Actions.resizeApiDocsPane({ height: newHeight }));
@@ -389,7 +407,17 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
     const mouseUp$ = fromEvent<MouseEvent>(this.document, 'mouseup');
 
-    mouseMove$.pipe(takeUntil(mouseUp$), takeUntil(this.destroy$)).subscribe();
+    mouseMove$
+      .pipe(
+        takeUntil(mouseUp$),
+        takeUntil(this.destroy$),
+        finalize(() => {
+          if (workspaceContent) {
+            workspaceContent.classList.remove('resizing');
+          }
+        }),
+      )
+      .subscribe();
   }
 
   /** Resets the Bottom pane height to the default on double click. */

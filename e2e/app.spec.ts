@@ -111,13 +111,10 @@ test.describe('App E2E Tests', () => {
           }
         }
 
-        if (['java', 'php', 'python', 'ruby', 'swift'].includes(lang.id)) {
-          await expect(
-            page.locator('mat-checkbox', { hasText: 'No GitHub Actions' }),
-          ).toBeVisible();
-          await expect(
-            page.locator('mat-checkbox', { hasText: 'No Installable Package' }),
-          ).toBeVisible();
+        await expect(page.locator('mat-checkbox', { hasText: 'CI' })).toBeVisible();
+
+        if (lang.id !== 'sh') {
+          await expect(page.locator('mat-checkbox', { hasText: 'Package' })).toBeVisible();
         }
       }
     });

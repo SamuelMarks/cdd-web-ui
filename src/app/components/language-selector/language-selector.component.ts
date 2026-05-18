@@ -50,11 +50,12 @@ import { StorageService } from '../../services/storage.service';
           subscriptSizing="dynamic"
           [color]="hasError() ? 'warn' : 'primary'"
         >
-          <mat-label [class.error-text]="hasError()">Language</mat-label>
+          <mat-label [class.error-text]="hasError()" i18n>Language</mat-label>
           <mat-select
             [value]="selectedLanguageId()"
             (selectionChange)="onSelectionChange($event.value)"
             aria-label="Select Target Language"
+            i18n-aria-label
           >
             <mat-select-trigger>
               <div class="language-option-trigger">
@@ -93,7 +94,7 @@ import { StorageService } from '../../services/storage.service';
                   }
                   <span class="language-name">{{ lang.name }}</span>
                   @if (lang.isDisabled) {
-                    <mat-icon class="disabled-indicator">wifi_off</mat-icon>
+                    <mat-icon class="disabled-indicator" aria-hidden="true">wifi_off</mat-icon>
                   }
                 </div>
               </mat-option>
@@ -102,24 +103,27 @@ import { StorageService } from '../../services/storage.service';
         </mat-form-field>
         <mat-icon
           class="offline-info-icon"
+          aria-hidden="true"
           matTooltip="Languages shown as disabled are not available in the current offline-only environment. To enable generation for all supported languages, configure the application for 'Online Mode' by following the backend setup instructions on our GitHub repository."
+          i18n-matTooltip
         >
           help_outline
         </mat-icon>
       </div>
 
       <mat-form-field appearance="outline" class="target-selector-field" subscriptSizing="dynamic">
-        <mat-label>Target</mat-label>
+        <mat-label i18n>Target</mat-label>
         <mat-select
           [value]="target()"
           (selectionChange)="onTargetChange($event.value)"
           aria-label="Select Target Output"
+          i18n-aria-label
         >
-          <mat-option value="to_sdk">Client SDK</mat-option>
-          <mat-option value="to_sdk_cli">Client CLI</mat-option>
-          <mat-option value="to_server">Server</mat-option>
+          <mat-option value="to_sdk" i18n>Client SDK</mat-option>
+          <mat-option value="to_sdk_cli" i18n>Client CLI</mat-option>
+          <mat-option value="to_server" i18n>Server</mat-option>
           @if (selectedLanguageId() === 'typescript') {
-            <mat-option value="to_orm">ORM Entities</mat-option>
+            <mat-option value="to_orm" i18n>ORM Entities</mat-option>
           }
         </mat-select>
       </mat-form-field>
@@ -133,22 +137,24 @@ import { StorageService } from '../../services/storage.service';
             class="framework-selector-field"
             subscriptSizing="dynamic"
           >
-            <mat-label>Client Framework</mat-label>
+            <mat-label i18n>Client Framework</mat-label>
             <mat-select
               [value]="options().framework || 'vanilla'"
               (selectionChange)="onOptionsChange('framework', $event.value)"
+              aria-label="Select Client Framework"
+              i18n-aria-label
             >
-              <mat-option value="vanilla">Vanilla JS</mat-option>
-              <mat-option value="angular">Angular</mat-option>
-              <mat-option value="react">React</mat-option>
-              <mat-option value="vue">Vue</mat-option>
+              <mat-option value="vanilla" i18n>Vanilla JS</mat-option>
+              <mat-option value="angular" i18n>Angular</mat-option>
+              <mat-option value="react" i18n>React</mat-option>
+              <mat-option value="vue" i18n>Vue</mat-option>
             </mat-select>
           </mat-form-field>
           <mat-checkbox
             [checked]="options().autoAdmin || false"
             (change)="onOptionsChange('autoAdmin', $event.checked)"
           >
-            Auto-admin
+            <span i18n>Auto-admin</span>
           </mat-checkbox>
         }
 
@@ -158,15 +164,17 @@ import { StorageService } from '../../services/storage.service';
             class="framework-selector-field"
             subscriptSizing="dynamic"
           >
-            <mat-label>Server Framework</mat-label>
+            <mat-label i18n>Server Framework</mat-label>
             <mat-select
               [value]="options().serverFramework || 'express'"
               (selectionChange)="onOptionsChange('serverFramework', $event.value)"
+              aria-label="Select Server Framework"
+              i18n-aria-label
             >
-              <mat-option value="express">Express</mat-option>
-              <mat-option value="node">Node.js HTTP</mat-option>
-              <mat-option value="bun">Bun</mat-option>
-              <mat-option value="deno">Deno</mat-option>
+              <mat-option value="express" i18n>Express</mat-option>
+              <mat-option value="node" i18n>Node.js HTTP</mat-option>
+              <mat-option value="bun" i18n>Bun</mat-option>
+              <mat-option value="deno" i18n>Deno</mat-option>
             </mat-select>
           </mat-form-field>
         }
@@ -177,28 +185,42 @@ import { StorageService } from '../../services/storage.service';
             class="framework-selector-field"
             subscriptSizing="dynamic"
           >
-            <mat-label>ORM Engine</mat-label>
+            <mat-label i18n>ORM Engine</mat-label>
             <mat-select
               [value]="options().orm || 'typeorm'"
               (selectionChange)="onOptionsChange('orm', $event.value)"
+              aria-label="Select ORM Engine"
+              i18n-aria-label
             >
-              <mat-option value="typeorm">TypeORM</mat-option>
+              <mat-option value="typeorm" i18n>TypeORM</mat-option>
             </mat-select>
           </mat-form-field>
         }
 
-        @if (['java', 'php', 'python', 'ruby', 'swift'].includes(selectedLanguageId())) {
+        @if (selectedLanguageId()) {
           <mat-checkbox
-            [checked]="options().noGithubActions || false"
-            (change)="onOptionsChange('noGithubActions', $event.checked)"
+            [checked]="!options().noGithubActions"
+            (change)="onOptionsChange('noGithubActions', !$event.checked)"
           >
-            No GitHub Actions
+            <span i18n>CI</span>
           </mat-checkbox>
+        }
+
+        @if (selectedLanguageId() !== 'sh') {
           <mat-checkbox
-            [checked]="options().noInstallablePackage || false"
-            (change)="onOptionsChange('noInstallablePackage', $event.checked)"
+            [checked]="!options().noInstallablePackage"
+            (change)="onOptionsChange('noInstallablePackage', !$event.checked)"
           >
-            No Installable Package
+            <span i18n>Package</span>
+          </mat-checkbox>
+        }
+
+        @if (selectedLanguageId()) {
+          <mat-checkbox
+            [checked]="options().tests || false"
+            (change)="onOptionsChange('tests', $event.checked)"
+          >
+            <span i18n>Tests</span>
           </mat-checkbox>
         }
       </div>

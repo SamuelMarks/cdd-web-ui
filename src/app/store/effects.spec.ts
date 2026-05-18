@@ -268,6 +268,74 @@ describe('WorkspaceEffects', () => {
       );
     });
 
+    it('should extract model names from openapi 3 components.schemas', () => {
+      const mockFiles: GeneratedFile[] = [{ path: 'test.py', content: new Uint8Array() }];
+      actions$ = of(Actions.executeRunSuccess({ result: mockFiles }));
+      const specContent = JSON.stringify({
+        openapi: '3.0.0',
+        info: { title: 'Test', version: '1.0' },
+        paths: {},
+        components: { schemas: { Pet: {}, User: {} } },
+      });
+      store.overrideSelector(selectOpenApiSpecContent, specContent);
+
+      const spy = vi.spyOn(store, 'dispatch');
+      effects.handleExecutionSuccess$.subscribe();
+
+      expect(spy).toHaveBeenCalledWith(
+        Actions.setGeneratedFiles({ files: mockFiles, modelNames: ['Pet', 'User'] }),
+      );
+    });
+
+    it('should extract model names from openapi 2 definitions', () => {
+      const mockFiles: GeneratedFile[] = [{ path: 'test.py', content: new Uint8Array() }];
+      actions$ = of(Actions.executeRunSuccess({ result: mockFiles }));
+      const specContent = JSON.stringify({
+        swagger: '2.0',
+        info: { title: 'Test', version: '1.0' },
+        paths: {},
+        definitions: { Order: {}, Product: {} },
+      });
+      store.overrideSelector(selectOpenApiSpecContent, specContent);
+
+      const spy = vi.spyOn(store, 'dispatch');
+      effects.handleExecutionSuccess$.subscribe();
+
+      expect(spy).toHaveBeenCalledWith(
+        Actions.setGeneratedFiles({ files: mockFiles, modelNames: ['Order', 'Product'] }),
+      );
+    });
+
+    it('should handle invalid openapi spec gracefully in handleExecutionSuccess$', () => {
+      const mockFiles: GeneratedFile[] = [{ path: 'test.py', content: new Uint8Array() }];
+      actions$ = of(Actions.executeRunSuccess({ result: mockFiles }));
+      store.overrideSelector(selectOpenApiSpecContent, 'invalid spec content');
+
+      const spy = vi.spyOn(store, 'dispatch');
+      effects.handleExecutionSuccess$.subscribe();
+
+      expect(spy).toHaveBeenCalledWith(
+        Actions.setGeneratedFiles({ files: mockFiles, modelNames: [] }),
+      );
+    });
+
+    it('should handle openapi spec with no models in handleExecutionSuccess$', () => {
+      const mockFiles: GeneratedFile[] = [{ path: 'test.py', content: new Uint8Array() }];
+      actions$ = of(Actions.executeRunSuccess({ result: mockFiles }));
+      const specContent = JSON.stringify({
+        openapi: '3.0.0',
+        info: { title: 'Test', version: '1.0' },
+        paths: {},
+      });
+      store.overrideSelector(selectOpenApiSpecContent, specContent);
+
+      const spy = vi.spyOn(store, 'dispatch');
+      effects.handleExecutionSuccess$.subscribe();
+
+      expect(spy).toHaveBeenCalledWith(
+        Actions.setGeneratedFiles({ files: mockFiles, modelNames: [] }),
+      );
+    });
     it('should dispatch updateOpenApiSpec and show success toast if result is a string', () => {
       actions$ = of(Actions.executeRunSuccess({ result: 'openapi: 3.0.0' }));
       const spy = vi.spyOn(store, 'dispatch');

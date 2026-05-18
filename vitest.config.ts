@@ -19,7 +19,7 @@ export default defineConfig({
     include: ['src/**/*.spec.ts'],
     server: {
       deps: {
-        inline: [/cdd-ctl-wasm-sdk/, /@bjorn3\/browser_wasi_shim/],
+        inline: [/cdd-ctl-wasm-sdk/, /@bjorn3\/browser_wasi_shim/, /@angular\/compiler/],
       },
     },
     coverage: {

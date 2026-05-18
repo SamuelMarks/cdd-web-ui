@@ -35,6 +35,22 @@ describe('Reducers', () => {
       expect(state.selectedLanguageId).toBe('python');
     });
 
+    it('should carry over shared options when language changes', () => {
+      let state = workspaceReducer(
+        initialWorkspaceState,
+        Actions.setSelectedLanguage({ languageId: 'typescript' }),
+      );
+      state = workspaceReducer(
+        state,
+        Actions.setLanguageOptions({
+          languageId: 'typescript',
+          options: { tests: true, noGithubActions: true },
+        }),
+      );
+      state = workspaceReducer(state, Actions.setSelectedLanguage({ languageId: 'rust' }));
+      expect(state.languageOptions['rust']).toEqual({ tests: true, noGithubActions: true });
+    });
+
     it('should set target', () => {
       const state = workspaceReducer(
         initialWorkspaceState,
@@ -149,6 +165,50 @@ describe('Reducers', () => {
       );
       expect(state.files).toEqual([]);
       expect(state.activeFilePath).toBeNull();
+    });
+
+    it('should select a file containing a model definition based on parsed modelNames', () => {
+      const files: GeneratedFile[] = [
+        { path: 'main.ts', content: new Uint8Array() },
+        { path: 'models.ts', content: new TextEncoder().encode('export class Pet {') },
+      ];
+      const state = fileTreeReducer(
+        initialFileTreeState,
+        Actions.setGeneratedFiles({ files, modelNames: ['Pet', 'User'] }),
+      );
+      expect(state.activeFilePath).toBe('models.ts');
+    });
+
+    it('should select a file based on generic model fallback patterns', () => {
+      const files: GeneratedFile[] = [
+        { path: 'main.ts', content: new Uint8Array() },
+        { path: 'fallback.go', content: new TextEncoder().encode('type User struct {') },
+      ];
+      const state = fileTreeReducer(initialFileTreeState, Actions.setGeneratedFiles({ files }));
+      expect(state.activeFilePath).toBe('fallback.go');
+    });
+
+    it('should fallback to all files if candidate files are empty in setGeneratedFiles', () => {
+      const files: GeneratedFile[] = [
+        { path: 'package.json', content: new Uint8Array() }, // package.json is ignored
+      ];
+      const state = fileTreeReducer(initialFileTreeState, Actions.setGeneratedFiles({ files }));
+      // It falls back to all files and activeFilePath might become package.json
+      expect(state.files).toEqual(files);
+      expect(state.activeFilePath).toBe('package.json');
+    });
+
+    it('should fall back if modelNames are provided but no file matches', () => {
+      const files: GeneratedFile[] = [
+        { path: 'main.ts', content: new Uint8Array() },
+        { path: 'empty.ts', content: new TextEncoder().encode('const x = 1;') },
+      ];
+      const state = fileTreeReducer(
+        initialFileTreeState,
+        Actions.setGeneratedFiles({ files, modelNames: ['NonExistentModel'] }),
+      );
+      // It falls back to filename patterns, then to the first file (main.ts)
+      expect(state.activeFilePath).toBe('main.ts');
     });
 
     it('should select a file', () => {

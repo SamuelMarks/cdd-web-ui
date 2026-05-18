@@ -282,11 +282,39 @@ describe('WorkspaceComponent', () => {
       );
     });
 
-    it('should dispatch resizeApiDocsPane during drag (mousemove)', () => {
+    it('should dispatch resizeApiDocsPane during drag (mousemove) and toggle resizing class', () => {
+      const dispatchSpy = vi.spyOn(store, 'dispatch');
+      vi.spyOn(component, 'apiDocsPaneHeight').mockReturnValue(300);
+
+      const parentEl = document.createElement('div');
+      Object.defineProperty(parentEl, 'clientHeight', { value: 1000, configurable: true });
+      const targetEl = document.createElement('div');
+      parentEl.appendChild(targetEl);
+
+      const mousedownEvent = new MouseEvent('mousedown', { clientY: 500 });
+      Object.defineProperty(mousedownEvent, 'target', { value: targetEl, enumerable: true });
+      component.onResizerMouseDown(mousedownEvent);
+
+      expect(parentEl.classList.contains('resizing')).toBe(true);
+
+      const mousemoveEvent = new MouseEvent('mousemove', { clientY: 400 });
+      document.dispatchEvent(mousemoveEvent);
+
+      expect(dispatchSpy).toHaveBeenCalledWith(Actions.resizeApiDocsPane({ height: 400 }));
+
+      const mouseupEvent = new MouseEvent('mouseup');
+      document.dispatchEvent(mouseupEvent);
+
+      expect(parentEl.classList.contains('resizing')).toBe(false);
+    });
+
+    it('should handle drag when target has no parentElement or is null', () => {
       const dispatchSpy = vi.spyOn(store, 'dispatch');
       vi.spyOn(component, 'apiDocsPaneHeight').mockReturnValue(300);
 
       const mousedownEvent = new MouseEvent('mousedown', { clientY: 500 });
+      // Event with no target explicitly mocked to mimic detached element
+      Object.defineProperty(mousedownEvent, 'target', { value: null, enumerable: true });
       component.onResizerMouseDown(mousedownEvent);
 
       const mousemoveEvent = new MouseEvent('mousemove', { clientY: 400 });

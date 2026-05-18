@@ -72,6 +72,9 @@ addEventListener('message', async ({ data }) => {
         if (languageOptions.noInstallablePackage) {
           additionalArgs.push('--no-installable-package');
         }
+        if (languageOptions.tests) {
+          additionalArgs.push('--tests');
+        }
       }
 
       if (languageOptions && languageOptions.upgradeOpenApi && ecosystem === 'cdd-cpp') {

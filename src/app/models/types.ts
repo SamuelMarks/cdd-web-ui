@@ -48,6 +48,8 @@ export interface LanguageOptions {
   noGithubActions?: boolean;
   /** Whether to skip generating an installable package. */
   noInstallablePackage?: boolean;
+  /** Whether to create composable tests & mocks. */
+  tests?: boolean;
   /** Additional dynamic properties. */
   [key: string]: unknown;
 }

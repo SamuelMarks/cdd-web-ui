@@ -45,14 +45,28 @@ export const workspaceReducer = createReducer(
     }),
   ),
   /** on */
-  on(
-    Actions.setSelectedLanguage,
-    (state, { languageId }): WorkspaceState => ({
+  on(Actions.setSelectedLanguage, (state, { languageId }): WorkspaceState => {
+    const currentLanguageId = state.selectedLanguageId;
+    const currentOptions = state.languageOptions[currentLanguageId] || {};
+    const newOptions = { ...(state.languageOptions[languageId] || {}) };
+
+    const sharedKeys = ['tests', 'noGithubActions', 'noInstallablePackage'];
+    for (const key of sharedKeys) {
+      if (currentOptions[key] !== undefined) {
+        newOptions[key] = currentOptions[key];
+      }
+    }
+
+    return {
       ...state,
       selectedLanguageId: languageId,
+      languageOptions: {
+        ...state.languageOptions,
+        [languageId]: newOptions,
+      },
       executionError: null,
-    }),
-  ),
+    };
+  }),
   /** on */
   on(
     Actions.setTarget,
@@ -310,7 +324,7 @@ export const initialOpenApiState: OpenApiState = {
   /** validationErrors */
   validationErrors: [],
   /** inputFormat */
-  inputFormat: 'openapi_older',
+  inputFormat: 'openapi_3_2_0',
 };
 
 /** OpenAPI Reducer */
