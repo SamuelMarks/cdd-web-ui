@@ -164,3 +164,4 @@ tool-outputs/
 
 # Broader Angular/Build ignores
 .angular/
+public/assets/wasm/*.js
