@@ -12,14 +12,21 @@ const originalWarn = console.warn;
 /** Original console.error reference */
 const originalError = console.error;
 
-console.log = (...args) => {
+// Allow CddJavaBrowser to temporarily override console logs without losing its reference
+let originalInterceptLog = (...args: unknown[]) => {
   postMessage({ status: 'log', level: 'INFO', message: args.map((a) => String(a)).join(' ') });
   originalLog(...args);
 };
-
-console.info = (...args) => {
+let originalInterceptInfo = (...args: unknown[]) => {
   postMessage({ status: 'log', level: 'INFO', message: args.map((a) => String(a)).join(' ') });
   originalInfo(...args);
+};
+
+console.log = (...args) => {
+  originalInterceptLog(...args);
+};
+console.info = (...args) => {
+  originalInterceptInfo(...args);
 };
 
 console.warn = (...args) => {
@@ -33,6 +40,27 @@ console.error = (...args) => {
 };
 
 addEventListener('message', async ({ data }) => {
+  if (data && data.payload && data.payload.ecosystem === 'cdd-java') {
+    if (typeof self !== 'undefined' && !(self as unknown as { GraalVM?: unknown }).GraalVM) {
+      try {
+        console.log('Worker loading cdd-java.js via fetch+eval...');
+        const resp = await fetch(location.origin + '/assets/wasm/cdd-java.js');
+        const scriptStr = await resp.text();
+        const globalEval = eval;
+        globalEval('var window = self; var globalThis = self; ' + scriptStr);
+        if ((self as unknown as { GraalVM?: unknown }).GraalVM) {
+          try {
+            (globalThis as unknown as { GraalVM?: unknown }).GraalVM = (
+              self as unknown as Record<string, unknown>
+            )["GraalVM"];
+          } catch (e) {}
+        }
+      } catch (e2) {
+        console.warn('Failed to load cdd-java.js inside worker via fetch+eval', e2);
+      }
+    }
+  }
+
   let jobId = data.jobId;
   try {
     const { action, payload } = data;
