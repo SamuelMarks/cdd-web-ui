@@ -52,7 +52,7 @@ addEventListener('message', async ({ data }) => {
           try {
             (globalThis as unknown as { GraalVM?: unknown }).GraalVM = (
               self as unknown as Record<string, unknown>
-            )["GraalVM"];
+            )['GraalVM'];
           } catch (e) {}
         }
       } catch (e2) {
