@@ -53,7 +53,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   /** template */
   template: `
     <div class="workspace-container">
-      <div class="workspace-toolbar" role="toolbar" aria-label="Workspace Tools" i18n-aria-label>
+      <div
+        class="workspace-toolbar"
+        role="toolbar"
+        aria-label="Workspace Tools"
+        i18n-aria-label="@@workspaceToolsAria"
+      >
         <div class="input-controls">
           <mat-form-field appearance="outline" class="toolbar-field" subscriptSizing="dynamic">
             <mat-label i18n>Input Format</mat-label>
@@ -61,7 +66,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               [value]="inputFormat() || 'openapi_3_2_0'"
               (selectionChange)="onInputFormatChange($event.value)"
               aria-label="Select Input Format"
-              i18n-aria-label
+              i18n-aria-label="@@selectInputFormatAria"
             >
               <mat-select-trigger>
                 <div class="format-option-trigger">
@@ -77,13 +82,19 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                     class="format-icon"
                   />
                   <span class="format-name">
-                    {{
-                      inputFormat() === 'google_discovery'
-                        ? 'Google Discovery'
-                        : inputFormat() === 'openapi_older'
-                          ? 'Swagger / OpenAPI < 3.2.0'
-                          : 'OpenAPI 3.2.0'
-                    }}
+                    @switch (inputFormat()) {
+                      @case ('google_discovery') {
+                        <ng-container i18n="@@formatGoogleDiscovery">Google Discovery</ng-container>
+                      }
+                      @case ('openapi_older') {
+                        <ng-container i18n="@@formatOpenApiOlder"
+                          >Swagger / OpenAPI &lt; 3.2.0</ng-container
+                        >
+                      }
+                      @default {
+                        <ng-container i18n="@@formatOpenApi320">OpenAPI 3.2.0</ng-container>
+                      }
+                    }
                   </span>
                 </div>
               </mat-select-trigger>
@@ -136,7 +147,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               [value]="selectedExample()"
               (selectionChange)="onExampleChange($event.value)"
               aria-label="Select Example"
-              i18n-aria-label
+              i18n-aria-label="@@selectExampleAria"
             >
               <mat-option value="petstore" i18n>Petstore</mat-option>
               <mat-option value="hello" i18n>Hello World</mat-option>
@@ -179,7 +190,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           role="separator"
           aria-orientation="horizontal"
           aria-label="Resize API Docs Pane"
-          i18n-aria-label
+          i18n-aria-label="@@resizeApiDocsPaneAria"
           (mousedown)="onResizerMouseDown($event)"
           (dblclick)="onResizerDoubleClick()"
           (keydown)="onResizerKeydown($event)"

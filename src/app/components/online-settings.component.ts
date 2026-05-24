@@ -38,23 +38,25 @@ import { ApiService } from '../services/api.service';
             (selectionChange)="onRunModeChange($event.value)"
             aria-labelledby="run-mode-heading"
           >
-            <mat-option value="local_relative">Locally (relative paths to wasm)</mat-option>
-            <mat-option value="local_cdd_ctl_wasm">Locally (cdd-ctl wasm)</mat-option>
-            <mat-option value="local_cdd_ctl_native">Locally (cdd-ctl native runtimes)</mat-option>
-            <mat-option value="served_github">Served (GitHub releases)</mat-option>
+            <mat-option value="local_relative" i18n="@@runModeLocalRelative"
+              >Locally (relative paths to wasm)</mat-option
+            >
+            <mat-option value="local_cdd_ctl_wasm" i18n="@@runModeLocalWasm"
+              >Locally (cdd-ctl wasm)</mat-option
+            >
+            <mat-option value="local_cdd_ctl_native" i18n="@@runModeLocalNative"
+              >Locally (cdd-ctl native runtimes)</mat-option
+            >
+            <mat-option value="served_github" i18n="@@runModeServedGithub"
+              >Served (GitHub releases)</mat-option
+            >
           </mat-select>
         </mat-form-field>
       </div>
 
       @if (config.isOnline()) {
         <p i18n="@@currentlyOnline">Currently Online: {{ config.backendUrl() }}</p>
-        <button
-          mat-flat-button
-          color="warn"
-          (click)="goOffline()"
-          aria-label="Disconnect and go offline"
-          i18n="@@goOffline"
-        >
+        <button mat-flat-button color="warn" (click)="goOffline()" i18n="@@goOffline">
           Go Offline
         </button>
       } @else {
@@ -71,7 +73,6 @@ import { ApiService } from '../services/api.service';
               formControlName="url"
               placeholder="http://localhost:8080"
               i18n-placeholder="@@backendUrlPlaceholder"
-              aria-label="Backend URL"
             />
             @if (urlForm.get('url')?.hasError('required')) {
               <mat-error i18n="@@urlRequiredError">URL is required</mat-error>
@@ -82,7 +83,6 @@ import { ApiService } from '../services/api.service';
             color="primary"
             type="submit"
             [disabled]="urlForm.invalid"
-            aria-label="Connect to backend"
             i18n="@@connectBtn"
           >
             Connect
@@ -101,11 +101,11 @@ import { ApiService } from '../services/api.service';
           >
             <mat-form-field appearance="outline" class="full-width">
               <mat-label i18n="@@usernameLabel">Username</mat-label>
-              <input matInput formControlName="username" aria-label="Username" />
+              <input matInput formControlName="username" />
             </mat-form-field>
             <mat-form-field appearance="outline" class="full-width">
               <mat-label i18n="@@passwordLabel">Password</mat-label>
-              <input matInput type="password" formControlName="password" aria-label="Password" />
+              <input matInput type="password" formControlName="password" />
             </mat-form-field>
             <div class="actions">
               <button
@@ -113,7 +113,6 @@ import { ApiService } from '../services/api.service';
                 color="primary"
                 type="submit"
                 [disabled]="authForm.invalid"
-                aria-label="Login"
                 i18n="@@loginBtn"
               >
                 Login
@@ -124,7 +123,6 @@ import { ApiService } from '../services/api.service';
                 type="button"
                 (click)="onRegister()"
                 [disabled]="authForm.invalid"
-                aria-label="Register new user"
                 i18n="@@registerBtn"
               >
                 Register
@@ -136,12 +134,7 @@ import { ApiService } from '../services/api.service';
             <div class="divider">
               <span i18n="@@orDivider">OR</span>
             </div>
-            <button
-              mat-flat-button
-              class="github-btn full-width"
-              (click)="onGithubLogin()"
-              aria-label="Login with GitHub"
-            >
+            <button mat-flat-button class="github-btn full-width" (click)="onGithubLogin()">
               <!-- Using standard text icon if SVG isn't immediately available, or we could just use a mat-icon text fallback. -->
               <mat-icon class="github-icon" aria-hidden="true">code</mat-icon>
               <span i18n="@@loginWithGithubBtn">Login with GitHub</span>
@@ -158,7 +151,7 @@ import { ApiService } from '../services/api.service';
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close aria-label="Close dialog" i18n="@@closeBtn">Close</button>
+      <button mat-button mat-dialog-close i18n="@@closeBtn">Close</button>
     </mat-dialog-actions>
   `,
   /** styles */

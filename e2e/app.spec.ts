@@ -65,6 +65,9 @@ test.describe('App E2E Tests', () => {
   for (const lang of LANGUAGES) {
     test(`Language UI interactions: ${lang.name}`, async ({ page }) => {
       await page.goto('/');
+      const loadWasmBtn = page.getByRole('button', { name: 'Load ~380MB of WASM' });
+      await loadWasmBtn.waitFor({ state: 'visible' });
+      await loadWasmBtn.click();
 
       // Wait for app load
       await page.waitForSelector('mat-select[aria-label="Select Target Language"]');
@@ -124,6 +127,9 @@ test.describe('App E2E Tests', () => {
       isMobile,
     }) => {
       await page.goto('/', { waitUntil: 'networkidle' });
+      const loadWasmBtn = page.getByRole('button', { name: 'Load ~380MB of WASM' });
+      await loadWasmBtn.waitFor({ state: 'visible' });
+      await loadWasmBtn.click();
 
       // 0. Specific input (Petstore example)
       const exampleSelect = page.locator('.example-field mat-select');
@@ -190,6 +196,9 @@ test.describe('App E2E Tests', () => {
 
   test('Verify Theme switching (Light/Dark)', async ({ page }) => {
     await page.goto('/');
+    const loadWasmBtn = page.getByRole('button', { name: 'Load ~380MB of WASM' });
+    await loadWasmBtn.waitFor({ state: 'visible' });
+    await loadWasmBtn.click();
 
     const themeToggle = page.locator('.theme-toggle');
     const icon = themeToggle.locator('.theme-icon');
@@ -211,6 +220,9 @@ test.describe('App E2E Tests', () => {
 
   test.skip('User clicks Swap ⇆ -> verifies left/right swap', async ({ page }) => {
     await page.goto('/');
+    const loadWasmBtn = page.getByRole('button', { name: 'Load ~380MB of WASM' });
+    await loadWasmBtn.waitFor({ state: 'visible' });
+    await loadWasmBtn.click();
     await page.waitForSelector('.workspace-toolbar');
 
     let leftPane = page.locator('.pane-left');
@@ -240,6 +252,9 @@ test.describe('App E2E Tests', () => {
     });
 
     await page.goto('/');
+    const loadWasmBtn = page.getByRole('button', { name: 'Load ~380MB of WASM' });
+    await loadWasmBtn.waitFor({ state: 'visible' });
+    await loadWasmBtn.click();
 
     const runButton = page.locator('button', { hasText: 'Generate' }).first();
     await runButton.waitFor({ state: 'visible' });

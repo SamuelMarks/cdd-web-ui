@@ -1,4 +1,4 @@
-.PHONY: build_docker run_docker test_docker clean_docker
+.PHONY: build_docker run_docker test_docker clean_docker build_production_docs
 
 build_docker:
 	docker build -f alpine.Dockerfile -t cdd-web-alpine .
@@ -27,3 +27,7 @@ clean_docker:
 	docker stop cdd-web-debian-cont cdd-web-alpine-cont || true
 	docker rm cdd-web-debian-cont cdd-web-alpine-cont || true
 	docker rmi cdd-web-debian cdd-web-alpine || true
+
+build_production_docs:
+	npm ci
+	npm run build:prod

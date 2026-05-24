@@ -55,7 +55,7 @@ import { StorageService } from '../../services/storage.service';
             [value]="selectedLanguageId()"
             (selectionChange)="onSelectionChange($event.value)"
             aria-label="Select Target Language"
-            i18n-aria-label
+            i18n-aria-label="@@selectTargetLangAria"
           >
             <mat-select-trigger>
               <div class="language-option-trigger">
@@ -117,7 +117,7 @@ import { StorageService } from '../../services/storage.service';
           [value]="target()"
           (selectionChange)="onTargetChange($event.value)"
           aria-label="Select Target Output"
-          i18n-aria-label
+          i18n-aria-label="@@selectTargetOutputAria"
         >
           <mat-option value="to_sdk" i18n>Client SDK</mat-option>
           <mat-option value="to_sdk_cli" i18n>Client CLI</mat-option>
@@ -142,7 +142,7 @@ import { StorageService } from '../../services/storage.service';
               [value]="options().framework || 'vanilla'"
               (selectionChange)="onOptionsChange('framework', $event.value)"
               aria-label="Select Client Framework"
-              i18n-aria-label
+              i18n-aria-label="@@selectClientFrameworkAria"
             >
               <mat-option value="vanilla" i18n>Vanilla JS</mat-option>
               <mat-option value="angular" i18n>Angular</mat-option>
@@ -169,7 +169,7 @@ import { StorageService } from '../../services/storage.service';
               [value]="options().serverFramework || 'express'"
               (selectionChange)="onOptionsChange('serverFramework', $event.value)"
               aria-label="Select Server Framework"
-              i18n-aria-label
+              i18n-aria-label="@@selectServerFrameworkAria"
             >
               <mat-option value="express" i18n>Express</mat-option>
               <mat-option value="node" i18n>Node.js HTTP</mat-option>
@@ -190,7 +190,7 @@ import { StorageService } from '../../services/storage.service';
               [value]="options().orm || 'typeorm'"
               (selectionChange)="onOptionsChange('orm', $event.value)"
               aria-label="Select ORM Engine"
-              i18n-aria-label
+              i18n-aria-label="@@selectOrmEngineAria"
             >
               <mat-option value="typeorm" i18n>TypeORM</mat-option>
             </mat-select>

@@ -3,6 +3,11 @@ IF "%1"=="build_docker" GOTO build_docker
 IF "%1"=="run_docker" GOTO run_docker
 IF "%1"=="test_docker" GOTO test_docker
 IF "%1"=="clean_docker" GOTO clean_docker
+IF "%1"=="build_docker_prod" GOTO build_docker_prod
+IF "%1"=="run_docker_prod" GOTO run_docker_prod
+IF "%1"=="test_docker_prod" GOTO test_docker_prod
+IF "%1"=="clean_docker_prod" GOTO clean_docker_prod
+IF "%1"=="build_production_docs" GOTO build_production_docs
 GOTO :EOF
 
 :build_docker
@@ -38,4 +43,44 @@ GOTO :EOF
 docker stop cdd-web-debian-cont cdd-web-alpine-cont
 docker rm cdd-web-debian-cont cdd-web-alpine-cont
 docker rmi cdd-web-debian cdd-web-alpine
+GOTO :EOF
+
+:build_docker_prod
+docker build -f alpine.prod.Dockerfile -t cdd-web-alpine-prod .
+docker build -f debian.prod.Dockerfile -t cdd-web-debian-prod .
+GOTO :EOF
+
+:run_docker_prod
+docker run -d --name cdd-web-debian-prod-cont -p 8083:80 cdd-web-debian-prod
+docker run -d --name cdd-web-alpine-prod-cont -p 8084:80 cdd-web-alpine-prod
+GOTO :EOF
+
+:test_docker_prod
+CALL make.bat build_docker_prod
+CALL make.bat run_docker_prod
+echo Waiting for production containers to start...
+timeout /t 5 /nobreak > NUL
+
+echo Testing Debian production container...
+curl -s http://localhost:8083
+
+echo Testing Alpine production container...
+curl -s http://localhost:8084
+
+echo Copying production build artifacts out...
+docker cp cdd-web-debian-prod-cont:/usr/share/nginx/html ./build-from-debian-prod
+docker cp cdd-web-alpine-prod-cont:/usr/share/nginx/html ./build-from-alpine-prod
+
+CALL make.bat clean_docker_prod
+GOTO :EOF
+
+:clean_docker_prod
+docker stop cdd-web-debian-prod-cont cdd-web-alpine-prod-cont
+docker rm cdd-web-debian-prod-cont cdd-web-alpine-prod-cont
+docker rmi cdd-web-debian-prod cdd-web-alpine-prod
+GOTO :EOF
+
+:build_production_docs
+call npm ci
+call npm run build:prod
 GOTO :EOF

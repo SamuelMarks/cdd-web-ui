@@ -3,6 +3,7 @@ name: Deploy Web UI to GitHub Pages
 on:
   push:
     branches: ['main', 'master']
+    tags: ['v*']
 
 permissions:
   contents: write
@@ -15,18 +16,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout cdd-web-ui
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: 'cdd-web-ui'
 
       - name: Checkout cdd-ctl
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: 'SamuelMarks/cdd-ctl'
           path: 'cdd-ctl'
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
@@ -52,18 +53,30 @@ jobs:
             wasm-opt -O3 "$wasm_file" -o "./optimized-wasm/$filename" || cp "$wasm_file" "./optimized-wasm/$filename"
           done
 
-      - name: Publish to GitHub Releases (latest)
-        working-directory: ./cdd-web-ui
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Ensure git tags are loaded
-          git fetch --tags
-          # Delete the 'latest' release and tag if they exist
-          gh release delete latest --cleanup-tag -y || true
+      - name: Upload Artifacts (Version Tag)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: 'cdd-ctl/optimized-wasm/*.wasm'
+          allowUpdates: true
+          replacesArtifacts: true
 
-          # Create a new release and upload all optimized wasm files
-          gh release create latest ../cdd-ctl/optimized-wasm/*.wasm --title "Latest WASM Assets" --notes "Auto-generated WASM binaries optimized with -O3" --target ${{ github.sha }}
+      - name: Update latest tag
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        working-directory: ./cdd-web-ui
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch --tags
+
+          # Delete the latest tag locally and remotely if it exists
+          git tag -d latest || true
+          git push origin :refs/tags/latest || true
+
+          # Create the latest tag on the current commit and push it
+          git tag latest
+          git push origin latest
 
       - name: Install UI Dependencies
         working-directory: ./cdd-web-ui

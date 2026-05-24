@@ -1,8 +1,11 @@
 import { BackendConfigService } from './backend-config.service';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { WasmLoaderService } from './wasm-loader.service';
+import { WasmLoaderService, WASM_GITHUB_URLS } from './wasm-loader.service';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+import { MatDialog } from '@angular/material/dialog';
+import { of } from 'rxjs';
 
 describe('WasmLoaderService', () => {
   let service: WasmLoaderService;
@@ -13,7 +16,13 @@ describe('WasmLoaderService', () => {
       runMode: signal('local_relative'),
     };
     TestBed.configureTestingModule({
-      providers: [{ provide: BackendConfigService, useValue: mockConfig }],
+      providers: [
+        { provide: BackendConfigService, useValue: mockConfig },
+        {
+          provide: MatDialog,
+          useValue: { open: vi.fn().mockReturnValue({ afterClosed: () => of(true) }) },
+        },
+      ],
     });
 
     service = TestBed.inject(WasmLoaderService);
@@ -32,176 +41,231 @@ describe('WasmLoaderService', () => {
   it('should load a valid WASM binary and cache it', async () => {
     const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
 
+    // Update fetch mock to succeed for local fetch
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'content-type': 'application/wasm' }),
       arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
     } as unknown as Response);
 
-    const buffer = await service.loadWasmBinary('cdd-test');
+    // Mock WASM_GITHUB_URLS map dynamically if needed, but it's hardcoded. We will use a real one.
+    const buffer = await service.loadWasmBinary('cdd-ts');
     expect(new Uint8Array(buffer)).toEqual(mockWasmData);
+
+    // First try: local fetch, so 1 call
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-ts.wasm');
 
     // Second call should use cache
-    const cachedBuffer = await service.loadWasmBinary('cdd-test');
+    const cachedBuffer = await service.loadWasmBinary('cdd-ts');
     expect(new Uint8Array(cachedBuffer)).toEqual(mockWasmData);
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('should throw an error if the fetch fails (e.g. 404)', async () => {
+  it('should fallback to GitHub if local fetch fails with 404', async () => {
+    const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
+
+    // Provide a mocked fetch that fails on local URLs but succeeds on github URLs
+    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.startsWith('/assets/')) {
+        return {
+          ok: false,
+          status: 404,
+        };
+      }
+      return {
+        ok: true,
+        headers: new Headers({ 'content-type': 'application/wasm' }),
+        arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
+      };
+    });
+
+    const buffer = await service.loadWasmBinary('cdd-ts');
+    expect(new Uint8Array(buffer)).toEqual(mockWasmData);
+
+    // It should have tried local path, then github path
+    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-ts.wasm');
+    expect(globalThis.fetch).toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-ts']);
+  });
+
+  it('should fallback to GitHub if local fetch throws network error', async () => {
+    const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
+
+    // Provide a mocked fetch that fails on local URLs but succeeds on github URLs
+    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.startsWith('/assets/')) {
+        throw new Error('Network error');
+      }
+      return {
+        ok: true,
+        headers: new Headers({ 'content-type': 'application/wasm' }),
+        arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
+      };
+    });
+
+    const buffer = await service.loadWasmBinary('cdd-ts');
+    expect(new Uint8Array(buffer)).toEqual(mockWasmData);
+
+    // It should have tried local path, then github path
+    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-ts.wasm');
+    expect(globalThis.fetch).toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-ts']);
+  });
+
+  it('should throw an error if both local and GitHub fetch fails', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
       statusText: 'Not Found',
     } as unknown as Response);
 
-    await expect(service.loadWasmBinary('cdd-missing')).rejects.toThrow(
-      /WASM binary not found for cdd-missing/,
+    await expect(service.loadWasmBinary('cdd-ts')).rejects.toThrow(
+      /WASM binary not found for cdd-ts/,
     );
-    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+
+    // It should have tried local path and github path
+    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-ts.wasm');
+    expect(globalThis.fetch).toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-ts']);
   });
 
-  it('should throw an error for non-404 fetch failures', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      statusText: 'Internal Server Error',
-    } as unknown as Response);
+  it('should throw an error for non-404 fetch failures after fallback', async () => {
+    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.startsWith('/assets/')) {
+        return {
+          ok: false,
+          status: 404,
+        };
+      }
+      return {
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      };
+    });
 
-    await expect(service.loadWasmBinary('cdd-error')).rejects.toThrow(
-      /Failed to load WASM binary for cdd-error: Internal Server Error/,
+    await expect(service.loadWasmBinary('cdd-ts')).rejects.toThrow(
+      /Failed to load WASM binary for cdd-ts: Internal Server Error/,
     );
-    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('should warn but proceed if content-type is unexpected', async () => {
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d]);
+  it('should check fallbackLocalPath for Java', async () => {
+    const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
 
+    // Provide a mocked fetch that fails for cdd-java.js.wasm but succeeds for cdd-java.wasm
+    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url === '/assets/wasm/cdd-java.js.wasm') {
+        return {
+          ok: false,
+          status: 404,
+        };
+      }
+      if (url === '/assets/wasm/cdd-java.wasm') {
+        return {
+          ok: true,
+          headers: new Headers({ 'content-type': 'application/wasm' }),
+          arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
+        };
+      }
+      return { ok: false, status: 404 };
+    });
+
+    const buffer = await service.loadWasmBinary('cdd-java');
+    expect(new Uint8Array(buffer)).toEqual(mockWasmData);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-java.js.wasm');
+    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-java.wasm');
+    // Should NOT have called Github
+    expect(globalThis.fetch).not.toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-java']);
+  });
+
+  it('should throw an error if no GitHub URL is configured for the ecosystem', async () => {
+    await expect(service.loadWasmBinary('unknown-ecosystem')).rejects.toThrow(
+      /No GitHub URL configured for ecosystem: unknown-ecosystem/,
+    );
+  });
+
+  it('should warn if the content-type is unexpected but still return the buffer', async () => {
+    const consoleSpy = vi.spyOn(console, 'warn');
+    const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'content-type': 'text/html' }),
       arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
     } as unknown as Response);
 
-    const buffer = await service.loadWasmBinary('cdd-weird');
-    expect(new Uint8Array(buffer)).toEqual(mockWasmData);
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Unexpected content-type for WASM binary'),
+    await service.loadWasmBinary('cdd-ts');
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Unexpected content-type for WASM binary: text/html. Continuing anyway.',
+      ),
     );
-
-    consoleWarnSpy.mockRestore();
   });
 
-  it('should throw an error if the binary magic number is invalid', async () => {
-    const mockInvalidData = new Uint8Array([0x01, 0x02, 0x03, 0x04]);
-
+  it('should throw if the WASM binary misses the magic number', async () => {
+    const invalidData = new Uint8Array([0x01, 0x02, 0x03, 0x04]);
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'content-type': 'application/wasm' }),
-      arrayBuffer: () => Promise.resolve(mockInvalidData.buffer),
+      arrayBuffer: () => Promise.resolve(invalidData.buffer),
     } as unknown as Response);
 
-    await expect(service.loadWasmBinary('cdd-invalid')).rejects.toThrow(
-      /Invalid WASM binary downloaded for cdd-invalid: Missing magic number./,
+    await expect(service.loadWasmBinary('cdd-ts')).rejects.toThrow(
+      /Invalid WASM binary downloaded for cdd-ts: Missing magic number/,
     );
   });
 
-  it('should throw an error if the binary is neither WASM nor ZIP but has length >= 4', async () => {
-    const mockInvalidData = new Uint8Array([0x01, 0x02, 0x03, 0x04]);
+  it('should throw if the WASM binary is too short', async () => {
+    const shortData = new Uint8Array([0x00]);
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'content-type': 'application/wasm' }),
-      arrayBuffer: () => Promise.resolve(mockInvalidData.buffer),
+      arrayBuffer: () => Promise.resolve(shortData.buffer),
     } as unknown as Response);
 
-    await expect(service.loadWasmBinary('cdd-invalid2')).rejects.toThrow(
-      /Invalid WASM binary downloaded for cdd-invalid2: Missing magic number./,
+    await expect(service.loadWasmBinary('cdd-ts')).rejects.toThrow(
+      /Invalid WASM binary downloaded for cdd-ts: Missing magic number/,
     );
   });
 
-  it('should throw an error if the binary is less than 4 bytes', async () => {
-    const mockInvalidData = new Uint8Array([0x01, 0x02]);
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({ 'content-type': 'application/wasm' }),
-      arrayBuffer: () => Promise.resolve(mockInvalidData.buffer),
-    } as unknown as Response);
-
-    await expect(service.loadWasmBinary('cdd-short')).rejects.toThrow(
-      /Invalid WASM binary downloaded for cdd-short: Missing magic number./,
-    );
-  });
-
-  it('should allow valid ZIP files', async () => {
-    const mockZipData = new Uint8Array([0x50, 0x4b, 0x03, 0x04]);
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({ 'content-type': 'application/zip' }),
-      arrayBuffer: () => Promise.resolve(mockZipData.buffer),
-    } as unknown as Response);
-
-    const buffer = await service.loadWasmBinary('cdd-zip');
-    expect(buffer.byteLength).toBe(4);
-  });
-
-  it('should clear the cache', async () => {
-    const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d]);
+  it('should preload all WASM binaries', async () => {
+    const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'content-type': 'application/wasm' }),
       arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
     } as unknown as Response);
 
-    await service.loadWasmBinary('cdd-clear');
-    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-
-    service.clearCache();
-
-    await service.loadWasmBinary('cdd-clear');
-    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    const progressCallback = vi.fn();
+    await service.preloadAllWasm(progressCallback);
+    expect(progressCallback).toHaveBeenCalled();
   });
 
-  it('should use served_github url for cdd-python', async () => {
-    const config = TestBed.inject(BackendConfigService);
-    config.runMode.set('served_github');
-    const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d]);
+  it('should handle errors in preloadAllWasm when 404', async () => {
+    const consoleSpy = vi.spyOn(console, 'warn');
     globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({ 'content-type': 'application/wasm' }),
-      arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
     } as unknown as Response);
-    await service.loadWasmBinary('cdd-python');
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      'https://github.com/offscale/cdd-python/releases/latest/download/cdd-python.wasm',
+
+    await service.preloadAllWasm();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to preload cdd-ts: Not Found'),
     );
   });
 
-  it('should use served_github url for default', async () => {
-    const config = TestBed.inject(BackendConfigService);
-    config.runMode.set('served_github');
-    const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d]);
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({ 'content-type': 'application/wasm' }),
-      arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
-    } as unknown as Response);
-    await service.loadWasmBinary('cdd-rust');
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      'https://github.com/SamuelMarks/cdd-rust/releases/latest/download/cdd-rust.wasm',
+  it('should handle thrown errors in preloadAllWasm', async () => {
+    const consoleSpy = vi.spyOn(console, 'error');
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+    await service.preloadAllWasm();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to preload cdd-ts:'),
+      expect.any(Error),
     );
   });
 
-  it('should fallback to local url in local_cdd_ctl_native mode', async () => {
-    const config = TestBed.inject(BackendConfigService);
-    config.runMode.set('local_cdd_ctl_native');
-    const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d]);
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({ 'content-type': 'application/wasm' }),
-      arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
-    } as unknown as Response);
-    await service.loadWasmBinary('cdd-rust');
-    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-rust.wasm');
+  it('should return correct cdd-java.js URL', () => {
+    const url = service.getCddJavaJsUrl();
+    expect(url).toBe('/assets/wasm/cdd-java.js');
   });
 });

@@ -77,6 +77,7 @@ describe('WasmWorkerService', () => {
   beforeEach(() => {
     mockLoaderService = {
       loadWasmBinary: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
+      getCddJavaJsUrl: vi.fn().mockReturnValue('mock-url'),
     };
     mockLoggingService = {
       info: vi.fn(),

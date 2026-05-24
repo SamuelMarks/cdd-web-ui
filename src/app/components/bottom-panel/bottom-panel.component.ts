@@ -30,13 +30,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
         [selectedIndex]="selectedTabIndex()"
         (selectedIndexChange)="selectedTabIndex.set($event)"
       >
-        <mat-tab label="Logs">
+        <mat-tab label="Logs" i18n-label="@@logsTab">
           <div class="console-tab-content">
             <div class="console-toolbar">
               <button
                 mat-icon-button
                 title="Clear Logs"
+                i18n-title="@@clearLogsTitle"
                 aria-label="Clear Logs"
+                i18n-aria-label="@@clearLogsAria"
                 (click)="clearLogs()"
               >
                 <mat-icon>delete</mat-icon>
@@ -50,15 +52,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                   <span class="log-message">{{ log.message }}</span>
                 </div>
               } @empty {
-                <div class="empty-state">No logs to display</div>
+                <div class="empty-state" i18n="@@noLogs">No logs to display</div>
               }
             </div>
           </div>
         </mat-tab>
-        <mat-tab label="Structure">
+        <mat-tab label="Structure" i18n-label="@@structureTab">
           <app-visualisations></app-visualisations>
         </mat-tab>
-        <mat-tab label="Docs UI">
+        <mat-tab label="Docs UI" i18n-label="@@docsUiTab">
           <app-api-docs-viewer></app-api-docs-viewer>
         </mat-tab>
       </mat-tab-group>

@@ -1,3 +1,4 @@
+import { of } from 'rxjs';
 import '@angular/compiler';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -11,6 +12,7 @@ describe('App', () => {
   let configSpy: {
     isOnline: import('@angular/core').WritableSignal<boolean>;
     backendUrl: import('@angular/core').WritableSignal<string | null>;
+    runMode: import('@angular/core').WritableSignal<string>;
   };
   let themeSpy: { isDarkTheme: WritableSignal<boolean>; toggleTheme: ReturnType<typeof vi.fn> };
   let isDarkThemeSignal: WritableSignal<boolean>;
@@ -20,6 +22,7 @@ describe('App', () => {
     configSpy = {
       isOnline: signal(false),
       backendUrl: signal(null),
+      runMode: signal('local'), // This ensures useGithub is false and App sets isReady to true immediately
     };
 
     themeSpy = {
@@ -47,23 +50,28 @@ describe('App', () => {
   it('should render online title when config is online', () => {
     configSpy.isOnline.set(true);
     const fixture = TestBed.createComponent(App);
+    fixture.componentInstance.isReady.set(true);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('CDD Web UI (Online)');
+    expect(compiled.querySelector('.status-indicator')?.classList.contains('is-online')).toBe(true);
   });
 
   it('should render offline title when config is offline', () => {
     configSpy.isOnline.set(false);
     const fixture = TestBed.createComponent(App);
+    fixture.componentInstance.isReady.set(true);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('CDD Web UI (Offline)');
+    expect(compiled.querySelector('.status-indicator')?.classList.contains('is-offline')).toBe(
+      true,
+    );
   });
 
   it('should call theme.toggleTheme when toggle button is clicked', () => {
     const fixture = TestBed.createComponent(App);
+    fixture.componentInstance.isReady.set(true);
     fixture.detectChanges();
-    const button = fixture.nativeElement.querySelector('button[mat-icon-button]');
+    const button = fixture.nativeElement.querySelector('.theme-toggle');
     button.click();
     expect(themeSpy.toggleTheme).toHaveBeenCalled();
   });
@@ -80,8 +88,9 @@ describe('App', () => {
   it('should render correct theme tooltip based on theme state', () => {
     themeSpy.isDarkTheme.set(false);
     const fixture = TestBed.createComponent(App);
+    fixture.componentInstance.isReady.set(true);
     fixture.detectChanges();
     const button = fixture.nativeElement.querySelector('button.theme-toggle');
-    expect(button.getAttribute('aria-label')).toContain('Switch to Dark Mode');
+    expect(button.textContent || '').toContain('Switch to Dark Mode');
   });
 });

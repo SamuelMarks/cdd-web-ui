@@ -24,14 +24,21 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
   /** template */
   template: `
     <div class="directory-tree-container">
-      <div class="toolbar" role="toolbar" aria-label="Directory Tree Actions">
-        <h2 class="toolbar-title">Explorer</h2>
+      <div
+        class="toolbar"
+        role="toolbar"
+        aria-label="Directory Tree Actions"
+        i18n-aria-label="@@dirTreeActionsAria"
+      >
+        <h2 class="toolbar-title" i18n>Explorer</h2>
 
         <button
           mat-icon-button
           (click)="expandAll()"
           matTooltip="Expand All"
+          i18n-matTooltip="@@expandAllTooltip"
           aria-label="Expand All"
+          i18n-aria-label="@@expandAllAria"
           [disabled]="!hasFiles()"
         >
           <mat-icon>unfold_more</mat-icon>
@@ -40,7 +47,9 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
           mat-icon-button
           (click)="collapseAll()"
           matTooltip="Collapse All"
+          i18n-matTooltip="@@collapseAllTooltip"
           aria-label="Collapse All"
+          i18n-aria-label="@@collapseAllAria"
           [disabled]="!hasFiles()"
         >
           <mat-icon>unfold_less</mat-icon>
@@ -64,8 +73,8 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
         } @else {
           <div class="empty-state">
             <mat-icon>snippet_folder</mat-icon>
-            <p>No files generated.</p>
-            <p style="font-size: 0.8rem; margin-top: 0.5rem;">
+            <p i18n="@@noFilesGenerated">No files generated.</p>
+            <p style="font-size: 0.8rem; margin-top: 0.5rem;" i18n="@@generateSdkPrompt">
               Click 'Run' to generate SDK files from the OpenAPI spec.
             </p>
           </div>

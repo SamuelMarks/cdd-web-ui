@@ -35,7 +35,12 @@ import { ThemeService } from '../../services/theme.service';
   /** template */
   template: `
     <div class="code-viewer-container">
-      <div class="toolbar" role="toolbar" aria-label="Code Viewer Actions">
+      <div
+        class="toolbar"
+        role="toolbar"
+        aria-label="Code Viewer Actions"
+        i18n-aria-label="@@codeViewerActionsAria"
+      >
         <div class="tabs-container" role="tablist">
           @for (tab of openTabs(); track tab) {
             <div
@@ -54,6 +59,7 @@ import { ThemeService } from '../../services/theme.service';
                 role="button"
                 tabindex="0"
                 aria-label="Close Tab"
+                i18n-aria-label="@@closeTabAria"
                 (click)="closeTab(tab, $event)"
                 (keydown.enter)="closeTab(tab, $event)"
                 (keydown.space)="closeTab(tab, $event)"
@@ -70,7 +76,9 @@ import { ThemeService } from '../../services/theme.service';
             (click)="copyToClipboard()"
             [disabled]="!activeFilePath()"
             matTooltip="Copy File Content"
+            i18n-matTooltip
             aria-label="Copy to Clipboard"
+            i18n-aria-label="@@copyToClipboardAria"
           >
             <mat-icon>content_copy</mat-icon>
           </button>
@@ -80,7 +88,9 @@ import { ThemeService } from '../../services/theme.service';
             (click)="downloadFile()"
             [disabled]="!activeFilePath()"
             matTooltip="Download File"
+            i18n-matTooltip="@@downloadFileTooltip"
             aria-label="Download File"
+            i18n-aria-label="@@downloadFileAria"
           >
             <mat-icon>download</mat-icon>
           </button>
@@ -97,9 +107,9 @@ import { ThemeService } from '../../services/theme.service';
         } @else {
           <div class="empty-state">
             <mat-icon>code_off</mat-icon>
-            <p>No file selected</p>
-            <p style="font-size: 0.8rem; margin-top: 0.5rem;">
-              Select a file from the explorer to view its contents.
+            <p i18n="@@noFileSelected">No file selected</p>
+            <p style="font-size: 0.8rem; margin-top: 0.5rem;" i18n="@@selectFilePrompt">
+              Select a file from the Explorer to view its contents.
             </p>
           </div>
         }

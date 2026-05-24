@@ -40,8 +40,13 @@ import { ThemeService } from '../../services/theme.service';
   /** template */
   template: `
     <div class="openapi-editor-container">
-      <div class="toolbar" role="toolbar" aria-label="OpenAPI Editor Actions">
-        <h2 class="toolbar-title">OpenAPI Spec</h2>
+      <div
+        class="toolbar"
+        role="toolbar"
+        aria-label="OpenAPI Editor Actions"
+        i18n-aria-label="@@openapiEditorActionsAria"
+      >
+        <h2 class="toolbar-title" i18n>OpenAPI Spec</h2>
       </div>
 
       <div class="editor-wrapper">
@@ -50,7 +55,9 @@ import { ThemeService } from '../../services/theme.service';
             mat-icon-button
             (click)="formatDocument()"
             matTooltip="Format Document"
+            i18n-matTooltip="@@formatDocTooltip"
             aria-label="Format Document"
+            i18n-aria-label="@@formatDocAria"
           >
             <mat-icon>format_align_left</mat-icon>
           </button>
@@ -58,16 +65,20 @@ import { ThemeService } from '../../services/theme.service';
             mat-icon-button
             (click)="copyToClipboard()"
             matTooltip="Copy to Clipboard"
+            i18n-matTooltip="@@copyToClipboardTooltip"
             aria-label="Copy to Clipboard"
+            i18n-aria-label="@@copyToClipboardAria"
           >
             <mat-icon>content_copy</mat-icon>
           </button>
           <button
             mat-icon-button
-            color="warn"
             (click)="clearEditor()"
+            color="warn"
             matTooltip="Clear Editor"
+            i18n-matTooltip="@@clearEditorTooltip"
             aria-label="Clear Editor"
+            i18n-aria-label="@@clearEditorAria"
           >
             <mat-icon>delete_outline</mat-icon>
           </button>

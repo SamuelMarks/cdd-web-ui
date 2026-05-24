@@ -12,11 +12,13 @@ const originalWarn = console.warn;
 /** Original console.error reference */
 const originalError = console.error;
 
-// Allow CddJavaBrowser to temporarily override console logs without losing its reference
+/** Allow CddJavaBrowser to temporarily override console.log logs without losing its reference */
 let originalInterceptLog = (...args: unknown[]) => {
   postMessage({ status: 'log', level: 'INFO', message: args.map((a) => String(a)).join(' ') });
   originalLog(...args);
 };
+
+/** Allow CddJavaBrowser to temporarily override console.info logs without losing its reference */
 let originalInterceptInfo = (...args: unknown[]) => {
   postMessage({ status: 'log', level: 'INFO', message: args.map((a) => String(a)).join(' ') });
   originalInfo(...args);
@@ -43,8 +45,10 @@ addEventListener('message', async ({ data }) => {
   if (data && data.payload && data.payload.ecosystem === 'cdd-java') {
     if (typeof self !== 'undefined' && !(self as unknown as { GraalVM?: unknown }).GraalVM) {
       try {
-        console.log('Worker loading cdd-java.js via fetch+eval...');
-        const resp = await fetch(location.origin + '/assets/wasm/cdd-java.js');
+        const urlToFetch =
+          data.payload.cddJavaJsUrl || location.origin + '/assets/wasm/cdd-java.js';
+        console.log(`Worker loading cdd-java.js via fetch+eval from ${urlToFetch}...`);
+        const resp = await fetch(urlToFetch);
         const scriptStr = await resp.text();
         const globalEval = eval;
         globalEval('var window = self; var globalThis = self; ' + scriptStr);

@@ -1,5 +1,29 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, isDevMode } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { firstValueFrom } from 'rxjs';
 import { BackendConfigService } from './backend-config.service';
+
+/** Map of ecosystem names to their respective GitHub WASM release URLs. */
+export const WASM_GITHUB_URLS: Record<string, string> = {
+  'cdd-c': 'https://github.com/SamuelMarks/cdd-c/releases/download/latest/cdd-c.wasm',
+  'cdd-cpp': 'https://github.com/SamuelMarks/cdd-cpp/releases/download/latest/cdd-cpp.wasm',
+  'cdd-csharp':
+    'https://github.com/SamuelMarks/cdd-csharp/releases/download/latest/cdd-csharp.wasm',
+  'cdd-go': 'https://github.com/SamuelMarks/cdd-go/releases/download/latest/cdd-go.wasm',
+  'cdd-java': 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js.wasm',
+  'cdd-kotlin': 'https://github.com/offscale/cdd-kotlin/releases/download/latest/cdd-kotlin.wasm',
+  'cdd-php': 'https://github.com/SamuelMarks/cdd-php/releases/download/latest/cdd-php.wasm',
+  'cdd-python-all':
+    'https://github.com/offscale/cdd-python-all/releases/download/latest/cdd-python-all.wasm',
+  'cdd-ruby': 'https://github.com/SamuelMarks/cdd-ruby/releases/download/latest/cdd-ruby.wasm',
+  'cdd-rust': 'https://github.com/SamuelMarks/cdd-rust/releases/download/latest/cdd-rust.wasm',
+  'cdd-sh': 'https://github.com/SamuelMarks/cdd-sh/releases/download/latest/cdd-sh.wasm',
+  'cdd-swift': 'https://github.com/SamuelMarks/cdd-swift/releases/download/latest/cdd-swift.wasm',
+  'cdd-ts': 'https://github.com/offscale/cdd-ts/releases/download/latest/cdd-ts.wasm',
+};
+
+/** List of all supported WASM ecosystems. */
+export const WASM_ECOSYSTEMS = Object.keys(WASM_GITHUB_URLS);
 
 /**
  * Service responsible for asynchronously loading WASM binaries.
@@ -13,6 +37,96 @@ export class WasmLoaderService {
   private binaryCache = new Map<string, ArrayBuffer>();
   /** The backend config service. */
   private config = inject(BackendConfigService);
+  /** The MatDialog service. */
+  private dialog = inject(MatDialog);
+  /** Whether the user has approved loading WASM from GitHub. */
+  private hasApprovedWasmLoad = false;
+
+  /**
+   * Gets the remote GitHub URL for a WASM binary.
+   */
+  getGithubWasmUrl(ecosystem: string): string {
+    return WASM_GITHUB_URLS[ecosystem] || '';
+  }
+
+  /**
+   * Parses the GitHub URL to determine the local path.
+   */
+  getLocalWasmPath(githubUrl: string): string {
+    const filename = githubUrl.split('/').pop();
+    return `/assets/wasm/${filename}`;
+  }
+
+  /**
+   * Retrieves the local URL for the `cdd-java.js` file used to bridge the web worker
+   * with the cdd-java module, checking the fallback paths as necessary.
+   */
+  getCddJavaJsUrl(): string {
+    return this.getLocalWasmPath(
+      'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js',
+    );
+  }
+
+  /**
+   * Fetches the WASM binary, trying local first then falling back to GitHub.
+   */
+  private async fetchWasmResponse(ecosystem: string): Promise<Response> {
+    const githubUrl = this.getGithubWasmUrl(ecosystem);
+    if (!githubUrl) {
+      throw new Error(`No GitHub URL configured for ecosystem: ${ecosystem}`);
+    }
+
+    const localPath = this.getLocalWasmPath(githubUrl);
+
+    // Sometimes the local path might just be the .wasm instead of .js.wasm (e.g. for Java)
+    const fallbackLocalPath = `/assets/wasm/${ecosystem}.wasm`;
+
+    try {
+      let res = await fetch(localPath);
+      if (res.ok) return res;
+
+      if (localPath !== fallbackLocalPath) {
+        res = await fetch(fallbackLocalPath);
+        if (res.ok) return res;
+      }
+    } catch (e) {
+      console.warn(`Local fetch failed for ${localPath}, falling back to GitHub`, e);
+    }
+
+    return fetch(githubUrl);
+  }
+
+  /**
+   * Preloads all WASM binaries.
+   */
+  async preloadAllWasm(onProgress?: (loaded: number, total: number) => void): Promise<void> {
+    let loadedCount = 0;
+    const totalCount = WASM_ECOSYSTEMS.length;
+
+    // Concurrently fetch all WASMs to speed up the process, but limit concurrency if needed.
+    // For simplicity, we fire them all.
+    await Promise.all(
+      WASM_ECOSYSTEMS.map(async (ecosystem) => {
+        try {
+          const response = await this.fetchWasmResponse(ecosystem);
+          if (!response.ok) {
+            console.warn(`Failed to preload ${ecosystem}: ${response.statusText}`);
+            return;
+          }
+          const buffer = await response.arrayBuffer();
+          this.binaryCache.set(ecosystem, buffer);
+        } catch (err) {
+          console.error(`Failed to preload ${ecosystem}:`, err);
+        } finally {
+          loadedCount++;
+          if (onProgress) {
+            onProgress(loadedCount, totalCount);
+          }
+        }
+      }),
+    );
+    this.hasApprovedWasmLoad = true;
+  }
 
   /**
    * Asynchronously loads a WASM binary by language name.
@@ -28,37 +142,17 @@ export class WasmLoaderService {
     }
 
     try {
-      // Load from local assets for offline support
-
-      let url = `/assets/wasm/${ecosystem}.wasm`;
-      const runMode = this.config.runMode();
-
-      if (runMode === 'served_github') {
-        const repoOrg =
-          ecosystem.startsWith('cdd-python') || ecosystem === 'cdd-ts' || ecosystem === 'cdd-kotlin'
-            ? 'offscale'
-            : 'SamuelMarks';
-        // Note: github releases format for cdd-* repos
-        url = `https://github.com/${repoOrg}/${ecosystem}/releases/latest/download/${ecosystem}.wasm`;
-      } else if (runMode === 'local_cdd_ctl_wasm' || runMode === 'local_cdd_ctl_native') {
-        // When using cdd-ctl backend, we might not even need the browser to download WASM if we use RPC.
-        // But if we still do, we could fetch from the backend url.
-        // Assuming we just use local assets as fallback if runMode is backend but WASM is requested in browser.
-        url = `/assets/wasm/${ecosystem}.wasm`;
-      }
-
-      const response = await fetch(url);
+      const response = await this.fetchWasmResponse(ecosystem);
 
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error(
-            `WASM binary not found for ${ecosystem}. Ensure it is generated and available in public/assets/wasm.`,
+            `WASM binary not found for ${ecosystem}. Ensure it is generated and available.`,
           );
         }
         throw new Error(`Failed to load WASM binary for ${ecosystem}: ${response.statusText}`);
       }
 
-      // Ensure the content type is somewhat correct, though local dev servers might serve it as octet-stream
       const contentType = response.headers.get('content-type');
       if (
         contentType &&
@@ -70,20 +164,11 @@ export class WasmLoaderService {
 
       const buffer = await response.arrayBuffer();
 
-      // Basic check for WASM magic number (\0asm) or ZIP magic number (PK\x03\x04) for Pyodide bundles
       const view = new Uint8Array(buffer);
-      const isWasm =
-        view.length >= 4 &&
-        view[0] === 0x00 &&
-        view[1] === 0x61 &&
-        view[2] === 0x73 &&
-        view[3] === 0x6d;
-      const isZip =
-        view.length >= 4 &&
-        view[0] === 0x50 &&
-        view[1] === 0x4b &&
-        view[2] === 0x03 &&
-        view[3] === 0x04;
+      const magic =
+        view.length >= 4 ? (view[0] << 24) | (view[1] << 16) | (view[2] << 8) | view[3] : 0;
+      const isWasm = magic === 0x0061736d;
+      const isZip = magic === 0x504b0304;
 
       if (!isWasm && !isZip) {
         throw new Error(`Invalid WASM binary downloaded for ${ecosystem}: Missing magic number.`);

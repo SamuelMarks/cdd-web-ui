@@ -4,6 +4,19 @@
   height: 100vh;
 }
 
+.local-mode-toolbar {
+  flex: 0 0 auto;
+  background-color: #ff9800;
+  color: #000;
+  text-align: center;
+  font-size: 0.75rem;
+  padding: 2px 0;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  z-index: 1000;
+}
+
 .app-header {
   flex: 0 0 auto;
   display: flex;
@@ -15,6 +28,34 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: 500;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app-logo-icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-left: 0.5rem;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+.status-indicator.is-online {
+  background-color: #4caf50; /* Green */
+}
+
+.status-indicator.is-offline {
+  background-color: #f44336; /* Red */
 }
 
 .spacer {
@@ -43,10 +84,89 @@ nav {
 
 .app-footer {
   flex: 0 0 auto;
-  text-align: center;
-  padding: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
   font-size: 0.8rem;
   background-color: var(--surface-color);
   border-top: 1px solid var(--border-color);
   color: var(--text-secondary);
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.footer-divider {
+  color: var(--border-color);
+  margin: 0 0.25rem;
+}
+
+.footer-version {
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
+.footer-text-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-text-link:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.github-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
+}
+
+.github-badge:hover {
+  background-color: var(--surface-color);
+  border-color: var(--primary-color);
+  text-decoration: none;
+}
+
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: opacity 0.2s;
+}
+
+.github-link:hover {
+  opacity: 0.8;
+}
+
+.header-github-link {
+  margin-right: 0.5rem;
+}
+
+.footer-github-link {
+  vertical-align: middle;
+  margin-left: 0.25rem;
+  margin-right: 0.25rem;
 }

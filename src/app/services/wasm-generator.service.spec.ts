@@ -8,6 +8,8 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { LanguageService } from './language.service';
 import { vi } from 'vitest';
 import { CddWasmSdk } from 'cdd-ctl-wasm-sdk';
+import { MatDialog } from '@angular/material/dialog';
+import { of } from 'rxjs';
 
 describe('WasmGeneratorService', () => {
   let service: WasmGeneratorService;
@@ -33,17 +35,26 @@ describe('WasmGeneratorService', () => {
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [WasmGeneratorService, LanguageService],
+      providers: [
+        WasmGeneratorService,
+        LanguageService,
+        {
+          provide: MatDialog,
+          useValue: { open: vi.fn().mockReturnValue({ afterClosed: () => of(true) }) },
+        },
+      ],
     });
     service = TestBed.inject(WasmGeneratorService);
 
     originalFetch = window.fetch;
     window.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+      headers: new Headers({ 'content-type': 'application/wasm' }),
+      arrayBuffer: () =>
+        Promise.resolve(new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]).buffer),
     });
 
-    window.WebAssembly.instantiate = vi.fn().mockResolvedValue({
+    vi.spyOn(globalThis.WebAssembly, 'instantiate').mockResolvedValue({
       instance: { exports: {} },
       module: {},
     });
@@ -376,10 +387,8 @@ describe('WasmGeneratorService', () => {
   });
 
   it('should cover wasi stubs in generateOpenApi', async () => {
-    const originalInstantiate = window.WebAssembly.instantiate;
-    window.WebAssembly.instantiate = vi
-      .fn()
-      .mockImplementation((buf, imports: Record<string, Record<string, Function>>) => {
+    vi.spyOn(globalThis.WebAssembly, 'instantiate').mockImplementation(
+      (buf, imports: Record<string, Record<string, Function>>) => {
         // Call all the wasi_snapshot_preview1 functions
         imports.wasi_snapshot_preview1.fd_write();
         imports.wasi_snapshot_preview1.environ_get();
@@ -429,13 +438,16 @@ describe('WasmGeneratorService', () => {
         imports.convert.proxyCharArray();
 
         return Promise.resolve();
-      });
+      },
+    );
 
-    const originalFetch = window.fetch;
-    window.fetch = vi.fn().mockResolvedValue({
+    const originalFetch = globalThis.fetch;
+    const validWasm = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
+    globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
-    });
+      headers: new Headers({ 'content-type': 'application/wasm' }),
+      arrayBuffer: () => Promise.resolve(validWasm.buffer),
+    } as unknown as Response);
 
     await service.generateOpenApi(
       { id: 'proj-1', name: 'repo', organizationId: 'test' },
@@ -443,8 +455,7 @@ describe('WasmGeneratorService', () => {
       'code',
     );
 
-    window.WebAssembly.instantiate = originalInstantiate;
-    window.fetch = originalFetch;
+    globalThis.fetch = originalFetch;
   });
 
   it('should generate generic stub for unknown language', () => {

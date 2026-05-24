@@ -524,6 +524,10 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
             const wasmSource = path.join(localToolDir, 'bin', `${tool}.wasm`);
             if (fs.existsSync(wasmSource)) {
               fs.copyFileSync(wasmSource, wasmDest);
+              const jsSource = path.join(localToolDir, 'bin', `${tool}.js`);
+              if (fs.existsSync(jsSource)) {
+                fs.copyFileSync(jsSource, path.join(DEST_DIR, `${tool}.js`));
+              }
               success = true;
             }
           }

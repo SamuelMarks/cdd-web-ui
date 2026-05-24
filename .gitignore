@@ -1,5 +1,5 @@
-update_*
-patch_*
+/update_*
+/patch_*
 *.orig
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
@@ -55,6 +55,8 @@ Thumbs.db
 # Custom Docker Build Outputs
 /build-from-alpine
 /build-from-debian
+/build-from-alpine-prod
+/build-from-debian-prod
 
 # Environment Variables
 .env
@@ -101,8 +103,8 @@ public/assets/wasm/*.hash
 # Additional temporary files
 *.rej
 *.patch
-patch-*
-update-*
+/patch-*
+/update-*
 *-improved.*
 *-backup.*
 replacement-*.txt
@@ -165,3 +167,10 @@ tool-outputs/
 # Broader Angular/Build ignores
 .angular/
 public/assets/wasm/*.js
+
+# Run and Test Wildcards
+/run_*.js
+/run_*.ts
+/run_*.mjs
+/test_*.mjs
+/test_*.ts

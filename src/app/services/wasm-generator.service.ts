@@ -4,6 +4,7 @@ import { LanguageService } from './language.service';
 import { BackendConfigService } from './backend-config.service';
 import { HttpClient } from '@angular/common/http';
 import { CddWasmSdk, Ecosystem } from 'cdd-ctl-wasm-sdk';
+import { WasmLoaderService } from './wasm-loader.service';
 import * as yaml from 'js-yaml';
 
 /**
@@ -20,6 +21,8 @@ export class WasmGeneratorService {
   private configService = inject(BackendConfigService);
   /** Http client. */
   private http = inject(HttpClient);
+  /** WasmLoaderService. */
+  private wasmLoaderService = inject(WasmLoaderService);
 
   /**
    * Generates SDK from OpenAPI spec.
@@ -80,23 +83,7 @@ export class WasmGeneratorService {
     }
 
     try {
-      let url = `https://github.com/SamuelMarks/cdd-web-ui/releases/download/latest/${lang.repo}.wasm`;
-      if (runMode === 'served_github') {
-        const repoOrg =
-          ecosystemName.startsWith('cdd-python') ||
-          ecosystemName === 'cdd-ts' ||
-          ecosystemName === 'cdd-kotlin'
-            ? 'offscale'
-            : 'SamuelMarks';
-        url = `https://github.com/${repoOrg}/${ecosystemName}/releases/latest/download/${ecosystemName.replace('cdd-', '')}.wasm`;
-      } else {
-        url = `/assets/wasm/${lang.repo}.wasm`;
-      }
-
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('WASM binary not found');
-
-      const wasmBinary = await response.arrayBuffer();
+      const wasmBinary = await this.wasmLoaderService.loadWasmBinary(lang.repo);
 
       const generatedFiles = await CddWasmSdk.fromOpenApi({
         ecosystem: ecosystemName,
@@ -185,23 +172,8 @@ export class WasmGeneratorService {
     const ecosystemName = lang.repo as Ecosystem;
 
     try {
-      let url = `https://github.com/SamuelMarks/cdd-web-ui/releases/download/latest/${lang.repo}.wasm`;
-      if (runMode === 'served_github') {
-        const repoOrg =
-          ecosystemName.startsWith('cdd-python') ||
-          ecosystemName === 'cdd-ts' ||
-          ecosystemName === 'cdd-kotlin'
-            ? 'offscale'
-            : 'SamuelMarks';
-        url = `https://github.com/${repoOrg}/${ecosystemName}/releases/latest/download/${ecosystemName.replace('cdd-', '')}.wasm`;
-      } else {
-        url = `/assets/wasm/${lang.repo}.wasm`;
-      }
+      const buffer = await this.wasmLoaderService.loadWasmBinary(lang.repo);
 
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('WASM binary not found');
-
-      const buffer = await response.arrayBuffer();
       await WebAssembly.instantiate(buffer, {
         wasi_snapshot_preview1: {
           fd_write: () => 0,

@@ -54,7 +54,7 @@ interface NodeData {
   template: `
     <div class="vis-container" #svgContainer>
       @if (!hasData) {
-        <div class="empty-state">No API Data Available</div>
+        <div class="empty-state" i18n="@@noApiData">No API Data Available</div>
       }
     </div>
   `,

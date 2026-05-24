@@ -7,14 +7,19 @@ test.describe('WASM E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.route('**/*google-analytics*', (route) => route.abort());
     await page.goto('/');
+    const loadWasmBtn = page.locator('button', { hasText: /Load ~.*MB of WASM/i });
+    if (await loadWasmBtn.isVisible({ timeout: 5000 })) {
+      await loadWasmBtn.click();
+    }
+
     await page.waitForSelector('.workspace-container', { state: 'visible', timeout: 60000 });
   });
 
   for (const lang of LANGUAGES) {
-    test.skip(`Real WASM Generation for ${lang.name}`, async ({ page }) => {
+    test(`Real WASM Generation for ${lang.name}`, async ({ page }) => {
       // Ignore generating typescript as its extremely slow right now
       if (lang.name === 'TypeScript') {
-        test.skip(true, `Skipping WASM run for TypeScript as its very slow to start`);
+        test(true, `Skipping WASM run for TypeScript as its very slow to start`);
         return;
       }
 
@@ -56,7 +61,7 @@ test.describe('WASM E2E Tests', () => {
       const isUnsupported = await notSupportedBox.isVisible();
 
       if (isUnsupported) {
-        test.skip(true, `Skipping WASM run for ${lang.name} (Not Supported in UI)`);
+        test(true, `Skipping WASM run for ${lang.name} (Not Supported in UI)`);
       }
 
       // Read console logs to catch errors

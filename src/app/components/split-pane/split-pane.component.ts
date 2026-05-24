@@ -70,7 +70,7 @@ import { LayoutOrientation } from '../../store/state';
             } @else {
               <mat-icon>play_arrow</mat-icon>
             }
-            Generate
+            <span i18n>Generate</span>
           </button>
         </div>
 
@@ -81,7 +81,9 @@ import { LayoutOrientation } from '../../store/state';
           (mousedown)="$event.stopPropagation()"
           [disabled]="isExecuting()"
           matTooltip="Swap Panes (Ctrl+Shift+S)"
+          i18n-matTooltip
           aria-label="Swap Panes"
+          i18n-aria-label="@@swapPanesAria"
         >
           <span class="big-swap-icon">⇄</span>
         </button>
