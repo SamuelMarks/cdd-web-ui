@@ -8,6 +8,7 @@ IF "%1"=="run_docker_prod" GOTO run_docker_prod
 IF "%1"=="test_docker_prod" GOTO test_docker_prod
 IF "%1"=="clean_docker_prod" GOTO clean_docker_prod
 IF "%1"=="build_production_docs" GOTO build_production_docs
+IF "%1"=="docs" GOTO docs
 GOTO :EOF
 
 :build_docker
@@ -83,4 +84,11 @@ GOTO :EOF
 :build_production_docs
 call npm ci
 call npm run build:prod
+GOTO :EOF
+
+:docs
+call npm run doc
+if not exist docs mkdir docs
+if exist docs\html rmdir /q /s docs\html
+mklink /J docs\html "%CD%\documentation"
 GOTO :EOF

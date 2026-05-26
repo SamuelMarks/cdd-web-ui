@@ -1,4 +1,4 @@
-.PHONY: build_docker run_docker test_docker clean_docker build_production_docs
+.PHONY: build_docker run_docker test_docker clean_docker build_production_docs docs
 
 build_docker:
 	docker build -f alpine.Dockerfile -t cdd-web-alpine .
@@ -31,3 +31,9 @@ clean_docker:
 build_production_docs:
 	npm ci
 	npm run build:prod
+
+docs:
+	npm run doc
+	mkdir -p docs
+	ln -sfn ../documentation docs/html
+
