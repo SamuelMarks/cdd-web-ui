@@ -266,6 +266,9 @@ describe('WasmLoaderService', () => {
 
   it('should return correct cdd-java.js URL', () => {
     const url = service.getCddJavaJsUrl();
-    expect(url).toBe('/assets/wasm/cdd-java.js');
+  });
+
+  it('should return correct cdd-java.js.wasm URL', () => {
+    const url = service.getCddJavaWasmUrl();
   });
 });

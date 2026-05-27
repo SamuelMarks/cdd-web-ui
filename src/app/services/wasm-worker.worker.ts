@@ -122,6 +122,10 @@ addEventListener('message', async ({ data }) => {
         wasmBinary,
         printStdout: true, // Let it print, we've intercepted console
         additionalArgs,
+        // @ts-ignore
+        cddJavaJsUrl: data.payload.cddJavaJsUrl,
+        // @ts-ignore
+        cddJavaWasmUrl: data.payload.cddJavaWasmUrl,
       });
 
       console.info(`[Worker] Finished generating ${generatedFiles.length} files.`);

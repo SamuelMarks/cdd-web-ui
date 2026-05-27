@@ -109,6 +109,7 @@ export class WasmWorkerService {
           target,
           languageOptions,
           cddJavaJsUrl: this.loaderService.getCddJavaJsUrl(),
+          cddJavaWasmUrl: this.loaderService.getCddJavaWasmUrl(),
         },
       });
     });

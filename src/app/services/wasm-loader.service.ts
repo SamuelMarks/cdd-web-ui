@@ -61,10 +61,20 @@ export class WasmLoaderService {
    * Retrieves the local URL for the `cdd-java.js` file used to bridge the web worker
    * with the cdd-java module, checking the fallback paths as necessary.
    */
+  getCddJavaWasmUrl(): string {
+    const url = 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js.wasm';
+    return typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? this.getLocalWasmPath(url)
+      : url;
+  }
+
   getCddJavaJsUrl(): string {
-    return this.getLocalWasmPath(
-      'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js',
-    );
+    const url = 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js';
+    return typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? this.getLocalWasmPath(url)
+      : url;
   }
 
   /**
@@ -125,6 +135,7 @@ export class WasmLoaderService {
         }
       }),
     );
+
     this.hasApprovedWasmLoad = true;
   }
 
