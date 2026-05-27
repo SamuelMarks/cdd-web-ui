@@ -54,7 +54,9 @@ export class WasmLoaderService {
    */
   getLocalWasmPath(githubUrl: string): string {
     const filename = githubUrl.split('/').pop();
-    return `/assets/wasm/${filename}`;
+    return filename === 'cdd-java.js.wasm'
+      ? '/assets/wasm/cdd-java.wasm'
+      : `/assets/wasm/${filename}`;
   }
 
   /**

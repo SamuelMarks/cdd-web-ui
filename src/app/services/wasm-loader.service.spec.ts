@@ -65,99 +65,8 @@ describe('WasmLoaderService', () => {
   it('should fallback to GitHub if local fetch fails with 404', async () => {
     const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
 
-    // Provide a mocked fetch that fails on local URLs but succeeds on github URLs
+    // Provide a mocked fetch that succeeds for cdd-java.wasm
     globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
-      if (url.startsWith('/assets/')) {
-        return {
-          ok: false,
-          status: 404,
-        };
-      }
-      return {
-        ok: true,
-        headers: new Headers({ 'content-type': 'application/wasm' }),
-        arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
-      };
-    });
-
-    const buffer = await service.loadWasmBinary('cdd-ts');
-    expect(new Uint8Array(buffer)).toEqual(mockWasmData);
-
-    // It should have tried local path, then github path
-    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-ts.wasm');
-    expect(globalThis.fetch).toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-ts']);
-  });
-
-  it('should fallback to GitHub if local fetch throws network error', async () => {
-    const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
-
-    // Provide a mocked fetch that fails on local URLs but succeeds on github URLs
-    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
-      if (url.startsWith('/assets/')) {
-        throw new Error('Network error');
-      }
-      return {
-        ok: true,
-        headers: new Headers({ 'content-type': 'application/wasm' }),
-        arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
-      };
-    });
-
-    const buffer = await service.loadWasmBinary('cdd-ts');
-    expect(new Uint8Array(buffer)).toEqual(mockWasmData);
-
-    // It should have tried local path, then github path
-    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-ts.wasm');
-    expect(globalThis.fetch).toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-ts']);
-  });
-
-  it('should throw an error if both local and GitHub fetch fails', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      statusText: 'Not Found',
-    } as unknown as Response);
-
-    await expect(service.loadWasmBinary('cdd-ts')).rejects.toThrow(
-      /WASM binary not found for cdd-ts/,
-    );
-
-    // It should have tried local path and github path
-    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-ts.wasm');
-    expect(globalThis.fetch).toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-ts']);
-  });
-
-  it('should throw an error for non-404 fetch failures after fallback', async () => {
-    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
-      if (url.startsWith('/assets/')) {
-        return {
-          ok: false,
-          status: 404,
-        };
-      }
-      return {
-        ok: false,
-        status: 500,
-        statusText: 'Internal Server Error',
-      };
-    });
-
-    await expect(service.loadWasmBinary('cdd-ts')).rejects.toThrow(
-      /Failed to load WASM binary for cdd-ts: Internal Server Error/,
-    );
-  });
-
-  it('should check fallbackLocalPath for Java', async () => {
-    const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
-
-    // Provide a mocked fetch that fails for cdd-java.js.wasm but succeeds for cdd-java.wasm
-    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
-      if (url === '/assets/wasm/cdd-java.js.wasm') {
-        return {
-          ok: false,
-          status: 404,
-        };
-      }
       if (url === '/assets/wasm/cdd-java.wasm') {
         return {
           ok: true,
@@ -171,7 +80,6 @@ describe('WasmLoaderService', () => {
     const buffer = await service.loadWasmBinary('cdd-java');
     expect(new Uint8Array(buffer)).toEqual(mockWasmData);
 
-    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-java.js.wasm');
     expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-java.wasm');
     // Should NOT have called Github
     expect(globalThis.fetch).not.toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-java']);

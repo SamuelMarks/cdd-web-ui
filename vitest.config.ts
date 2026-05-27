@@ -3,11 +3,7 @@ import angular from '@analogjs/vite-plugin-angular';
 
 export default defineConfig({
   plugins: [angular()],
-  resolve: {
-    alias: {
-      'cdd-ctl-wasm-sdk': require('path').resolve(__dirname, '__mock_cdd_ctl_wasm_sdk.js'),
-    },
-  },
+  resolve: {},
   optimizeDeps: {
     exclude: ['cdd-ctl-wasm-sdk'],
   },
