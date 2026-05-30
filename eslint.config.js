@@ -1,27 +1,11 @@
-const eslintPluginTypeScript = require('@typescript-eslint/eslint-plugin');
-const eslintParserTypeScript = require('@typescript-eslint/parser');
+import eslint from '@eslint/js';
+import tseslint from 'typescript-eslint';
 
-module.exports = [
+export default tseslint.config(
+  eslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
   {
-    ignores: [
-      '**/*.js',
-      'node_modules/**',
-      'dist/**',
-      'out-tsc/**',
-      'coverage/**',
-      'doc-out/**',
-      'documentation/**',
-      'playwright-report/**',
-      'improved-web-component.ts',
-      'parser-improved.ts',
-      'web-comp-backup.ts',
-      'public/assets/wasm/**',
-    ],
-  },
-  {
-    files: ['**/*.ts'],
     languageOptions: {
-      parser: eslintParserTypeScript,
       parserOptions: {
         projectService: {
           allowDefaultProject: [
@@ -30,17 +14,31 @@ module.exports = [
             'vitest.config.ts',
             'e2e/app.spec.ts',
             'e2e/wasm.spec.ts',
+            'e2e/docs-ui.spec.ts'
           ],
         },
-        tsconfigRootDir: __dirname,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
-    plugins: {
-      '@typescript-eslint': eslintPluginTypeScript,
-    },
     rules: {
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
-];
+  {
+    ignores: [
+      '.angular/',
+      'coverage/',
+      'dist/',
+      'node_modules/',
+      'playwright-report/',
+      'test-results/',
+      '**/*.d.ts',
+    ],
+  },
+);

@@ -11,16 +11,20 @@ export const WASM_GITHUB_URLS: Record<string, string> = {
   'cdd-csharp':
     'https://github.com/SamuelMarks/cdd-csharp/releases/download/latest/cdd-csharp.wasm',
   'cdd-go': 'https://github.com/SamuelMarks/cdd-go/releases/download/latest/cdd-go.wasm',
-  'cdd-java': 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js.wasm',
+  'cdd-java.js.wasm':
+    'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js.wasm',
+  'cdd-java.js': 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js',
+  'cdd-java': 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.wasm',
   'cdd-kotlin': 'https://github.com/offscale/cdd-kotlin/releases/download/latest/cdd-kotlin.wasm',
   'cdd-php': 'https://github.com/SamuelMarks/cdd-php/releases/download/latest/cdd-php.wasm',
   'cdd-python-all':
     'https://github.com/offscale/cdd-python-all/releases/download/latest/cdd-python-all.wasm',
   'cdd-ruby': 'https://github.com/SamuelMarks/cdd-ruby/releases/download/latest/cdd-ruby.wasm',
-  'cdd-rust': 'https://github.com/SamuelMarks/cdd-rust/releases/download/latest/cdd-rust.wasm',
+  'cdd-rust': 'https://github.com/offscale/cdd-rust/releases/download/latest/cdd-rust.wasm',
   'cdd-sh': 'https://github.com/SamuelMarks/cdd-sh/releases/download/latest/cdd-sh.wasm',
   'cdd-swift': 'https://github.com/SamuelMarks/cdd-swift/releases/download/latest/cdd-swift.wasm',
   'cdd-ts': 'https://github.com/offscale/cdd-ts/releases/download/latest/cdd-ts.wasm',
+  'cdd-ts.js': 'https://github.com/offscale/cdd-ts/releases/download/latest/cdd-ts.js',
 };
 
 /** List of all supported WASM ecosystems. */
@@ -56,34 +60,28 @@ export class WasmLoaderService {
    * Parses the GitHub URL to determine the local path.
    */
   getLocalWasmPath(githubUrl: string): string {
-    const filename = githubUrl.split('/').pop();
-    return filename === 'cdd-java.js.wasm'
-      ? '/assets/wasm/cdd-java.wasm'
-      : `/assets/wasm/${filename}`;
+    const filename = githubUrl.split('/').pop() || '';
+    return `/assets/wasm/${filename}`;
   }
 
   /**
-   * Retrieves the local URL for the `cdd-java.js` file used to bridge the web worker
-   * with the cdd-java module, checking the fallback paths as necessary.
+   * Gets the correct URL for a WASM binary or JS file based on the current environment.
    */
-  getCddJavaWasmUrl(): string {
-    const url = 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js.wasm';
-    return this.doc &&
-      (this.doc.location.hostname === 'localhost' || this.doc.location.hostname === '127.0.0.1')
-      ? this.getLocalWasmPath(url)
-      : url;
-  }
+  getEnvUrl(ecosystem: string): string {
+    const githubUrl = this.getGithubWasmUrl(ecosystem);
+    if (!githubUrl) return '';
 
-  getCddJavaJsUrl(): string {
-    const url = 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js';
-    return this.doc &&
-      (this.doc.location.hostname === 'localhost' || this.doc.location.hostname === '127.0.0.1')
-      ? this.getLocalWasmPath(url)
-      : url;
+    const isLocal =
+      this.doc &&
+      (this.doc.location.hostname === 'localhost' || this.doc.location.hostname === '127.0.0.1');
+    if (isLocal) {
+      return this.getLocalWasmPath(githubUrl);
+    }
+    return githubUrl;
   }
 
   /**
-   * Fetches the WASM binary, trying local first then falling back to GitHub.
+   * Fetches the WASM binary or JS file from the correct environment URL.
    */
   private async fetchWasmResponse(ecosystem: string): Promise<Response> {
     const githubUrl = this.getGithubWasmUrl(ecosystem);
@@ -91,16 +89,13 @@ export class WasmLoaderService {
       throw new Error(`No GitHub URL configured for ecosystem: ${ecosystem}`);
     }
 
-    const localPath = this.getLocalWasmPath(githubUrl);
+    const isLocal =
+      this.doc &&
+      (this.doc.location.hostname === 'localhost' || this.doc.location.hostname === '127.0.0.1');
 
-    // Sometimes the local path might just be the .wasm instead of .js.wasm (e.g. for Java)
-    const fallbackLocalPath = `/assets/wasm/${ecosystem}.wasm`;
-
-    try {
-      const res = await fetch(localPath);
-      if (res.ok) return res;
-    } catch (e) {
-      console.warn(`Local fetch failed for ${localPath}, falling back to GitHub`, e);
+    if (isLocal) {
+      const localPath = this.getLocalWasmPath(githubUrl);
+      return fetch(localPath);
     }
 
     return fetch(githubUrl);

@@ -62,132 +62,68 @@ describe('WasmLoaderService', () => {
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('should fallback to GitHub if local fetch fails with 404', async () => {
+  it('should fetch from localhost when running locally', async () => {
     const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'content-type': 'application/wasm' }),
+      arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
+    } as unknown as Response);
 
-    // Provide a mocked fetch that fails on local URLs but succeeds on github URLs
-    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
-      if (url.startsWith('/assets/')) {
-        return {
-          ok: false,
-          status: 404,
-        };
-      }
-      return {
-        ok: true,
-        headers: new Headers({ 'content-type': 'application/wasm' }),
-        arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
-      };
-    });
+    const doc = TestBed.inject(DOCUMENT);
+    Object.defineProperty(doc, 'location', { value: { hostname: 'localhost' }, writable: true });
 
-    const buffer = await service.loadWasmBinary('cdd-ts');
-    expect(new Uint8Array(buffer)).toEqual(mockWasmData);
+    await service.loadWasmBinary('cdd-ts');
 
-    // It should have tried local path, then github path
     expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-ts.wasm');
-    expect(globalThis.fetch).toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-ts']);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('should fallback to GitHub if local fetch throws network error', async () => {
+  it('should fetch from GitHub when running remotely', async () => {
     const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'content-type': 'application/wasm' }),
+      arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
+    } as unknown as Response);
 
-    // Provide a mocked fetch that fails on local URLs but succeeds on github URLs
-    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
-      if (url.startsWith('/assets/')) {
-        throw new Error('Network error');
-      }
-      return {
-        ok: true,
-        headers: new Headers({ 'content-type': 'application/wasm' }),
-        arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
-      };
-    });
+    const doc = TestBed.inject(DOCUMENT);
+    Object.defineProperty(doc, 'location', { value: { hostname: 'example.com' }, writable: true });
 
-    const buffer = await service.loadWasmBinary('cdd-ts');
-    expect(new Uint8Array(buffer)).toEqual(mockWasmData);
+    await service.loadWasmBinary('cdd-ts');
 
-    // It should have tried local path, then github path
-    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-ts.wasm');
     expect(globalThis.fetch).toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-ts']);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('should throw an error if both local and GitHub fetch fails', async () => {
+  it('should throw an error if fetch fails', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
       statusText: 'Not Found',
     } as unknown as Response);
 
+    const doc = TestBed.inject(DOCUMENT);
+    Object.defineProperty(doc, 'location', { value: { hostname: 'localhost' }, writable: true });
+
     await expect(service.loadWasmBinary('cdd-ts')).rejects.toThrow(
       /WASM binary not found for cdd-ts/,
     );
-
-    // It should have tried local path and github path
-    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-ts.wasm');
-    expect(globalThis.fetch).toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-ts']);
   });
 
-  it('should throw an error for non-404 fetch failures after fallback', async () => {
-    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
-      if (url.startsWith('/assets/')) {
-        return {
-          ok: false,
-          status: 404,
-        };
-      }
-      return {
-        ok: false,
-        status: 500,
-        statusText: 'Internal Server Error',
-      };
-    });
+  it('should throw an error for non-404 fetch failures', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+    } as unknown as Response);
+
+    const doc = TestBed.inject(DOCUMENT);
+    Object.defineProperty(doc, 'location', { value: { hostname: 'example.com' }, writable: true });
 
     await expect(service.loadWasmBinary('cdd-ts')).rejects.toThrow(
       /Failed to load WASM binary for cdd-ts: Internal Server Error/,
     );
-  });
-
-  it('should check fallbackLocalPath for Java and handle failure', async () => {
-    // Provide a mocked fetch that fails for cdd-java.wasm locally
-    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
-      if (url.startsWith('/assets/')) {
-        return { ok: false, status: 404 };
-      }
-      return {
-        ok: true,
-        headers: new Headers({ 'content-type': 'application/wasm' }),
-        arrayBuffer: () =>
-          Promise.resolve(new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]).buffer),
-      };
-    });
-
-    await service.loadWasmBinary('cdd-java');
-
-    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-java.wasm');
-    expect(globalThis.fetch).toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-java']);
-  });
-
-  it('should check fallbackLocalPath for Java', async () => {
-    const mockWasmData = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
-
-    // Provide a mocked fetch that succeeds for cdd-java.wasm
-    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
-      if (url === '/assets/wasm/cdd-java.wasm') {
-        return {
-          ok: true,
-          headers: new Headers({ 'content-type': 'application/wasm' }),
-          arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
-        };
-      }
-      return { ok: false, status: 404 };
-    });
-
-    const buffer = await service.loadWasmBinary('cdd-java');
-    expect(new Uint8Array(buffer)).toEqual(mockWasmData);
-
-    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-java.wasm');
-    // Should NOT have called Github
-    expect(globalThis.fetch).not.toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-java']);
   });
 
   it('should throw an error if no GitHub URL is configured for the ecosystem', async () => {
@@ -277,11 +213,22 @@ describe('WasmLoaderService', () => {
     );
   });
 
-  it('should return correct cdd-java.js URL', () => {
-    const url = service.getCddJavaJsUrl();
-  });
+  it('should return correct getEnvUrl for local and remote environments', () => {
+    const doc = TestBed.inject(DOCUMENT);
+    Object.defineProperty(doc, 'location', {
+      value: { hostname: 'localhost' },
+      writable: true,
+    });
+    let url = service.getEnvUrl('cdd-java.js');
+    expect(url).toBe('/assets/wasm/cdd-java.js');
 
-  it('should return correct cdd-java.js.wasm URL', () => {
-    const url = service.getCddJavaWasmUrl();
+    Object.defineProperty(doc, 'location', {
+      value: { hostname: 'example.com' },
+      writable: true,
+    });
+    url = service.getEnvUrl('cdd-java.js');
+    expect(url).toBe(
+      'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js',
+    );
   });
 });

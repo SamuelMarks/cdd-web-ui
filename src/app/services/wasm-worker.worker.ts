@@ -116,7 +116,7 @@ addEventListener('message', async ({ data }) => {
       }
 
       if (target === 'to_docs_json') {
-        additionalArgs.push('-o', 'docs.json');
+        additionalArgs.push('-o', '/out/docs.json');
       }
 
       if (languageOptions && languageOptions.upgradeOpenApi && ecosystem === 'cdd-cpp') {
