@@ -68,14 +68,16 @@ export class WasmLoaderService {
    */
   getCddJavaWasmUrl(): string {
     const url = 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js.wasm';
-    return this.doc && (this.doc.location.hostname === 'localhost' || this.doc.location.hostname === '127.0.0.1')
+    return this.doc &&
+      (this.doc.location.hostname === 'localhost' || this.doc.location.hostname === '127.0.0.1')
       ? this.getLocalWasmPath(url)
       : url;
   }
 
   getCddJavaJsUrl(): string {
     const url = 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js';
-    return this.doc && (this.doc.location.hostname === 'localhost' || this.doc.location.hostname === '127.0.0.1')
+    return this.doc &&
+      (this.doc.location.hostname === 'localhost' || this.doc.location.hostname === '127.0.0.1')
       ? this.getLocalWasmPath(url)
       : url;
   }

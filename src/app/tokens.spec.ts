@@ -16,9 +16,7 @@ describe('Tokens', () => {
   it('should fallback Date when defaultView is null', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [
-        { provide: DOCUMENT, useValue: { defaultView: null } }
-      ]
+      providers: [{ provide: DOCUMENT, useValue: { defaultView: null } }],
     });
     const dateToken = TestBed.inject(GLOBAL_DATE);
     expect(dateToken).toBe(Date);

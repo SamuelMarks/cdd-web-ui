@@ -156,12 +156,13 @@ describe('WasmLoaderService', () => {
       return {
         ok: true,
         headers: new Headers({ 'content-type': 'application/wasm' }),
-        arrayBuffer: () => Promise.resolve(new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]).buffer),
+        arrayBuffer: () =>
+          Promise.resolve(new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]).buffer),
       };
     });
 
     await service.loadWasmBinary('cdd-java');
-    
+
     expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-java.wasm');
     expect(globalThis.fetch).toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-java']);
   });
