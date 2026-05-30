@@ -1,4 +1,5 @@
 import { Injectable, inject, isDevMode } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
 import { BackendConfigService } from './backend-config.service';
@@ -41,6 +42,8 @@ export class WasmLoaderService {
   private dialog = inject(MatDialog);
   /** Whether the user has approved loading WASM from GitHub. */
   private hasApprovedWasmLoad = false;
+  /** The Document token. */
+  private doc = inject(DOCUMENT, { optional: true });
 
   /**
    * Gets the remote GitHub URL for a WASM binary.
@@ -65,16 +68,14 @@ export class WasmLoaderService {
    */
   getCddJavaWasmUrl(): string {
     const url = 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js.wasm';
-    return typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    return this.doc && (this.doc.location.hostname === 'localhost' || this.doc.location.hostname === '127.0.0.1')
       ? this.getLocalWasmPath(url)
       : url;
   }
 
   getCddJavaJsUrl(): string {
     const url = 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js';
-    return typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    return this.doc && (this.doc.location.hostname === 'localhost' || this.doc.location.hostname === '127.0.0.1')
       ? this.getLocalWasmPath(url)
       : url;
   }
@@ -94,13 +95,8 @@ export class WasmLoaderService {
     const fallbackLocalPath = `/assets/wasm/${ecosystem}.wasm`;
 
     try {
-      let res = await fetch(localPath);
+      const res = await fetch(localPath);
       if (res.ok) return res;
-
-      if (localPath !== fallbackLocalPath) {
-        res = await fetch(fallbackLocalPath);
-        if (res.ok) return res;
-      }
     } catch (e) {
       console.warn(`Local fetch failed for ${localPath}, falling back to GitHub`, e);
     }

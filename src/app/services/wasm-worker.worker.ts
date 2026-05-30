@@ -107,6 +107,12 @@ addEventListener('message', async ({ data }) => {
         if (languageOptions.tests) {
           additionalArgs.push('--tests');
         }
+        if (languageOptions.noImports) {
+          additionalArgs.push('--no-imports');
+        }
+        if (languageOptions.noWrapping) {
+          additionalArgs.push('--no-wrapping');
+        }
       }
 
       if (languageOptions && languageOptions.upgradeOpenApi && ecosystem === 'cdd-cpp') {
@@ -114,6 +120,54 @@ addEventListener('message', async ({ data }) => {
       }
 
       console.info(`[Worker] Starting WASM generation for ${ecosystem}...`);
+
+      if (ecosystem === 'cdd-csharp') {
+        type CsharpExports = {
+          BrowserInterop: { GenerateFromOpenApi: (a: string, b: string, c: string) => string };
+        };
+        const globalRef = globalThis as unknown as { _cddCsharpExports?: CsharpExports };
+        let csharpExports = globalRef._cddCsharpExports;
+        if (!csharpExports) {
+          console.info(`[Worker] Booting .NET browser-wasm runtime for cdd-csharp...`);
+          const dotnetJsUrl = location.origin + '/assets/wasm/cdd-csharp/dotnet.js';
+          const module = await import(/* @vite-ignore */ dotnetJsUrl);
+          const { dotnet } = module;
+          const { getAssemblyExports, getConfig } = await dotnet
+            .withDiagnosticTracing(false)
+            .withResourceLoader(
+              (
+                type: string,
+                name: string,
+                defaultUri: string,
+                integrity: string,
+                behavior: string,
+              ) => {
+                return location.origin + '/assets/wasm/cdd-csharp/' + name;
+              },
+            )
+            .create();
+          const config = getConfig();
+          csharpExports = (await getAssemblyExports(config.mainAssemblyName)) as CsharpExports;
+          globalRef._cddCsharpExports = csharpExports;
+        }
+
+        const resultStr = csharpExports.BrowserInterop.GenerateFromOpenApi(
+          finalSpecContent as string,
+          'from_openapi',
+          target || 'to_sdk',
+        );
+        const resultJson = JSON.parse(resultStr);
+        if (resultJson.error) {
+          throw new Error(resultJson.error);
+        }
+
+        const files = [];
+        for (const [path, content] of Object.entries(resultJson)) {
+          files.push({ path, content: new TextEncoder().encode(content as string) });
+        }
+        postMessage({ status: 'success', jobId, data: files });
+        return;
+      }
 
       const generatedFiles = await CddWasmSdk.fromOpenApi({
         ecosystem,

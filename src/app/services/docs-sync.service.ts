@@ -5,6 +5,7 @@ import { selectOpenApiSpecContent, selectOpenApiValidationErrors } from '../stor
 import { ThemeService } from './theme.service';
 import { filter, debounceTime, tap, Subject, takeUntil, distinctUntilChanged } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
+import { WINDOW } from '../tokens';
 
 /** Service for syncing documentation state. */
 @Injectable({
@@ -13,6 +14,9 @@ import { toObservable } from '@angular/core/rxjs-interop';
 })
 /** DocsSyncService */
 export class DocsSyncService implements OnDestroy {
+  /** The global window reference. */
+  private readonly window = inject(WINDOW);
+
   /** The NgRx store. */
   private store = inject(Store<AppState>);
   /** The application theme service. */
@@ -40,12 +44,12 @@ export class DocsSyncService implements OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-    window.removeEventListener('message', this.handleMessage);
+    this.window?.removeEventListener('message', this.handleMessage);
   }
 
   /** Subscribes to window message events from the iframe. */
   private setupMessageListener() {
-    window.addEventListener('message', this.handleMessage);
+    this.window?.addEventListener('message', this.handleMessage);
   }
 
   /** Handles incoming `postMessage` events from the iframe. */

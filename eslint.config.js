@@ -15,6 +15,7 @@ module.exports = [
       'improved-web-component.ts',
       'parser-improved.ts',
       'web-comp-backup.ts',
+      'public/assets/wasm/**',
     ],
   },
   {

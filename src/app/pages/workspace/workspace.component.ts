@@ -23,6 +23,7 @@ import { DirectoryTreeComponent } from '../../components/directory-tree/director
 import { CodeViewerComponent } from '../../components/code-viewer/code-viewer.component';
 import { LanguageSelectorComponent } from '../../components/language-selector/language-selector.component';
 import { BottomPanelComponent } from '../../components/bottom-panel/bottom-panel.component';
+import { WINDOW } from '../../tokens';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
@@ -240,6 +241,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 export class WorkspaceComponent implements OnInit, OnDestroy {
   /** document */
   private document = inject(DOCUMENT);
+  /** window */
+  private window = inject(WINDOW);
   /** destroy$ */
   private destroy$ = new Subject<void>();
 
@@ -395,7 +398,9 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
     const target = event.target as HTMLElement | null;
     const workspaceContent = target ? target.parentElement : null;
-    const containerHeight = workspaceContent ? workspaceContent.clientHeight : window.innerHeight;
+    const containerHeight = workspaceContent
+      ? workspaceContent.clientHeight
+      : this.window?.innerHeight || 800;
 
     // Disable pointer events on panes to avoid iframes/editors swallowing mouse events
     if (workspaceContent) {

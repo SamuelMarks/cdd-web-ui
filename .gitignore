@@ -67,8 +67,7 @@ Thumbs.db
 /coverage
 
 # WASM binaries
-public/assets/wasm/*.wasm
-public/assets/wasm/*.hash
+/public/assets/wasm/
 /documentation
 /parse-coverage*.mjs
 /update.patch
@@ -166,7 +165,6 @@ tool-outputs/
 
 # Broader Angular/Build ignores
 .angular/
-public/assets/wasm/*.js
 
 # Run and Test Wildcards
 /run_*.js

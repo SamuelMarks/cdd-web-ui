@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { WINDOW } from '../tokens';
 
 /**
  * Service to manage and detect the application's offline status using the browser's navigator APIs.
@@ -8,6 +9,9 @@ import { Injectable, signal } from '@angular/core';
 })
 /** OfflineService */
 export class OfflineService {
+  /** Window token */
+  private readonly window = inject(WINDOW);
+
   /** Signal indicating whether the browser is currently online. */
   readonly isOnline = signal<boolean>(true);
 
@@ -21,11 +25,11 @@ export class OfflineService {
    * and attaching event listeners to `window`.
    */
   private init(): void {
-    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
-      this.isOnline.set(navigator.onLine);
+    if (this.window && this.window.navigator) {
+      this.isOnline.set(this.window.navigator.onLine);
 
-      window.addEventListener('online', () => this.isOnline.set(true));
-      window.addEventListener('offline', () => this.isOnline.set(false));
+      this.window.addEventListener('online', () => this.isOnline.set(true));
+      this.window.addEventListener('offline', () => this.isOnline.set(false));
     }
   }
 

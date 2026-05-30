@@ -129,6 +129,22 @@ describe('OpenApiEditorComponent', () => {
     expect(component.internalContent()).toContain('{\n  "openapi": "3.0.0"'); // nicely formatted JSON
   });
 
+  it('should update internalContent when form control value changes', () => {
+    const emitSpy = vi.spyOn(component.specContentChange, 'emit');
+    const validateSpy = vi.spyOn(component as any, 'validateContent');
+
+    // Test null value fallback
+    component.contentControl.setValue(null);
+    expect(component.internalContent()).toBe('');
+
+    // Simulate setting form control value from UI
+    component.contentControl.setValue('openapi: 3.1.0\ninfo:\n  title: "Test"\n  version: 1.0.0');
+
+    expect(component.internalContent()).toContain('openapi: 3.1.0');
+    expect(emitSpy).toHaveBeenCalledWith('openapi: 3.1.0\ninfo:\n  title: "Test"\n  version: 1.0.0');
+    expect(validateSpy).toHaveBeenCalledWith('openapi: 3.1.0\ninfo:\n  title: "Test"\n  version: 1.0.0');
+  });
+
   it('should show error when formatting invalid document', () => {
     component.internalContent.set('{ "openapi": "3.0.0", "info": }');
     component.formatDocument();

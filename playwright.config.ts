@@ -22,7 +22,10 @@ export default defineConfig({
     // Configure across Chromium, Firefox, WebKit (Step 256)
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: { args: ['--js-flags=--stack-size=100000'] },
+      },
     },
     {
       name: 'firefox',
@@ -35,7 +38,7 @@ export default defineConfig({
     // Mobile viewport test (Step 252)
     {
       name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      use: { ...devices['Pixel 5'], launchOptions: { args: ['--js-flags=--stack-size=100000'] } },
     },
   ],
   webServer: {

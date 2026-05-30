@@ -30,7 +30,7 @@ describe('BottomPanelComponent', () => {
 
     loggingServiceMock = {
       logs: signal<LogEntry[]>([
-        { level: 'INFO', message: 'Test log', timestamp: new Date().toISOString() },
+        { level: 'INFO', message: 'Test log', timestamp: '2026-05-30T00:00:00.000Z' },
       ]),
       clear: vi.fn(),
     };

@@ -42,6 +42,11 @@ export interface LanguageOptions {
   orm?: string;
   /** Whether to automatically generate admin scaffolding. */
   autoAdmin?: boolean;
+  /** Whether to omit imports in docs json target. */
+  noImports?: boolean;
+  /** Whether to omit wrapping blocks in docs json target. */
+  noWrapping?: boolean;
+
   /** Whether to upgrade the OpenAPI spec automatically. */
   upgradeOpenApi?: boolean;
   /** Whether to skip generating GitHub Actions. */

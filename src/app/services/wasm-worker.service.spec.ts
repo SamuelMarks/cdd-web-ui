@@ -234,4 +234,31 @@ describe('WasmWorkerService', () => {
     globalThis.Worker = origWorker;
     warnSpy.mockRestore();
   });
+
+  it('should pass options to generateCode when target is to_docs_json', async () => {
+    const mockWorker = new MockWorker();
+    let capturedPayload: unknown = null;
+    mockWorker.postMessage = function (data) {
+      capturedPayload = data.payload;
+      setTimeout(() => {
+        if (this.onmessage) {
+          this.onmessage(
+            new MessageEvent('message', {
+              data: {
+                status: 'success',
+                jobId: data.jobId,
+                data: [{ path: 'docs.json', content: new Uint8Array([1]) }],
+              },
+            }),
+          );
+        }
+      }, 0);
+    };
+    (service as unknown as { worker: Worker | null }).worker = mockWorker as unknown as Worker;
+    const options = { noImports: true, noWrapping: true };
+    const files = await service.generateCode('cdd-ruby', '{}', 'to_docs_json', options);
+    expect(files.length).toBe(1);
+    expect(capturedPayload.target).toBe('to_docs_json');
+    expect(capturedPayload.languageOptions).toBe(options);
+  });
 });

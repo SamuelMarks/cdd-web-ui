@@ -93,14 +93,28 @@ export class WorkspaceEffects {
             let upgradePromise = Promise.resolve(specContent);
 
             return upgradePromise
-              .then((upgradedSpec) =>
-                this.wasmWorkerService.generateCode(
+              .then((upgradedSpec) => {
+                const sdkPromise = this.wasmWorkerService.generateCode(
                   lang.repo,
                   upgradedSpec,
                   actualTarget,
                   languageOptions,
-                ),
-              )
+                );
+
+                if (actualTarget !== 'to_openapi_3_2_0') {
+                  const docsOptions = { ...languageOptions, noImports: true, noWrapping: true };
+                  const docsPromise = this.wasmWorkerService
+                    .generateCode(lang.repo, upgradedSpec, 'to_docs_json', docsOptions)
+                    .catch((e) => {
+                      console.warn('Failed to generate to_docs_json snippets:', e);
+                      return [];
+                    });
+                  return Promise.all([sdkPromise, docsPromise]).then(([sdkFiles, docsFiles]) => {
+                    return [...sdkFiles, ...docsFiles];
+                  });
+                }
+                return sdkPromise;
+              })
               .then(
                 (files) => WorkspaceActions.executeRunSuccess({ result: files }),
                 (error) =>

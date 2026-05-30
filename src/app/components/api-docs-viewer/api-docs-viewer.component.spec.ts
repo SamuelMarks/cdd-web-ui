@@ -2,7 +2,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ApiDocsViewerComponent } from './api-docs-viewer.component';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { AppState } from '../../store/state';
-import { selectOpenApiSpecContent, selectGeneratedFiles } from '../../store/selectors';
+import {
+  selectOpenApiSpecContent,
+  selectGeneratedFiles,
+  selectSelectedLanguageId,
+} from '../../store/selectors';
 import * as WorkspaceActions from '../../store/actions';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ThemeService } from '../../services/theme.service';
@@ -27,6 +31,7 @@ describe('ApiDocsViewerComponent', () => {
           selectors: [
             { selector: selectOpenApiSpecContent, value: 'openapi: 3.0.0\ninfo:\n  title: Test' },
             { selector: selectGeneratedFiles, value: [] },
+            { selector: selectSelectedLanguageId, value: 'cdd-ts' },
           ],
         }),
       ],
@@ -66,13 +71,14 @@ describe('ApiDocsViewerComponent', () => {
     expect(component.theme()).toBe('dark');
   });
 
-  it('should map sdk examples correctly', () => {
+  it('should map sdk examples correctly dynamically based on language', () => {
+    store.overrideSelector(selectSelectedLanguageId, 'cdd-ruby');
     store.overrideSelector(selectGeneratedFiles, [
-      { path: 'test.ts', content: new Uint8Array([116, 101, 115, 116]) },
+      { path: 'test.rb', content: new Uint8Array([116, 101, 115, 116]) },
     ]);
     store.refreshState();
     expect(component.mappedSdkExamples()).toEqual([
-      { language: 'typescript', filepath: 'test.ts', content: 'test' },
+      { language: 'ruby', filepath: 'test.rb', content: 'test' },
     ]);
   });
 });

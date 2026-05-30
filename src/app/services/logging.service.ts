@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { GLOBAL_DATE } from '../tokens';
 
 /** Represents a single log entry */
 export interface LogEntry {
@@ -19,6 +20,9 @@ export interface LogEntry {
   providedIn: 'root',
 })
 export class LoggingService {
+  /** Date object token */
+  private readonly globalDate = inject(GLOBAL_DATE);
+
   /** doc */
   private logsSignal = signal<LogEntry[]>([]);
   /** doc */
@@ -63,7 +67,7 @@ export class LoggingService {
   private addLog(level: 'INFO' | 'WARN' | 'ERROR', message: string, params: unknown[]): void {
     this.logsSignal.update((logs) => [
       ...logs,
-      { level, message, timestamp: new Date().toISOString(), params },
+      { level, message, timestamp: new this.globalDate().toISOString(), params },
     ]);
   }
 }

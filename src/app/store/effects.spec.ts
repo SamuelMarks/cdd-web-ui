@@ -107,7 +107,12 @@ describe('WorkspaceEffects', () => {
       store.overrideSelector(selectOpenApiInputFormat, 'openapi_3_2_0');
 
       const mockFiles: GeneratedFile[] = [{ path: 'test.py', content: new Uint8Array() }];
-      wasmWorkerServiceMock.generateCode.mockResolvedValue(mockFiles);
+      const mockDocsFiles: GeneratedFile[] = [{ path: 'docs.json', content: new Uint8Array() }];
+
+      wasmWorkerServiceMock.generateCode.mockImplementation((_, __, target) => {
+        if (target === 'to_docs_json') return Promise.resolve(mockDocsFiles);
+        return Promise.resolve(mockFiles);
+      });
 
       actions$ = of(Actions.executeRun());
 
@@ -118,7 +123,15 @@ describe('WorkspaceEffects', () => {
         'to_sdk',
         {},
       );
-      expect(result).toEqual(Actions.executeRunSuccess({ result: mockFiles }));
+      expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith(
+        'cdd-python-all',
+        '{}',
+        'to_docs_json',
+        { noImports: true, noWrapping: true },
+      );
+      expect(result).toEqual(
+        Actions.executeRunSuccess({ result: [...mockFiles, ...mockDocsFiles] }),
+      );
     });
 
     it('should override target if language is openapi', async () => {

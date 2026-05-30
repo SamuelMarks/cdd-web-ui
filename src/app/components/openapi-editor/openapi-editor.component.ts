@@ -10,7 +10,7 @@ import {
   CUSTOM_ELEMENTS_SCHEMA,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,6 +19,7 @@ import { OpenApiParser } from './openapi-parser.util';
 import * as yaml from 'js-yaml';
 import { NotificationService } from '../../services/notification.service';
 import { ThemeService } from '../../services/theme.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 /**
  * Editor component for viewing and modifying OpenAPI specifications.
@@ -29,7 +30,7 @@ import { ThemeService } from '../../services/theme.service';
   /** imports */
   imports: [
     CommonModule,
-    FormsModule,
+    ReactiveFormsModule,
     MonacoEditorModule,
     MatButtonModule,
     MatIconModule,
@@ -85,8 +86,7 @@ import { ThemeService } from '../../services/theme.service';
         </div>
         <ngx-monaco-editor
           [options]="editorOptions()"
-          [ngModel]="internalContent()"
-          (ngModelChange)="onContentChange($event)"
+          [formControl]="contentControl"
           (onInit)="onEditorInit($event)"
         ></ngx-monaco-editor>
 
@@ -136,6 +136,9 @@ export class OpenApiEditorComponent {
   /** Current validation errors. */
   validationErrors = signal<string[]>([]);
 
+  /** Form control for the Monaco editor. */
+  contentControl = new FormControl('');
+
   /** The theme service for matching Monaco theme to app theme. */
   private themeService = inject(ThemeService);
   /** Notification service for user feedback. */
@@ -164,14 +167,25 @@ export class OpenApiEditorComponent {
     formatOnPaste: true,
   }));
 
-  /** Effect to sync the external input to the internal ngModel when it changes from outside. */
+  /** Effect to sync the external input to the internal signal and form control when it changes from outside. */
   constructor() {
+    /** Subscribe to form control changes */
+    this.contentControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      const content = value || '';
+      if (content !== this.internalContent()) {
+        this.internalContent.set(content);
+        this.specContentChange.emit(content);
+        this.validateContent(content);
+      }
+    });
+
     /** effect */
     effect(() => {
       const externalContent = this.specContent();
       // Only update internal if it's actually different to prevent cursor jumping
       if (this.internalContent() !== externalContent) {
         this.internalContent.set(externalContent);
+        this.contentControl.setValue(externalContent, { emitEvent: false });
         this.validateContent(externalContent);
       }
     });
@@ -202,11 +216,12 @@ export class OpenApiEditorComponent {
   }
 
   /**
-   * Called when the user types in the editor.
+   * Called when the user types in the editor or programmatically changing content.
    * @param content The new content.
    */
   onContentChange(content: string): void {
     this.internalContent.set(content);
+    this.contentControl.setValue(content, { emitEvent: false });
     this.specContentChange.emit(content);
     this.validateContent(content);
   }

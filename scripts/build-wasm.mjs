@@ -504,6 +504,20 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
             }
           } else if (fs.existsSync(makefilePath) || fs.existsSync(cmakePath)) {
             console.log(`  Running make build_wasm...`);
+            if (tool === 'cdd-csharp') {
+              execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
+              const appBundleSrc = path.join(
+                localToolDir,
+                'src/Cdd.OpenApi.Cli/bin/Release/net8.0/browser-wasm/publish',
+              );
+              const appBundleDest = path.join(DEST_DIR, 'cdd-csharp');
+              if (fs.existsSync(appBundleSrc)) {
+                execSync(`rm -rf ${appBundleDest} && cp -r ${appBundleSrc} ${appBundleDest}`);
+                console.log(`  Copied AppBundle for cdd-csharp to ${appBundleDest}`);
+                success = true;
+              }
+              continue;
+            }
             execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
             const wasmSource = path.join(localToolDir, 'bin', `${tool}.wasm`);
             const wasmSourceDist = path.join(localToolDir, 'dist', `${tool}.wasm`);
@@ -558,8 +572,21 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
         const dlDest = isZip ? `${wasmDest}.zip` : wasmDest;
         await downloadFile(url, dlDest);
         if (isZip) {
-          execSync(`unzip -p ${dlDest} > ${wasmDest}`);
-          fs.unlinkSync(dlDest);
+          if (tool === 'cdd-csharp') {
+            require('child_process').execSync(
+              'rm -rf ' +
+                DEST_DIR +
+                '/cdd-csharp && unzip -q ' +
+                dlDest +
+                ' -d ' +
+                DEST_DIR +
+                '/cdd-csharp && rm ' +
+                dlDest,
+            );
+          } else {
+            require('child_process').execSync('unzip -p ' + dlDest + ' > ' + wasmDest);
+            fs.unlinkSync(dlDest);
+          }
         }
         console.log(`  ✅ Successfully downloaded ${tool}.wasm`);
         supported = true;

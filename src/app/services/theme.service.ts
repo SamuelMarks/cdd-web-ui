@@ -1,5 +1,6 @@
 import { Injectable, signal, effect, inject, PLATFORM_ID } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { WINDOW } from '../tokens';
 
 /**
  * Service to manage light/dark theme toggling and persistence.
@@ -15,6 +16,8 @@ export class ThemeService {
   private readonly document = inject(DOCUMENT);
   /** The injected platform ID to determine the environment. */
   private readonly platformId = inject(PLATFORM_ID);
+  /** Window reference. */
+  private readonly window = inject(WINDOW);
 
   /** Signal indicating if dark mode is currently active. */
   readonly isDarkTheme = signal<boolean>(this.loadInitialTheme());
@@ -69,7 +72,7 @@ export class ThemeService {
     }
 
     // Fallback to system preference
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    if (this.window?.matchMedia && this.window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return true;
     }
     return false;

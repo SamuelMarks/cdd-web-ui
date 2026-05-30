@@ -47,7 +47,7 @@ describe('OfflineService', () => {
   it('should verify behavior safely', () => {
     // Because we cannot delete global.window in JSDOM, we just ensure
     // the manual setting logic holds to get 100% coverage
-    const ssrService = new OfflineService();
+    const ssrService = TestBed.runInInjectionContext(() => new OfflineService());
     expect(ssrService.isOnline()).toBe(true);
   });
 
@@ -55,7 +55,7 @@ describe('OfflineService', () => {
     const origNav = globalThis.navigator;
     Object.defineProperty(globalThis, 'navigator', { value: undefined, configurable: true });
 
-    const manualService = new OfflineService();
+    const manualService = TestBed.runInInjectionContext(() => new OfflineService());
     expect(manualService.isOnline()).toBe(true);
 
     Object.defineProperty(globalThis, 'navigator', { value: origNav, configurable: true });

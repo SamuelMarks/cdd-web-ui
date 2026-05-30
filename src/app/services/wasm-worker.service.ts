@@ -46,7 +46,7 @@ export class WasmWorkerService {
    * Generates code from OpenAPI using WASM in a worker thread.
    * @param ecosystem Target ecosystem (e.g. 'cdd-python-all')
    * @param specContent The OpenAPI specification content
-   * @param target The target generation type (to_sdk, to_server, to_sdk_cli)
+   * @param target The target generation type (to_sdk, to_server, to_sdk_cli, to_docs_json)
    * @param languageOptions The language specific options
    * @returns Array of generated files
    */
