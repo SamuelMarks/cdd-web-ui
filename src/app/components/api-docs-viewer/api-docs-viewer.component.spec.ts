@@ -71,6 +71,21 @@ describe('ApiDocsViewerComponent', () => {
     expect(component.theme()).toBe('dark');
   });
 
+  it('should map generated files to sdkExamples using selected language (including docs.json)', () => {
+    store.overrideSelector(selectGeneratedFiles, [
+      { path: 'docs.json', content: new TextEncoder().encode('{\endpoints\: {}}') },
+    ]);
+    store.overrideSelector(selectSelectedLanguageId, 'cdd-go');
+    store.refreshState();
+    fixture.detectChanges();
+
+    const examples = component.mappedSdkExamples();
+    expect(examples.length).toBe(1);
+    expect(examples[0].language).toBe('go');
+    expect(examples[0].filepath).toBe('docs.json');
+    expect(examples[0].content).toContain('endpoints');
+  });
+
   it('should map sdk examples correctly dynamically based on language', () => {
     store.overrideSelector(selectSelectedLanguageId, 'cdd-ruby');
     store.overrideSelector(selectGeneratedFiles, [

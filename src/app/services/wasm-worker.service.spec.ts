@@ -235,6 +235,24 @@ describe('WasmWorkerService', () => {
     warnSpy.mockRestore();
   });
 
+  it('should explicitly inject -o docs.json and handle to_docs_json target', async () => {
+    const capturedPayloads: any[] = [];
+    const originalPostMessage = MockWorker.prototype.postMessage;
+    MockWorker.prototype.postMessage = function (data: any) {
+      if (data.action === 'generateSdk') {
+        capturedPayloads.push(data.payload);
+      }
+      originalPostMessage.call(this, data);
+    };
+
+    const files = await service.generateCode('cdd-ruby', '{}', 'to_docs_json', { noImports: true });
+    expect(capturedPayloads.length).toBe(1);
+    expect(capturedPayloads[0].target).toBe('to_docs_json');
+    expect(capturedPayloads[0].languageOptions.noImports).toBe(true);
+
+    MockWorker.prototype.postMessage = originalPostMessage;
+  });
+
   it('should pass options to generateCode when target is to_docs_json', async () => {
     const mockWorker = new MockWorker();
     let capturedPayload: unknown = null;

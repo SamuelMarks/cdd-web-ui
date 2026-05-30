@@ -201,7 +201,19 @@ async function run() {
           const mavenPath = path.join(localToolDir, 'pom.xml');
           const isJavaRaw = fs.existsSync(path.join(localToolDir, 'src', 'main', 'java'));
 
-          if (fs.existsSync(buildWasmScriptRoot)) {
+          if (tool === 'cdd-csharp') {
+            console.log('  Running make build_wasm...');
+            execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
+            const appBundleSrc = path.join(localToolDir, 'bin/cdd-csharp');
+            const appBundleDest = path.join(DEST_DIR, 'cdd-csharp');
+            if (fs.existsSync(appBundleSrc)) {
+              execSync(
+                'rm -rf ' + appBundleDest + ' && cp -r ' + appBundleSrc + ' ' + appBundleDest,
+              );
+              console.log('  Copied AppBundle for cdd-csharp to ' + appBundleDest);
+              success = true;
+            }
+          } else if (fs.existsSync(buildWasmScriptRoot)) {
             if (tool === 'cdd-kotlin') {
               console.log('Patching Kotlin to add to_sdk...');
               const ktPath = path.join(localToolDir, 'src/wasmMain/kotlin/org/cdd/wasm/Main.kt');
@@ -506,10 +518,7 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
             console.log(`  Running make build_wasm...`);
             if (tool === 'cdd-csharp') {
               execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
-              const appBundleSrc = path.join(
-                localToolDir,
-                'src/Cdd.OpenApi.Cli/bin/Release/net8.0/browser-wasm/publish',
-              );
+              const appBundleSrc = path.join(localToolDir, 'bin/cdd-csharp');
               const appBundleDest = path.join(DEST_DIR, 'cdd-csharp');
               if (fs.existsSync(appBundleSrc)) {
                 execSync(`rm -rf ${appBundleDest} && cp -r ${appBundleSrc} ${appBundleDest}`);
@@ -573,18 +582,18 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
         await downloadFile(url, dlDest);
         if (isZip) {
           if (tool === 'cdd-csharp') {
-            require('child_process').execSync(
+            execSync(
               'rm -rf ' +
                 DEST_DIR +
                 '/cdd-csharp && unzip -q ' +
                 dlDest +
                 ' -d ' +
                 DEST_DIR +
-                '/cdd-csharp && rm ' +
+                ' && rm ' +
                 dlDest,
             );
           } else {
-            require('child_process').execSync('unzip -p ' + dlDest + ' > ' + wasmDest);
+            execSync('unzip -p ' + dlDest + ' > ' + wasmDest);
             fs.unlinkSync(dlDest);
           }
         }
