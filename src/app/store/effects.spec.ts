@@ -107,7 +107,7 @@ describe('WorkspaceEffects', () => {
       store.overrideSelector(selectOpenApiInputFormat, 'openapi_3_2_0');
 
       const mockFiles: GeneratedFile[] = [{ path: 'test.py', content: new Uint8Array() }];
-      const mockDocsFiles: GeneratedFile[] = [{ path: 'docs.json', content: new Uint8Array() }];
+      const mockDocsFiles: GeneratedFile[] = [{ path: 'docs.json', content: new Uint8Array([123, 34, 101, 110, 100, 112, 111, 105, 110, 116, 115, 34, 58, 123, 125, 125]) }];
 
       wasmWorkerServiceMock.generateCode.mockImplementation((_, __, target) => {
         if (target === 'to_docs_json') return Promise.resolve(mockDocsFiles);
@@ -126,12 +126,67 @@ describe('WorkspaceEffects', () => {
       expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith(
         'cdd-python-all',
         '{}',
+        'to_sdk',
+        {},
+      );
+      expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith(
+        'cdd-python-all',
+        '{}',
         'to_docs_json',
-        { noImports: true, noWrapping: true },
+        {},
       );
       expect(result).toEqual(
         Actions.executeRunSuccess({ result: [...mockFiles, ...mockDocsFiles] }),
       );
+    });
+
+    it('should fallback to creating mock docs.json if target is to_docs_json and result lacks endpoints', async () => {
+      store.overrideSelector(selectOrientation, 'openapi-left');
+      store.overrideSelector(selectSelectedLanguageId, 'python');
+      // Pass a non-string object to cover `typeof upgradedSpec !== 'string'`
+      const specObj = { paths: { '/test': { get: {}, post: {}, custom_method: {} }, '/invalid': 'string method', '/null': null } };
+      store.overrideSelector(
+        selectOpenApiSpecContent,
+        specObj as any, // force cast to test the branch
+      );
+      store.overrideSelector(selectOpenApiInputFormat, 'openapi_3_2_0');
+
+      const mockFiles: GeneratedFile[] = [{ path: 'test.py', content: new Uint8Array() }];
+      // A docs.json with length > 0 but no 'endpoints' or 'operations' string
+      const mockDocsFiles: GeneratedFile[] = [{ path: 'docs.json', content: new TextEncoder().encode('{}') }];
+
+      wasmWorkerServiceMock.generateCode.mockImplementation((_, __, target) => {
+        if (target === 'to_docs_json') return Promise.resolve(mockDocsFiles);
+        return Promise.resolve(mockFiles);
+      });
+
+      actions$ = of(Actions.executeRun());
+
+      const result = await effects.executeRun$.toPromise();
+      const successAction = result as any;
+      
+      const docsFile = successAction.result.find((f: any) => f.path === 'docs.json');
+      const contentStr = new TextDecoder().decode(docsFile.content);
+      expect(contentStr).toContain('"endpoints"');
+    });
+
+    it('should handle mock docs.json when parsedSpec has no paths', async () => {
+      store.overrideSelector(selectOrientation, 'openapi-left');
+      store.overrideSelector(selectSelectedLanguageId, 'python');
+      // Pass invalid spec that yields no paths
+      store.overrideSelector(selectOpenApiSpecContent, 'invalid yaml');
+      
+      const mockDocsFiles: GeneratedFile[] = [];
+      wasmWorkerServiceMock.generateCode.mockImplementation((_, __, target) => {
+        if (target === 'to_docs_json') return Promise.resolve(mockDocsFiles);
+        return Promise.resolve([]);
+      });
+
+      actions$ = of(Actions.executeRun());
+      const result = await effects.executeRun$.toPromise();
+      const docsFile = (result as any).result.find((f: any) => f.path === 'docs.json');
+      const contentStr = new TextDecoder().decode(docsFile.content);
+      expect(contentStr).toContain('"endpoints":{}');
     });
 
     it('should override target if language is openapi', async () => {

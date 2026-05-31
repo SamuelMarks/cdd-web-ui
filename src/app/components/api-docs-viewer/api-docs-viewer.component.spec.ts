@@ -96,4 +96,37 @@ describe('ApiDocsViewerComponent', () => {
       { language: 'ruby', filepath: 'test.rb', content: 'test' },
     ]);
   });
+
+  it('should fallback to typescript if !langId', () => {
+    store.overrideSelector(selectSelectedLanguageId, '');
+    store.overrideSelector(selectGeneratedFiles, [
+      { path: 'test.ts', content: new Uint8Array([116, 101, 115, 116]) },
+    ]);
+    store.refreshState();
+    expect(component.mappedSdkExamples()).toEqual([
+      { language: 'typescript', filepath: 'test.ts', content: 'test' },
+    ]);
+  });
+
+  it('should normalize cdd-python-all to python', () => {
+    store.overrideSelector(selectSelectedLanguageId, 'cdd-python-all');
+    store.overrideSelector(selectGeneratedFiles, [
+      { path: 'test.py', content: new Uint8Array([116, 101, 115, 116]) },
+    ]);
+    store.refreshState();
+    expect(component.mappedSdkExamples()).toEqual([
+      { language: 'python', filepath: 'test.py', content: 'test' },
+    ]);
+  });
+
+  it('should normalize cdd-sh to bash', () => {
+    store.overrideSelector(selectSelectedLanguageId, 'cdd-sh');
+    store.overrideSelector(selectGeneratedFiles, [
+      { path: 'test.sh', content: new Uint8Array([116, 101, 115, 116]) },
+    ]);
+    store.refreshState();
+    expect(component.mappedSdkExamples()).toEqual([
+      { language: 'bash', filepath: 'test.sh', content: 'test' },
+    ]);
+  });
 });

@@ -1,6 +1,7 @@
 import { BackendConfigService } from './backend-config.service';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { DOCUMENT } from '@angular/common';
 import { WasmLoaderService, WASM_GITHUB_URLS } from './wasm-loader.service';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
@@ -11,13 +12,20 @@ describe('WasmLoaderService', () => {
   let service: WasmLoaderService;
   let originalFetch: typeof fetch;
 
+  let mockDocument: any;
+
   beforeEach(() => {
+    mockDocument = {
+      location: { hostname: 'localhost' }
+    };
+    
     const mockConfig = {
       runMode: signal('local_relative'),
     };
     TestBed.configureTestingModule({
       providers: [
         { provide: BackendConfigService, useValue: mockConfig },
+        { provide: DOCUMENT, useValue: mockDocument },
         {
           provide: MatDialog,
           useValue: { open: vi.fn().mockReturnValue({ afterClosed: () => of(true) }) },
@@ -70,8 +78,7 @@ describe('WasmLoaderService', () => {
       arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
     } as unknown as Response);
 
-    const doc = TestBed.inject(DOCUMENT);
-    Object.defineProperty(doc, 'location', { value: { hostname: 'localhost' }, writable: true });
+    mockDocument.location.hostname = 'localhost';
 
     await service.loadWasmBinary('cdd-ts');
 
@@ -87,8 +94,7 @@ describe('WasmLoaderService', () => {
       arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
     } as unknown as Response);
 
-    const doc = TestBed.inject(DOCUMENT);
-    Object.defineProperty(doc, 'location', { value: { hostname: 'example.com' }, writable: true });
+    mockDocument.location.hostname = 'example.com';
 
     await service.loadWasmBinary('cdd-ts');
 
@@ -103,8 +109,7 @@ describe('WasmLoaderService', () => {
       statusText: 'Not Found',
     } as unknown as Response);
 
-    const doc = TestBed.inject(DOCUMENT);
-    Object.defineProperty(doc, 'location', { value: { hostname: 'localhost' }, writable: true });
+    mockDocument.location.hostname = 'localhost';
 
     await expect(service.loadWasmBinary('cdd-ts')).rejects.toThrow(
       /WASM binary not found for cdd-ts/,
@@ -118,8 +123,7 @@ describe('WasmLoaderService', () => {
       statusText: 'Internal Server Error',
     } as unknown as Response);
 
-    const doc = TestBed.inject(DOCUMENT);
-    Object.defineProperty(doc, 'location', { value: { hostname: 'example.com' }, writable: true });
+    mockDocument.location.hostname = 'example.com';
 
     await expect(service.loadWasmBinary('cdd-ts')).rejects.toThrow(
       /Failed to load WASM binary for cdd-ts: Internal Server Error/,
@@ -214,21 +218,20 @@ describe('WasmLoaderService', () => {
   });
 
   it('should return correct getEnvUrl for local and remote environments', () => {
-    const doc = TestBed.inject(DOCUMENT);
-    Object.defineProperty(doc, 'location', {
-      value: { hostname: 'localhost' },
-      writable: true,
-    });
+    mockDocument.location.hostname = 'localhost';
     let url = service.getEnvUrl('cdd-java.js');
     expect(url).toBe('/assets/wasm/cdd-java.js');
 
-    Object.defineProperty(doc, 'location', {
-      value: { hostname: 'example.com' },
-      writable: true,
-    });
+    mockDocument.location.hostname = 'example.com';
     url = service.getEnvUrl('cdd-java.js');
-    expect(url).toBe(
-      'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js',
-    );
+    expect(url).toBe('https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js');
+
+    // Invalid ecosystem
+    const invalidUrl = service.getEnvUrl('invalid');
+    expect(invalidUrl).toBe('');
+
+    // Empty split
+    const emptySplit = service.getLocalWasmPath('http://example.com/');
+    expect(emptySplit).toBe('/assets/wasm/');
   });
 });

@@ -116,12 +116,12 @@ export class WorkspaceEffects {
                       docsFiles.length === 0 ||
                       (!strContent.includes('"endpoints"') && !strContent.includes('"operations"'))
                     ) {
-                      const endpoints: Record<string, any> = {};
+                      const endpoints: Record<string, unknown> = {};
                       const parsedSpecResult =
                         typeof upgradedSpec === 'string'
                           ? OpenApiParser.parseAndValidate(upgradedSpec)
                           : { parsed: upgradedSpec };
-                      const parsedSpec = parsedSpecResult.parsed as any;
+                      const parsedSpec = parsedSpecResult.parsed as { paths?: Record<string, Record<string, unknown>> } | null;
                       console.error(
                         'PARSED SPEC TYPE: ' +
                           typeof parsedSpec +
@@ -130,9 +130,9 @@ export class WorkspaceEffects {
                       );
                       if (parsedSpec && parsedSpec.paths) {
                         for (const route of Object.keys(parsedSpec.paths)) {
-                          endpoints[route] = {};
                           const methods = parsedSpec.paths[route];
                           if (methods && typeof methods === 'object') {
+                            const methodRecord: Record<string, string> = {};
                             for (const method of Object.keys(methods)) {
                               if (
                                 [
@@ -146,10 +146,10 @@ export class WorkspaceEffects {
                                   'trace',
                                 ].includes(method)
                               ) {
-                                endpoints[route][method] =
-                                  '// Mock generated code for ' + lang.name;
+                                methodRecord[method] = '// Mock generated code for ' + lang.name;
                               }
                             }
+                            endpoints[route] = methodRecord;
                           }
                         }
                       }

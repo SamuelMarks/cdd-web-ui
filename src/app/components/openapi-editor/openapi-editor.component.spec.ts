@@ -150,6 +150,13 @@ describe('OpenApiEditorComponent', () => {
     expect(validateSpy).toHaveBeenCalledWith(
       'openapi: 3.1.0\ninfo:\n  title: "Test"\n  version: 1.0.0',
     );
+
+    // Set same value to cover the false branch
+    emitSpy.mockClear();
+    validateSpy.mockClear();
+    component.contentControl.setValue('openapi: 3.1.0\ninfo:\n  title: "Test"\n  version: 1.0.0');
+    expect(emitSpy).not.toHaveBeenCalled();
+    expect(validateSpy).not.toHaveBeenCalled();
   });
 
   it('should show error when formatting invalid document', () => {

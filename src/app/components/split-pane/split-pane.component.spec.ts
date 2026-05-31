@@ -121,6 +121,12 @@ describe('SplitPaneComponent', () => {
     window.innerWidth = 1000;
     component.checkMobile();
     expect(component.isMobile()).toBe(false);
+
+    // Test with null window
+    (component as any).windowRef = null;
+    component.isMobile.set(true); // pre-set to verify it doesn't change
+    component.checkMobile();
+    expect(component.isMobile()).toBe(true); // Should remain unchanged
   });
 
   it('should emit swapClicked on shift+s shortcut', () => {

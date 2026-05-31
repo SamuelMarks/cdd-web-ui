@@ -256,6 +256,15 @@ describe('CodeViewerComponent', () => {
     expect(notificationServiceMock.success).not.toHaveBeenCalled();
   });
 
+  it('should do nothing on download if window is null', () => {
+    hostComponent.activeFilePath.set('src/test.ts');
+    hostComponent.fileContent.set('const c = 3;');
+    hostFixture.detectChanges();
+    (component as any).window = null;
+    component.downloadFile();
+    expect(notificationServiceMock.success).not.toHaveBeenCalled();
+  });
+
   it('should download file content', () => {
     // Mock URL and a element
     const createObjectURLSpy = vi.spyOn(window.URL, 'createObjectURL').mockReturnValue('blob:url');

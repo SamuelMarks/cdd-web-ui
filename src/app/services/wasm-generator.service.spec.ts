@@ -399,6 +399,10 @@ describe('WasmGeneratorService', () => {
         imports.interop.genBacktrace();
         imports.interop['Date.now']();
         imports.interop['performance.now']();
+        
+        (service as any).window = null;
+        expect(imports.interop['performance.now']()).toBe(0);
+        
         imports.interop['stderrWriter.flush']();
         imports.interop['stdoutWriter.flush']();
         imports.interop['runtime.setExitCode']();
