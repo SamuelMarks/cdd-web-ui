@@ -1,6 +1,5 @@
 import * as Selectors from './selectors';
 import { AppState } from './state';
-import { GeneratedFile } from '../services/wasm-worker.service';
 import { describe, it, expect } from 'vitest';
 
 describe('Selectors', () => {

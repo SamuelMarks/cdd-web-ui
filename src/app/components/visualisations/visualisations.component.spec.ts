@@ -20,7 +20,6 @@ type TestComp = {
 };
 
 import * as Selectors from '../../store/selectors';
-import { initialOpenApiState } from '../../store/reducers';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
 describe('VisualisationsComponent', () => {
@@ -39,7 +38,7 @@ describe('VisualisationsComponent', () => {
       unobserve = vi.fn();
       disconnect = vi.fn();
     };
-    globalThis.ResizeObserver = mockResizeObserver as unknown as typeof ResizeObserver;
+    globalThis.ResizeObserver = mockResizeObserver as typeof ResizeObserver;
 
     await TestBed.configureTestingModule({
       imports: [VisualisationsComponent, NoopAnimationsModule],
@@ -135,7 +134,7 @@ paths:
       toJSON: () => {},
     });
 
-    (resizeCallback as Function)();
+    (resizeCallback as () => void)();
     expect(component.hasData).toBe(true);
   });
 
@@ -188,7 +187,7 @@ info:
 
     if (svg) {
       if (component.zoomCallback) {
-        component.zoomCallback!({
+        component.zoomCallback({
           transform: 'translate(10, 20) scale(2)',
         } as unknown as d3.D3ZoomEvent<SVGSVGElement, unknown>);
         fixture.detectChanges();
@@ -202,7 +201,7 @@ info:
   it('should not update transform if svg is missing in zoomCallback', () => {
     (component as unknown as TestComp).svg = null;
     if (component.zoomCallback) {
-      component.zoomCallback!({
+      component.zoomCallback({
         transform: 'translate(10, 20) scale(2)',
       } as unknown as d3.D3ZoomEvent<SVGSVGElement, unknown>);
     }

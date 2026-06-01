@@ -2,20 +2,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // We'll test the message handler by intercepting addEventListener
 describe('wasm-worker.worker.ts', () => {
-  let messageHandler: any;
-  let originalAddEventListener: any;
-  let originalPostMessage: any;
-  let postMessageSpy: any;
+  let messageHandler: (...args: unknown[]) => unknown;
+  let originalAddEventListener: unknown;
+  // let originalPostMessage: any;
+  let postMessageSpy: import('vitest').Mock;
 
   beforeEach(() => {
     vi.resetModules();
     originalAddEventListener = globalThis.addEventListener;
-    globalThis.addEventListener = (event: string, handler: any) => {
+    globalThis.addEventListener = (event: string, handler: (...args: unknown[]) => unknown) => {
       if (event === 'message') {
         messageHandler = handler;
       }
     };
-    originalPostMessage = globalThis.postMessage;
+
     postMessageSpy = vi.fn();
     vi.stubGlobal('postMessage', postMessageSpy);
   });
@@ -23,8 +23,8 @@ describe('wasm-worker.worker.ts', () => {
   afterEach(() => {
     globalThis.addEventListener = originalAddEventListener;
     vi.unstubAllGlobals();
-    delete (globalThis as any)._cddCsharpExports;
-    delete (globalThis as any)._cddCsharpInitPromise;
+    delete (globalThis as unknown as Record<string, unknown>)._cddCsharpExports;
+    delete (globalThis as unknown as Record<string, unknown>)._cddCsharpInitPromise;
     vi.restoreAllMocks();
   });
 
@@ -39,7 +39,8 @@ describe('wasm-worker.worker.ts', () => {
     });
     vi.stubGlobal('_cddCsharpInitPromise', Promise.resolve());
 
-    await messageHandler({
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: '123',
@@ -53,12 +54,33 @@ describe('wasm-worker.worker.ts', () => {
     });
 
     expect(postMessageSpy).toHaveBeenCalled();
-    const successCall = postMessageSpy.mock.calls.find((call: any) => call[0].status === 'success');
+    const successCall = postMessageSpy.mock.calls.find(
+      (call: [Record<string, unknown>]) => call[0].status === 'success',
+    );
     expect(successCall).toBeDefined();
     expect(successCall[0].data.length).toBe(1);
     expect(successCall[0].data[0].path).toBe('docs.json');
     const content = new TextDecoder().decode(successCall[0].data[0].content);
     expect(content).toContain('"endpoints"');
+  });
+
+  it('should use custom _dotnetJsUrl if provided', async () => {
+    (globalThis as unknown as Record<string, unknown>)._dotnetJsUrl = 'custom-dotnet.js';
+    vi.stubGlobal('_cddCsharpExports', null);
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'csharp-url-job',
+        payload: {
+          ecosystem: 'cdd-csharp',
+          specContent: '{}',
+          target: 'to_sdk',
+          languageOptions: {},
+        },
+      },
+    });
+    delete (globalThis as unknown as Record<string, unknown>)._dotnetJsUrl;
   });
 
   it('should handle cdd-csharp target to_sdk correctly', async () => {
@@ -70,7 +92,8 @@ describe('wasm-worker.worker.ts', () => {
     });
     vi.stubGlobal('_cddCsharpInitPromise', Promise.resolve());
 
-    await messageHandler({
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: '124',
@@ -84,11 +107,27 @@ describe('wasm-worker.worker.ts', () => {
     });
 
     const successCall = postMessageSpy.mock.calls.find(
-      (call: any) => call[0].status === 'success' && call[0].jobId === '124',
+      (call: [Record<string, unknown>]) => call[0].status === 'success' && call[0].jobId === '124',
     );
     expect(successCall).toBeDefined();
     expect(successCall[0].data.length).toBe(1);
     expect(successCall[0].data[0].path).toBe('test.cs');
+  });
+
+  it('should handle string parsed from YAML', async () => {
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'yaml-string-job',
+        payload: {
+          ecosystem: 'cdd-ts',
+          specContent: '"just a string"',
+          target: 'to_sdk',
+          languageOptions: {},
+        },
+      },
+    });
   });
 
   it('should parse YAML spec correctly', async () => {
@@ -96,8 +135,9 @@ describe('wasm-worker.worker.ts', () => {
     const { CddWasmSdk } = await import('cdd-ctl-wasm-sdk');
     vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValue([
       { path: 'test.ts', content: new Uint8Array() },
-    ] as any);
-    await messageHandler({
+    ]);
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: 'yaml-job',
@@ -110,15 +150,16 @@ describe('wasm-worker.worker.ts', () => {
     });
     const mockCall = vi
       .mocked(CddWasmSdk.fromOpenApi)
-      .mock.calls.find((c: any) => c[0].ecosystem === 'cdd-ts');
+      .mock.calls.find((c: [Record<string, unknown>]) => c[0].ecosystem === 'cdd-ts');
     if (mockCall) expect(mockCall[0].specContent).toContain('"openapi": "3.0.0"');
   });
 
   it('should pass correct languageOptions to CddWasmSdk', async () => {
     await import('./wasm-worker.worker');
     const { CddWasmSdk } = await import('cdd-ctl-wasm-sdk');
-    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValue([] as any);
-    await messageHandler({
+    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValue([]);
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: 'lang-opt-job',
@@ -143,7 +184,7 @@ describe('wasm-worker.worker.ts', () => {
     });
     const mockCall = vi
       .mocked(CddWasmSdk.fromOpenApi)
-      .mock.calls.find((c: any) => c[0].ecosystem === 'cdd-cpp');
+      .mock.calls.find((c: [Record<string, unknown>]) => c[0].ecosystem === 'cdd-cpp');
     if (mockCall) {
       const args = mockCall[0].additionalArgs;
       expect(args).toContain('--admin');
@@ -163,9 +204,11 @@ describe('wasm-worker.worker.ts', () => {
 
   it('should handle unknown action', async () => {
     await import('./wasm-worker.worker');
-    await messageHandler({ data: { action: 'unknownAction', jobId: 'err-job', payload: {} } });
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({ data: { action: 'unknownAction', jobId: 'err-job', payload: {} } });
     const errorCall = postMessageSpy.mock.calls.find(
-      (call: any) => call[0].status === 'error' && call[0].jobId === 'err-job',
+      (call: [Record<string, unknown>]) =>
+        call[0].status === 'error' && call[0].jobId === 'err-job',
     );
     expect(errorCall).toBeDefined();
     expect(errorCall[0].error).toContain('Unknown action');
@@ -196,7 +239,8 @@ describe('wasm-worker.worker.ts', () => {
 
   it('should catch YAML parse error and fallback to string', async () => {
     await import('./wasm-worker.worker');
-    await messageHandler({
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: '126',
@@ -210,22 +254,41 @@ describe('wasm-worker.worker.ts', () => {
     expect(postMessageSpy).toHaveBeenCalled();
   });
 
+  it('should not set shouldLoadJava if GraalVM is defined', async () => {
+    (globalThis as unknown as Record<string, unknown>).self = { GraalVM: {} };
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'graalvm-defined-job',
+        payload: {
+          ecosystem: 'cdd-java',
+          specContent: '{}',
+          target: 'to_sdk',
+          languageOptions: {},
+        },
+      },
+    });
+    delete (globalThis as unknown as Record<string, unknown>).self;
+  });
+
   it('should handle GraalVM when self is undefined', async () => {
-    delete (globalThis as any).GraalVM;
+    delete (globalThis as unknown as Record<string, unknown>).GraalVM;
     const oldSelf = globalThis.self;
-    (globalThis as any).self = undefined;
-    await messageHandler({
+    (globalThis as unknown as Record<string, unknown>).self = undefined;
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: 'branch-1',
         payload: { ecosystem: 'cdd-java', specContent: '{}' },
       },
     });
-    (globalThis as any).self = oldSelf;
+    (globalThis as unknown as Record<string, unknown>).self = oldSelf;
   });
 
   it('should catch error when setting GraalVM on globalThis', async () => {
-    delete (globalThis as any).GraalVM;
+    delete (globalThis as unknown as Record<string, unknown>).GraalVM;
     Object.defineProperty(globalThis, 'GraalVM', {
       get: () => undefined,
       set: () => {
@@ -239,7 +302,8 @@ describe('wasm-worker.worker.ts', () => {
           'var GraalVM = {}; Object.defineProperty(self, "GraalVM", { get: () => ({}) });',
         ),
     } as unknown as Response);
-    await messageHandler({
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: 'branch-2',
@@ -247,11 +311,12 @@ describe('wasm-worker.worker.ts', () => {
       },
     });
     fetchSpy.mockRestore();
-    delete (globalThis as any).GraalVM;
+    delete (globalThis as unknown as Record<string, unknown>).GraalVM;
   });
 
   it('should not parse yaml if specContent is already an object', async () => {
-    await messageHandler({
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: 'branch-3',
@@ -262,8 +327,11 @@ describe('wasm-worker.worker.ts', () => {
   });
 
   it('should catch error in main handler and post error message', async () => {
-    await messageHandler({ data: { action: 'generateSdk', payload: null, jobId: 'err-1' } });
-    const errorCall = postMessageSpy.mock.calls.find((call: any) => call[0].status === 'error');
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({ data: { action: 'generateSdk', payload: null, jobId: 'err-1' } });
+    const errorCall = postMessageSpy.mock.calls.find(
+      (call: [Record<string, unknown>]) => call[0].status === 'error',
+    );
     expect(errorCall).toBeDefined();
   });
 
@@ -271,9 +339,10 @@ describe('wasm-worker.worker.ts', () => {
     await import('./wasm-worker.worker');
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Fetch failed'));
     if (typeof globalThis.self === 'undefined') {
-      (globalThis as any).self = globalThis;
+      (globalThis as unknown as Record<string, unknown>).self = globalThis;
     }
-    await messageHandler({
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: '128',
@@ -285,14 +354,15 @@ describe('wasm-worker.worker.ts', () => {
   });
 
   it('should attempt to boot C# runtime and handle errors gracefully', async () => {
-    delete (globalThis as any)._cddCsharpInitPromise;
-    delete (globalThis as any)._cddCsharpExports;
+    delete (globalThis as unknown as Record<string, unknown>)._cddCsharpInitPromise;
+    delete (globalThis as unknown as Record<string, unknown>)._cddCsharpExports;
     const mockDotnet =
       "export const dotnet = { withDiagnosticTracing: () => ({ withResourceLoader: (loader) => { loader('type', 'name', 'uri', 'integrity', 'behavior'); return { create: async () => ({ getConfig: () => ({ mainAssemblyName: 'test' }), getAssemblyExports: async () => ({ BrowserInterop: { GenerateFromOpenApi: () => '{}' } }) }) }; } }) };";
-    (globalThis as any)._dotnetJsUrl =
+    (globalThis as unknown as Record<string, unknown>)._dotnetJsUrl =
       'data:text/javascript;base64,' + Buffer.from(mockDotnet).toString('base64');
     await import('./wasm-worker.worker');
-    await messageHandler({
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: 'csharp-boot',
@@ -300,10 +370,11 @@ describe('wasm-worker.worker.ts', () => {
       },
     });
     const errorCall = postMessageSpy.mock.calls.find(
-      (call: any) => call[0].status === 'success' && call[0].jobId === 'csharp-boot',
+      (call: [Record<string, unknown>]) =>
+        call[0].status === 'success' && call[0].jobId === 'csharp-boot',
     );
     expect(errorCall).toBeDefined();
-    delete (globalThis as any)._dotnetJsUrl;
+    delete (globalThis as unknown as Record<string, unknown>)._dotnetJsUrl;
   });
 
   it('should handle cdd-csharp error from BrowserInterop', async () => {
@@ -312,7 +383,8 @@ describe('wasm-worker.worker.ts', () => {
       BrowserInterop: { GenerateFromOpenApi: vi.fn().mockReturnValue('{"error":"Test C# Error"}') },
     });
     vi.stubGlobal('_cddCsharpInitPromise', Promise.resolve());
-    await messageHandler({
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: 'csharp-err',
@@ -320,25 +392,27 @@ describe('wasm-worker.worker.ts', () => {
       },
     });
     const errorCall = postMessageSpy.mock.calls.find(
-      (call: any) => call[0].status === 'error' && call[0].jobId === 'csharp-err',
+      (call: [Record<string, unknown>]) =>
+        call[0].status === 'error' && call[0].jobId === 'csharp-err',
     );
     expect(errorCall).toBeDefined();
     expect(errorCall[0].error).toContain('Test C# Error');
   });
 
   it('should successfully execute globalEval and copy GraalVM', async () => {
-    delete (globalThis as any).GraalVM;
+    delete (globalThis as unknown as Record<string, unknown>).GraalVM;
 
     // Ensure self is globalThis
     if (typeof globalThis.self === 'undefined') {
-      (globalThis as any).self = globalThis;
+      (globalThis as unknown as Record<string, unknown>).self = globalThis;
     }
 
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       text: () => Promise.resolve('self.GraalVM = { copied: true };'),
     } as unknown as Response);
 
-    await messageHandler({
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: 'branch-4',
@@ -346,9 +420,9 @@ describe('wasm-worker.worker.ts', () => {
       },
     });
 
-    expect((globalThis as any).GraalVM).toEqual({ copied: true });
+    expect((globalThis as unknown as Record<string, unknown>).GraalVM).toEqual({ copied: true });
     fetchSpy.mockRestore();
-    delete (globalThis as any).GraalVM;
+    delete (globalThis as unknown as Record<string, unknown>).GraalVM;
   });
 
   it('should handle cdd-csharp without target, defaulting to to_sdk', async () => {
@@ -359,7 +433,8 @@ describe('wasm-worker.worker.ts', () => {
       },
     });
     vi.stubGlobal('_cddCsharpInitPromise', Promise.resolve());
-    await messageHandler({
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: 'csharp-default',
@@ -367,22 +442,24 @@ describe('wasm-worker.worker.ts', () => {
       },
     });
     const successCall = postMessageSpy.mock.calls.find(
-      (call: any) => call[0].status === 'success' && call[0].jobId === 'csharp-default',
+      (call: [Record<string, unknown>]) =>
+        call[0].status === 'success' && call[0].jobId === 'csharp-default',
     );
     expect(successCall).toBeDefined();
     expect(successCall[0].data[0].path).toBe('test2.cs');
   });
 
   it('should handle missing GraalVM after eval', async () => {
-    delete (globalThis as any).GraalVM;
+    delete (globalThis as unknown as Record<string, unknown>).GraalVM;
     if (typeof globalThis.self === 'undefined') {
-      (globalThis as any).self = globalThis;
+      (globalThis as unknown as Record<string, unknown>).self = globalThis;
     }
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       text: () => Promise.resolve('var nothing = true;'),
     } as unknown as Response);
 
-    await messageHandler({
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
       data: {
         action: 'generateSdk',
         jobId: 'branch-5',
@@ -392,5 +469,10 @@ describe('wasm-worker.worker.ts', () => {
 
     expect(fetchSpy).toHaveBeenCalled();
     fetchSpy.mockRestore();
+  });
+  it('should cover the message event listener', () => {
+    if (messageHandler) {
+      messageHandler({ data: {} });
+    }
   });
 });

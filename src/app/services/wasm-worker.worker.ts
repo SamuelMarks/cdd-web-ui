@@ -13,13 +13,13 @@ const originalWarn = console.warn;
 const originalError = console.error;
 
 /** Allow CddJavaBrowser to temporarily override console.log logs without losing its reference */
-let originalInterceptLog = (...args: unknown[]) => {
+const originalInterceptLog = (...args: unknown[]) => {
   postMessage({ status: 'log', level: 'INFO', message: args.map((a) => String(a)).join(' ') });
   originalLog(...args);
 };
 
 /** Allow CddJavaBrowser to temporarily override console.info logs without losing its reference */
-let originalInterceptInfo = (...args: unknown[]) => {
+const originalInterceptInfo = (...args: unknown[]) => {
   postMessage({ status: 'log', level: 'INFO', message: args.map((a) => String(a)).join(' ') });
   originalInfo(...args);
 };
@@ -41,7 +41,12 @@ console.error = (...args) => {
   originalError(...args);
 };
 
-addEventListener('message', async ({ data }) => {
+/**
+ * Handles incoming messages to the WebWorker, processing WASM build requests.
+ *
+ * @param event The message event containing payload with SDK details and action to perform.
+ */
+export const handleMessage = async ({ data }: MessageEvent) => {
   if (data && data.payload && data.payload.ecosystem === 'cdd-java') {
     let shouldLoadJava = false;
     /* istanbul ignore next */
@@ -67,7 +72,9 @@ addEventListener('message', async ({ data }) => {
             (globalThis as unknown as { GraalVM?: unknown }).GraalVM = (
               self as unknown as Record<string, unknown>
             )['GraalVM'];
-          } catch (e) {}
+          } catch {
+            // Ignore error
+          }
         }
       } catch (e2) {
         console.warn('Failed to load cdd-java.js inside worker via fetch+eval', e2);
@@ -75,8 +82,8 @@ addEventListener('message', async ({ data }) => {
     }
   }
 
-  let jobId = data.jobId;
-          try {
+  const jobId = data.jobId;
+  try {
     const { action, payload } = data;
 
     if (action === 'generateSdk') {
@@ -91,10 +98,10 @@ addEventListener('message', async ({ data }) => {
           shouldParseYaml = true;
         }
       }
-      
+
       /* istanbul ignore else */
       if (shouldParseYaml) {
-          try {
+        try {
           const parsed = yaml.load(specContent);
           if (parsed && typeof parsed === 'object') {
             finalSpecContent = JSON.stringify(parsed, null, 2);
@@ -158,35 +165,27 @@ addEventListener('message', async ({ data }) => {
         if (!globalRef._cddCsharpInitPromise) {
           shouldInitCsharp = true;
         }
-        
+
         /* istanbul ignore else */
         if (shouldInitCsharp) {
           globalRef._cddCsharpInitPromise = (async () => {
             console.info(`[Worker] Booting .NET browser-wasm runtime for cdd-csharp...`);
             let dotnetJsUrl = location.origin + '/assets/wasm/cdd-csharp/dotnet.js';
-            if ((globalRef as any)._dotnetJsUrl) {
-              dotnetJsUrl = (globalRef as any)._dotnetJsUrl;
+            if ((globalRef as { _dotnetJsUrl?: string })._dotnetJsUrl) {
+              dotnetJsUrl = (globalRef as { _dotnetJsUrl?: string })._dotnetJsUrl as string;
             }
             const module = await import(/* @vite-ignore */ dotnetJsUrl);
             const { dotnet } = module;
             const { getAssemblyExports, getConfig } = await dotnet
               .withDiagnosticTracing(false)
-              .withResourceLoader(
-                (
-                  type: string,
-                  name: string,
-                  defaultUri: string,
-                  integrity: string,
-                  behavior: string,
-                ) => {
-                  return location.origin + '/assets/wasm/cdd-csharp/' + name;
-                },
-              )
+              .withResourceLoader((_type: string, name: string) => {
+                return location.origin + '/assets/wasm/cdd-csharp/' + name;
+              })
               .create();
 
             const config = getConfig();
-            const exports = await getAssemblyExports(config.mainAssemblyName!);
-            globalRef._cddCsharpExports = exports as unknown as CsharpExports;
+            const exports = await getAssemblyExports(config.mainAssemblyName);
+            globalRef._cddCsharpExports = exports;
           })();
         }
         await globalRef._cddCsharpInitPromise;
@@ -221,11 +220,9 @@ addEventListener('message', async ({ data }) => {
         wasmBinary,
         printStdout: true, // Let it print, we've intercepted console
         additionalArgs,
-        // @ts-ignore
         cddJavaJsUrl: data.payload.cddJavaJsUrl,
-        // @ts-ignore
         cddJavaWasmUrl: data.payload.cddJavaWasmUrl,
-      });
+      } as unknown as Parameters<typeof CddWasmSdk.fromOpenApi>[0]);
 
       console.info(`[Worker] Finished generating ${generatedFiles.length} files.`);
       postMessage({ status: 'success', jobId, data: generatedFiles });
@@ -240,4 +237,8 @@ addEventListener('message', async ({ data }) => {
       error: error instanceof Error ? error.message : String(error),
     });
   }
+};
+
+addEventListener('message', (event) => {
+  void handleMessage(event);
 });

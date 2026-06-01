@@ -30,7 +30,7 @@ class TestHostComponent {
 
 describe('DirectoryTreeComponent', () => {
   let component: DirectoryTreeComponent;
-  let fixture: ComponentFixture<DirectoryTreeComponent>;
+
   let hostComponent: TestHostComponent;
   let hostFixture: ComponentFixture<TestHostComponent>;
 

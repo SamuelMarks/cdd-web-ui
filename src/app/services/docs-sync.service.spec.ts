@@ -1,4 +1,4 @@
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { DocsSyncService } from './docs-sync.service';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { ThemeService } from './theme.service';

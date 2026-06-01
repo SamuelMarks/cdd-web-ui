@@ -1,6 +1,5 @@
-import { of } from 'rxjs';
 import '@angular/compiler';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { signal, WritableSignal } from '@angular/core';
 import { vi } from 'vitest';

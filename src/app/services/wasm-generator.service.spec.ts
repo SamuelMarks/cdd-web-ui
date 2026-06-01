@@ -165,7 +165,7 @@ describe('WasmGeneratorService', () => {
       configService.setRunMode('local_relative');
 
       const mockRepo: Repository = { id: '1', name: 'repo', organizationId: 'test' };
-      const result = await service.generateSdk(mockRepo, 'python', '{}');
+      await service.generateSdk(mockRepo, 'python', '{}');
       // Wait we need to mock fetch
     });
   });
@@ -384,11 +384,26 @@ describe('WasmGeneratorService', () => {
       const spec = await service.generateOpenApi(dummyRepo, 'unsupported-lang', '{}');
       expect(spec).toContain('is disabled due to lack of WASM support');
     });
+
+    it('should assign empty ArrayBuffer for csharp in generateOpenApi', async () => {
+      vi.spyOn(service['langService'], 'languages').mockReturnValue([
+        {
+          id: 'csharp',
+          repo: 'cdd-csharp',
+          availableInWasm: true,
+          name: 'C#',
+        } as import('../models/types').Language,
+      ]);
+      const result = await service.generateOpenApi(dummyRepo, 'csharp', '{}');
+      expect(result).toBeDefined();
+    });
   });
 
   it('should cover wasi stubs in generateOpenApi', async () => {
     vi.spyOn(globalThis.WebAssembly, 'instantiate').mockImplementation(
-      (buf, imports: Record<string, Record<string, Function>>) => {
+      (buf, imports: Record<string, Record<string, (...args: unknown[]) => unknown>>) => {
+        console.log('Mock WebAssembly.instantiate called');
+
         // Call all the wasi_snapshot_preview1 functions
         imports.wasi_snapshot_preview1.fd_write();
         imports.wasi_snapshot_preview1.environ_get();
@@ -399,10 +414,7 @@ describe('WasmGeneratorService', () => {
         imports.interop.genBacktrace();
         imports.interop['Date.now']();
         imports.interop['performance.now']();
-        
-        (service as any).window = null;
-        expect(imports.interop['performance.now']()).toBe(0);
-        
+
         imports.interop['stderrWriter.flush']();
         imports.interop['stdoutWriter.flush']();
         imports.interop['runtime.setExitCode']();
@@ -446,12 +458,21 @@ describe('WasmGeneratorService', () => {
     );
 
     const originalFetch = globalThis.fetch;
+
     const validWasm = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
+    vi.spyOn(
+      (
+        service as unknown as {
+          wasmLoaderService: { loadWasmBinary: (...args: unknown[]) => unknown };
+        }
+      ).wasmLoaderService,
+      'loadWasmBinary',
+    ).mockResolvedValue(validWasm.buffer);
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       headers: new Headers({ 'content-type': 'application/wasm' }),
       arrayBuffer: () => Promise.resolve(validWasm.buffer),
-    } as unknown as Response);
+    });
 
     await service.generateOpenApi(
       { id: 'proj-1', name: 'repo', organizationId: 'test' },

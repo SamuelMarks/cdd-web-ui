@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { BackendConfigService } from './backend-config.service';
-import { Organization, Repository, User } from '../models/types';
+import { Organization, Repository } from '../models/types';
 
 /** Payload for user registration. */
 export interface RegisterPayload {

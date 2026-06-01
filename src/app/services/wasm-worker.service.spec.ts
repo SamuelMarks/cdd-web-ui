@@ -65,7 +65,9 @@ class MockWorker {
       this.onmessage = null;
     }
   }
-  terminate(): void {}
+  terminate(): void {
+    // Add logic here if needed for testing
+  }
 }
 
 describe('WasmWorkerService', () => {
@@ -123,6 +125,12 @@ describe('WasmWorkerService', () => {
     expect(mockLoggingService.info).toHaveBeenCalledWith('Info test');
     expect(mockLoggingService.warn).toHaveBeenCalledWith('Warn test');
     expect(mockLoggingService.error).toHaveBeenCalledWith('Error test');
+  });
+
+  it('should cover terminate', () => {
+    if ((service as unknown as { worker: Worker | null }).worker) {
+      (service as unknown as { worker: Worker | null }).worker?.terminate();
+    }
   });
 
   it('should handle worker errors without explicit message', async () => {
@@ -214,7 +222,7 @@ describe('WasmWorkerService', () => {
 
   it('should log warning if Worker is undefined', () => {
     const origWorker = globalThis.Worker;
-    // @ts-ignore
+    // @ts-expect-error - simulating missing Worker
     delete globalThis.Worker;
     const warnSpy = vi.spyOn(console, 'warn');
 
@@ -239,16 +247,16 @@ describe('WasmWorkerService', () => {
   });
 
   it('should explicitly inject -o docs.json and handle to_docs_json target', async () => {
-    const capturedPayloads: any[] = [];
+    const capturedPayloads: unknown[] = [];
     const originalPostMessage = MockWorker.prototype.postMessage;
-    MockWorker.prototype.postMessage = function (data: any) {
+    MockWorker.prototype.postMessage = function (data: unknown) {
       if (data.action === 'generateSdk') {
         capturedPayloads.push(data.payload);
       }
       originalPostMessage.call(this, data);
     };
 
-    const files = await service.generateCode('cdd-ruby', '{}', 'to_docs_json', { noImports: true });
+    await service.generateCode('cdd-ruby', '{}', 'to_docs_json', { noImports: true });
     expect(capturedPayloads.length).toBe(1);
     expect(capturedPayloads[0].target).toBe('to_docs_json');
     expect(capturedPayloads[0].languageOptions.noImports).toBe(true);

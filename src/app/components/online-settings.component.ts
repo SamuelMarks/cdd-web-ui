@@ -292,7 +292,7 @@ export class OnlineSettingsComponent {
           this.successMsg.set('Logged in successfully!');
           this.errorMsg.set('');
         },
-        error: (err) => {
+        error: () => {
           this.errorMsg.set('Login failed');
           this.successMsg.set('');
         },
@@ -315,7 +315,7 @@ export class OnlineSettingsComponent {
             this.successMsg.set('Registered successfully!');
             this.errorMsg.set('');
           },
-          error: (err) => {
+          error: () => {
             this.errorMsg.set('Registration failed');
             this.successMsg.set('');
           },
@@ -339,7 +339,7 @@ export class OnlineSettingsComponent {
         this.successMsg.set('GitHub Login successful!');
         this.errorMsg.set('');
       },
-      error: (err) => {
+      error: () => {
         this.errorMsg.set('GitHub OAuth flow failed. Check backend configuration.');
         this.successMsg.set('');
       },

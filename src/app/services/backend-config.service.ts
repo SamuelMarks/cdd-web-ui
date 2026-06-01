@@ -48,7 +48,7 @@ export class BackendConfigService {
       stored === 'local_cdd_ctl_native' ||
       stored === 'served_github'
     ) {
-      return stored as RunMode;
+      return stored;
     }
     return 'local_relative';
   }

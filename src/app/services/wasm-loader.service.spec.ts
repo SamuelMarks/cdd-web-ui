@@ -12,13 +12,13 @@ describe('WasmLoaderService', () => {
   let service: WasmLoaderService;
   let originalFetch: typeof fetch;
 
-  let mockDocument: any;
+  let mockDocument: Document;
 
   beforeEach(() => {
     mockDocument = {
-      location: { hostname: 'localhost' }
+      location: { hostname: 'localhost' },
     };
-    
+
     const mockConfig = {
       runMode: signal('local_relative'),
     };
@@ -54,7 +54,7 @@ describe('WasmLoaderService', () => {
       ok: true,
       headers: new Headers({ 'content-type': 'application/wasm' }),
       arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
-    } as unknown as Response);
+    });
 
     // Mock WASM_GITHUB_URLS map dynamically if needed, but it's hardcoded. We will use a real one.
     const buffer = await service.loadWasmBinary('cdd-ts');
@@ -76,7 +76,7 @@ describe('WasmLoaderService', () => {
       ok: true,
       headers: new Headers({ 'content-type': 'application/wasm' }),
       arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
-    } as unknown as Response);
+    });
 
     mockDocument.location.hostname = 'localhost';
 
@@ -92,7 +92,7 @@ describe('WasmLoaderService', () => {
       ok: true,
       headers: new Headers({ 'content-type': 'application/wasm' }),
       arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
-    } as unknown as Response);
+    });
 
     mockDocument.location.hostname = 'example.com';
 
@@ -107,7 +107,7 @@ describe('WasmLoaderService', () => {
       ok: false,
       status: 404,
       statusText: 'Not Found',
-    } as unknown as Response);
+    });
 
     mockDocument.location.hostname = 'localhost';
 
@@ -121,7 +121,7 @@ describe('WasmLoaderService', () => {
       ok: false,
       status: 500,
       statusText: 'Internal Server Error',
-    } as unknown as Response);
+    });
 
     mockDocument.location.hostname = 'example.com';
 
@@ -143,7 +143,7 @@ describe('WasmLoaderService', () => {
       ok: true,
       headers: new Headers({ 'content-type': 'text/html' }),
       arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
-    } as unknown as Response);
+    });
 
     await service.loadWasmBinary('cdd-ts');
     expect(consoleSpy).toHaveBeenCalledWith(
@@ -159,7 +159,7 @@ describe('WasmLoaderService', () => {
       ok: true,
       headers: new Headers({ 'content-type': 'application/wasm' }),
       arrayBuffer: () => Promise.resolve(invalidData.buffer),
-    } as unknown as Response);
+    });
 
     await expect(service.loadWasmBinary('cdd-ts')).rejects.toThrow(
       /Invalid WASM binary downloaded for cdd-ts: Missing magic number/,
@@ -172,7 +172,7 @@ describe('WasmLoaderService', () => {
       ok: true,
       headers: new Headers({ 'content-type': 'application/wasm' }),
       arrayBuffer: () => Promise.resolve(shortData.buffer),
-    } as unknown as Response);
+    });
 
     await expect(service.loadWasmBinary('cdd-ts')).rejects.toThrow(
       /Invalid WASM binary downloaded for cdd-ts: Missing magic number/,
@@ -185,7 +185,7 @@ describe('WasmLoaderService', () => {
       ok: true,
       headers: new Headers({ 'content-type': 'application/wasm' }),
       arrayBuffer: () => Promise.resolve(mockWasmData.buffer),
-    } as unknown as Response);
+    });
 
     const progressCallback = vi.fn();
     await service.preloadAllWasm(progressCallback);
@@ -198,7 +198,7 @@ describe('WasmLoaderService', () => {
       ok: false,
       status: 404,
       statusText: 'Not Found',
-    } as unknown as Response);
+    });
 
     await service.preloadAllWasm();
     expect(consoleSpy).toHaveBeenCalledWith(
@@ -224,7 +224,9 @@ describe('WasmLoaderService', () => {
 
     mockDocument.location.hostname = 'example.com';
     url = service.getEnvUrl('cdd-java.js');
-    expect(url).toBe('https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js');
+    expect(url).toBe(
+      'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js',
+    );
 
     // Invalid ecosystem
     const invalidUrl = service.getEnvUrl('invalid');

@@ -44,7 +44,7 @@ paths: {}
   it('should handle non-Error objects with message property thrown during parsing', () => {
     const originalParse = globalThis.JSON.parse;
     globalThis.JSON.parse = vi.fn().mockImplementation(() => {
-      throw { message: 'Custom thrown object error' };
+      throw { message: 'Custom thrown object error' } as unknown as Error;
     });
 
     const result = OpenApiParser.parseAndValidate('{ "invalid": true }');
@@ -57,7 +57,7 @@ paths: {}
   it('should handle completely unknown errors thrown during parsing', () => {
     const originalParse = globalThis.JSON.parse;
     globalThis.JSON.parse = vi.fn().mockImplementation(() => {
-      throw 'A string error';
+      throw 'A string error' as unknown as Error;
     });
 
     const result = OpenApiParser.parseAndValidate('{ "invalid": true }');

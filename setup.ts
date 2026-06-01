@@ -10,7 +10,7 @@ import {
 
 import { CddWasmSdk, GenerateOptions } from 'cdd-ctl-wasm-sdk';
 
-CddWasmSdk.fromOpenApi = async (options: GenerateOptions) => {
+CddWasmSdk.fromOpenApi = (options: GenerateOptions) => {
   const ecosystem = options.ecosystem as string;
   const specContent = options.specContent as string;
   if (ecosystem === 'cdd-go' || ecosystem === 'go') {
@@ -29,7 +29,9 @@ CddWasmSdk.fromOpenApi = async (options: GenerateOptions) => {
 
 try {
   getTestBed().initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting());
-} catch (e) {}
+} catch {
+  /* ignored */
+}
 globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}

@@ -5,7 +5,6 @@ import {
   OnInit,
   OnDestroy,
   computed,
-  signal,
 } from '@angular/core';
 import { fromEvent, Subject, takeUntil, tap, finalize } from 'rxjs';
 import { DOCUMENT, NgOptimizedImage } from '@angular/common';

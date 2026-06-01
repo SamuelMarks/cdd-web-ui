@@ -89,7 +89,7 @@ describe('StorageService', () => {
     const mockOrg: Organization = { id: 999, login: 'Online Org', userId: 1 };
     apiSpy.createOrg.mockReturnValue(of(mockOrg));
 
-    const newOrg = service.createOrganization('Online Org');
+    service.createOrganization('Online Org');
     expect(apiSpy.createOrg).toHaveBeenCalled();
     const orgs = service.organizations();
     expect(orgs.find((o) => o.login === 'Online Org')).toBeTruthy();
@@ -109,7 +109,7 @@ describe('StorageService', () => {
     const mockRepo: Repository = { id: 888, name: 'Online Repo', organizationId: 1 };
     apiSpy.createRepo.mockReturnValue(of(mockRepo));
 
-    const newRepo = service.createRepository(1, 'Online Repo');
+    service.createRepository(1, 'Online Repo');
     expect(apiSpy.createRepo).toHaveBeenCalled();
     const repos = service.repositories();
     expect(repos.find((r) => r.name === 'Online Repo')).toBeTruthy();
@@ -182,7 +182,7 @@ describe('StorageService', () => {
 
   it('should handle repository creation error online', () => {
     service.createUser('Test User');
-    const org = service.createOrganization('New Org');
+    service.createOrganization('New Org');
     configSpy.isOnline.set(true);
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     apiSpy.createRepo.mockReturnValue(throwError(() => new Error('Error')));

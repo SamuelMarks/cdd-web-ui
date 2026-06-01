@@ -1,7 +1,7 @@
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { OpenApiEditorComponent } from './openapi-editor.component';
-import { By } from '@angular/platform-browser';
+
 import { Component, signal, forwardRef } from '@angular/core';
 import { NotificationService } from '../../services/notification.service';
 import { ThemeService } from '../../services/theme.service';
@@ -21,9 +21,15 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
   ],
 })
 class MockMonacoEditorComponent implements ControlValueAccessor {
-  writeValue(obj: unknown): void {}
-  registerOnChange(fn: (v: unknown) => void): void {}
-  registerOnTouched(fn: () => void): void {}
+  writeValue(_obj: unknown): void {
+    void _obj;
+  }
+  registerOnChange(_fn: (v: unknown) => void): void {
+    void _fn;
+  }
+  registerOnTouched(_fn: () => void): void {
+    void _fn;
+  }
 }
 
 @Component({
@@ -186,7 +192,7 @@ describe('OpenApiEditorComponent', () => {
   it('should show error if clipboard fails', async () => {
     Object.assign(navigator, {
       clipboard: {
-        writeText: vi.fn().mockImplementation(() => Promise.reject('error')),
+        writeText: vi.fn().mockImplementation(() => Promise.reject(new Error('error'))),
       },
     });
 

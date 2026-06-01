@@ -13,7 +13,7 @@ export class OpenApiParser {
     /** isValid */
     isValid: boolean;
     /** parsed */
-    parsed: unknown | null;
+    parsed: unknown;
     /** errors */
     errors: string[];
   } {
@@ -21,7 +21,7 @@ export class OpenApiParser {
       return { isValid: false, parsed: null, errors: ['Specification is empty.'] };
     }
 
-    let parsed: unknown = null;
+    let parsed: unknown;
     const errors: string[] = [];
 
     try {

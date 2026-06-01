@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { ROOT_EFFECTS_INIT } from '@ngrx/effects';
 import { Action } from '@ngrx/store';
 import { WorkspaceEffects } from './effects';
@@ -107,7 +107,14 @@ describe('WorkspaceEffects', () => {
       store.overrideSelector(selectOpenApiInputFormat, 'openapi_3_2_0');
 
       const mockFiles: GeneratedFile[] = [{ path: 'test.py', content: new Uint8Array() }];
-      const mockDocsFiles: GeneratedFile[] = [{ path: 'docs.json', content: new Uint8Array([123, 34, 101, 110, 100, 112, 111, 105, 110, 116, 115, 34, 58, 123, 125, 125]) }];
+      const mockDocsFiles: GeneratedFile[] = [
+        {
+          path: 'docs.json',
+          content: new Uint8Array([
+            123, 34, 101, 110, 100, 112, 111, 105, 110, 116, 115, 34, 58, 123, 125, 125,
+          ]),
+        },
+      ];
 
       wasmWorkerServiceMock.generateCode.mockImplementation((_, __, target) => {
         if (target === 'to_docs_json') return Promise.resolve(mockDocsFiles);
@@ -140,20 +147,23 @@ describe('WorkspaceEffects', () => {
       );
     });
 
-    it('should fallback to creating mock docs.json if target is to_docs_json and result lacks endpoints', async () => {
+    it('should fallback to creating mock docs.json if target is to_docs_json and result lacks endpoints and no pet found', async () => {
       store.overrideSelector(selectOrientation, 'openapi-left');
       store.overrideSelector(selectSelectedLanguageId, 'python');
-      // Pass a non-string object to cover `typeof upgradedSpec !== 'string'`
-      const specObj = { paths: { '/test': { get: {}, post: {}, custom_method: {} }, '/invalid': 'string method', '/null': null } };
-      store.overrideSelector(
-        selectOpenApiSpecContent,
-        specObj as any, // force cast to test the branch
-      );
+      const specObj = {
+        paths: {
+          '/test': { get: { operationId: 'updateUser' } },
+        },
+      };
+      store.overrideSelector(selectOpenApiSpecContent, specObj as unknown as string);
       store.overrideSelector(selectOpenApiInputFormat, 'openapi_3_2_0');
 
-      const mockFiles: GeneratedFile[] = [{ path: 'test.py', content: new Uint8Array() }];
-      // A docs.json with length > 0 but no 'endpoints' or 'operations' string
-      const mockDocsFiles: GeneratedFile[] = [{ path: 'docs.json', content: new TextEncoder().encode('{}') }];
+      const mockFiles: GeneratedFile[] = [
+        { path: 'test.py', content: new TextEncoder().encode('updateUser\nsomecode') },
+      ];
+      const mockDocsFiles: GeneratedFile[] = [
+        { path: 'docs.json', content: new TextEncoder().encode('{}') },
+      ];
 
       wasmWorkerServiceMock.generateCode.mockImplementation((_, __, target) => {
         if (target === 'to_docs_json') return Promise.resolve(mockDocsFiles);
@@ -163,9 +173,54 @@ describe('WorkspaceEffects', () => {
       actions$ = of(Actions.executeRun());
 
       const result = await effects.executeRun$.toPromise();
-      const successAction = result as any;
-      
-      const docsFile = successAction.result.find((f: any) => f.path === 'docs.json');
+      const successAction = result as { result: import('../models/types').GeneratedFile[] };
+
+      const docsFile = successAction.result.find(
+        (f: import('../models/types').GeneratedFile) => f.path === 'docs.json',
+      );
+      const contentStr = new TextDecoder().decode(docsFile.content);
+      expect(contentStr).toContain('Mock generated code for Python');
+    });
+
+    it('should fallback to creating mock docs.json if target is to_docs_json and result lacks endpoints', async () => {
+      store.overrideSelector(selectOrientation, 'openapi-left');
+      store.overrideSelector(selectSelectedLanguageId, 'python');
+      // Pass a non-string object to cover `typeof upgradedSpec !== 'string'`
+      const specObj = {
+        paths: {
+          '/test': { get: { operationId: 'updatePet' }, post: {}, custom_method: {} },
+          '/invalid': 'string method',
+          '/null': null,
+        },
+      };
+      store.overrideSelector(
+        selectOpenApiSpecContent,
+        specObj as unknown as string, // force cast to test the branch
+      );
+      store.overrideSelector(selectOpenApiInputFormat, 'openapi_3_2_0');
+
+      const mockFiles: GeneratedFile[] = [
+        { path: 'test.json', content: new Uint8Array() },
+        { path: 'test.py', content: new TextEncoder().encode('updatePet\nsomecode') },
+      ];
+      // A docs.json with length > 0 but no 'endpoints' or 'operations' string
+      const mockDocsFiles: GeneratedFile[] = [
+        { path: 'docs.json', content: new TextEncoder().encode('{}') },
+      ];
+
+      wasmWorkerServiceMock.generateCode.mockImplementation((_, __, target) => {
+        if (target === 'to_docs_json') return Promise.resolve(mockDocsFiles);
+        return Promise.resolve(mockFiles);
+      });
+
+      actions$ = of(Actions.executeRun());
+
+      const result = await effects.executeRun$.toPromise();
+      const successAction = result as { result: import('../models/types').GeneratedFile[] };
+
+      const docsFile = successAction.result.find(
+        (f: import('../models/types').GeneratedFile) => f.path === 'docs.json',
+      );
       const contentStr = new TextDecoder().decode(docsFile.content);
       expect(contentStr).toContain('"endpoints"');
     });
@@ -175,7 +230,7 @@ describe('WorkspaceEffects', () => {
       store.overrideSelector(selectSelectedLanguageId, 'python');
       // Pass invalid spec that yields no paths
       store.overrideSelector(selectOpenApiSpecContent, 'invalid yaml');
-      
+
       const mockDocsFiles: GeneratedFile[] = [];
       wasmWorkerServiceMock.generateCode.mockImplementation((_, __, target) => {
         if (target === 'to_docs_json') return Promise.resolve(mockDocsFiles);
@@ -184,7 +239,9 @@ describe('WorkspaceEffects', () => {
 
       actions$ = of(Actions.executeRun());
       const result = await effects.executeRun$.toPromise();
-      const docsFile = (result as any).result.find((f: any) => f.path === 'docs.json');
+      const docsFile = (
+        result as { result: import('../models/types').GeneratedFile[] }
+      ).result.find((f: import('../models/types').GeneratedFile) => f.path === 'docs.json');
       const contentStr = new TextDecoder().decode(docsFile.content);
       expect(contentStr).toContain('"endpoints":{}');
     });
@@ -417,7 +474,7 @@ describe('WorkspaceEffects', () => {
     });
 
     it('should ignore success payload if neither array nor string', () => {
-      // @ts-ignore
+      // @ts-expect-error - simulating strange object
       actions$ = of(Actions.executeRunSuccess({ result: { strange: 'object' } }));
       const spy = vi.spyOn(store, 'dispatch');
 

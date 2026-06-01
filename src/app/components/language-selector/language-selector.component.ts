@@ -18,7 +18,7 @@ import { AppState } from '../../store/state';
 import { selectExecutionError } from '../../store/selectors';
 import { LanguageService } from '../../services/language.service';
 import { OfflineService } from '../../services/offline.service';
-import { LanguageConfig, Target, LanguageOptions } from '../../models/types';
+import { Target, LanguageOptions } from '../../models/types';
 import { StorageService } from '../../services/storage.service';
 
 /**
@@ -329,7 +329,7 @@ export class LanguageSelectorComponent {
       if (newTarget === 'to_sdk_cli') {
         if (
           currentOpts.framework === undefined ||
-          ['angular', 'react', 'vue'].includes(currentOpts.framework as string)
+          ['angular', 'react', 'vue'].includes(currentOpts.framework)
         ) {
           this.onOptionsChange('framework', 'vanilla');
         }

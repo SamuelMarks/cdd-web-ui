@@ -3,7 +3,7 @@ import { Store } from '@ngrx/store';
 import { AppState } from '../store/state';
 import { selectOpenApiSpecContent, selectOpenApiValidationErrors } from '../store/selectors';
 import { ThemeService } from './theme.service';
-import { filter, debounceTime, tap, Subject, takeUntil, distinctUntilChanged } from 'rxjs';
+import { debounceTime, Subject, takeUntil, distinctUntilChanged } from 'rxjs';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { WINDOW } from '../tokens';
 

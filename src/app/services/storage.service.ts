@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { User, Organization, Repository } from '../models/types';
 import { ApiService } from './api.service';
 import { BackendConfigService } from './backend-config.service';

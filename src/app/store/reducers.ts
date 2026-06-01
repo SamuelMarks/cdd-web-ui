@@ -1,5 +1,5 @@
 import { createReducer, on } from '@ngrx/store';
-import { WorkspaceState, FileTreeState, OpenApiState, LayoutOrientation } from './state';
+import { WorkspaceState, FileTreeState, OpenApiState } from './state';
 import * as Actions from './actions';
 import { PETSTORE_SPEC } from '../models/examples';
 

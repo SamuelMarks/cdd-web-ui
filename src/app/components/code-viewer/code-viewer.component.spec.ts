@@ -23,9 +23,15 @@ import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 class MockMonacoEditorComponent implements ControlValueAccessor {
   options = input<unknown>();
   model = input<unknown>();
-  writeValue(obj: unknown): void {}
-  registerOnChange(fn: (val: unknown) => void): void {}
-  registerOnTouched(fn: () => void): void {}
+  writeValue(_obj: unknown): void {
+    void _obj;
+  }
+  registerOnChange(_fn: (val: unknown) => void): void {
+    void _fn;
+  }
+  registerOnTouched(_fn: () => void): void {
+    void _fn;
+  }
 }
 
 @Component({
@@ -51,7 +57,7 @@ class TestHostComponent {
 
 describe('CodeViewerComponent', () => {
   let component: CodeViewerComponent;
-  let fixture: ComponentFixture<CodeViewerComponent>;
+
   let notificationServiceMock: { success: import('vitest').Mock; error: import('vitest').Mock };
   let themeServiceMock: { isDarkTheme: import('@angular/core').WritableSignal<boolean> };
   let hostComponent: TestHostComponent;
@@ -235,7 +241,7 @@ describe('CodeViewerComponent', () => {
   it('should handle clipboard copy failure', async () => {
     Object.assign(navigator, {
       clipboard: {
-        writeText: vi.fn().mockImplementation(() => Promise.reject('error')),
+        writeText: vi.fn().mockImplementation(() => Promise.reject(new Error('error'))),
       },
     });
 
@@ -260,7 +266,7 @@ describe('CodeViewerComponent', () => {
     hostComponent.activeFilePath.set('src/test.ts');
     hostComponent.fileContent.set('const c = 3;');
     hostFixture.detectChanges();
-    (component as any).window = null;
+    (component as { window: unknown }).window = null;
     component.downloadFile();
     expect(notificationServiceMock.success).not.toHaveBeenCalled();
   });
@@ -278,7 +284,7 @@ describe('CodeViewerComponent', () => {
       .spyOn(document, 'createElement')
       .mockImplementation((tagName: string) => {
         if (tagName.toLowerCase() === 'a') return mockAnchor;
-        return originalCreateElement(tagName as string);
+        return originalCreateElement(tagName);
       });
 
     hostComponent.activeFilePath.set('src/test.ts');

@@ -8,7 +8,7 @@ test.describe('App E2E Tests', () => {
     // Mock backend/WASM interception layer for deterministic E2E testing
     await page.addInitScript(() => {
       class MockWorker {
-        listeners: Function[] = [];
+        listeners: (...args: unknown[]) => unknown[] = [];
         constructor() {}
         postMessage(msg: { action: string; payload: { target?: string } }) {
           setTimeout(() => {
@@ -29,10 +29,10 @@ test.describe('App E2E Tests', () => {
             }
           }, 10);
         }
-        addEventListener(event: string, handler: Function) {
+        addEventListener(event: string, handler: (...args: unknown[]) => unknown) {
           if (event === 'message') this.listeners.push(handler);
         }
-        removeEventListener(event: string, handler: Function) {
+        removeEventListener(event: string, handler: (...args: unknown[]) => unknown) {
           if (event === 'message') this.listeners = this.listeners.filter((l) => l !== handler);
         }
         terminate() {}
@@ -65,7 +65,7 @@ test.describe('App E2E Tests', () => {
   for (const lang of LANGUAGES) {
     test(`Language UI interactions: ${lang.name}`, async ({ page }) => {
       await page.goto('/');
-      const loadWasmBtn = page.getByRole('button', { name: 'Load ~380MB of WASM' });
+      const loadWasmBtn = page.getByRole('button', { name: 'Load ~295MB of WASM' });
       await loadWasmBtn.waitFor({ state: 'visible' });
       await loadWasmBtn.click();
 
@@ -127,7 +127,7 @@ test.describe('App E2E Tests', () => {
       isMobile,
     }) => {
       await page.goto('/', { waitUntil: 'networkidle' });
-      const loadWasmBtn = page.getByRole('button', { name: 'Load ~380MB of WASM' });
+      const loadWasmBtn = page.getByRole('button', { name: 'Load ~295MB of WASM' });
       await loadWasmBtn.waitFor({ state: 'visible' });
       await loadWasmBtn.click();
 
@@ -196,7 +196,7 @@ test.describe('App E2E Tests', () => {
 
   test('Verify Theme switching (Light/Dark)', async ({ page }) => {
     await page.goto('/');
-    const loadWasmBtn = page.getByRole('button', { name: 'Load ~380MB of WASM' });
+    const loadWasmBtn = page.getByRole('button', { name: 'Load ~295MB of WASM' });
     await loadWasmBtn.waitFor({ state: 'visible' });
     await loadWasmBtn.click();
 
@@ -220,12 +220,12 @@ test.describe('App E2E Tests', () => {
 
   test.skip('User clicks Swap ⇆ -> verifies left/right swap', async ({ page }) => {
     await page.goto('/');
-    const loadWasmBtn = page.getByRole('button', { name: 'Load ~380MB of WASM' });
+    const loadWasmBtn = page.getByRole('button', { name: 'Load ~295MB of WASM' });
     await loadWasmBtn.waitFor({ state: 'visible' });
     await loadWasmBtn.click();
     await page.waitForSelector('.workspace-toolbar');
 
-    let leftPane = page.locator('.pane-left');
+    const leftPane = page.locator('.pane-left');
     await expect(
       leftPane.locator('.toolbar-title').filter({ hasText: 'OpenAPI Spec' }),
     ).toBeVisible();
@@ -234,7 +234,7 @@ test.describe('App E2E Tests', () => {
     await expect(swapButton).toBeEnabled();
     await swapButton.click();
 
-    let rightPane = page.locator('.pane-right');
+    const rightPane = page.locator('.pane-right');
     await expect(
       rightPane.locator('.toolbar-title').filter({ hasText: 'OpenAPI Spec' }),
     ).toBeVisible();
@@ -252,7 +252,7 @@ test.describe('App E2E Tests', () => {
     });
 
     await page.goto('/');
-    const loadWasmBtn = page.getByRole('button', { name: 'Load ~380MB of WASM' });
+    const loadWasmBtn = page.getByRole('button', { name: 'Load ~295MB of WASM' });
     await loadWasmBtn.waitFor({ state: 'visible' });
     await loadWasmBtn.click();
 

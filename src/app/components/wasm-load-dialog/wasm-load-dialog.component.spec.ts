@@ -16,7 +16,7 @@ describe('WasmLoadDialogComponent', () => {
     };
 
     mockWasmLoader = {
-      preloadAllWasm: vi.fn().mockImplementation(async (cb) => {
+      preloadAllWasm: vi.fn().mockImplementation((cb) => {
         if (cb) {
           cb(13, 13);
         }

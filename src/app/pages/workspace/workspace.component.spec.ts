@@ -1,7 +1,7 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { WorkspaceComponent } from './workspace.component';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
-import { AppState } from '../../store/state';
+
 import {
   initialWorkspaceState,
   initialFileTreeState,
@@ -311,8 +311,8 @@ describe('WorkspaceComponent', () => {
     it('should handle drag when target has no parentElement or is null and window is null', () => {
       const dispatchSpy = vi.spyOn(store, 'dispatch');
       vi.spyOn(component, 'apiDocsPaneHeight').mockReturnValue(300);
-      
-      (component as any).window = null;
+
+      (component as { window: unknown }).window = null;
 
       const mousedownEvent = new MouseEvent('mousedown', { clientY: 500 });
       // Event with no target explicitly mocked to mimic detached element

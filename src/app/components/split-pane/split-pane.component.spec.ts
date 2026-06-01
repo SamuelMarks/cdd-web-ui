@@ -1,7 +1,6 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { SplitPaneComponent } from './split-pane.component';
 import { By } from '@angular/platform-browser';
-import { Component, signal } from '@angular/core';
 
 describe('SplitPaneComponent', () => {
   let component: SplitPaneComponent;
@@ -123,7 +122,7 @@ describe('SplitPaneComponent', () => {
     expect(component.isMobile()).toBe(false);
 
     // Test with null window
-    (component as any).windowRef = null;
+    (component as { windowRef: unknown }).windowRef = null;
     component.isMobile.set(true); // pre-set to verify it doesn't change
     component.checkMobile();
     expect(component.isMobile()).toBe(true); // Should remain unchanged

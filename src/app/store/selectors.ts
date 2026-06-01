@@ -1,4 +1,4 @@
-import { createSelector, createFeatureSelector } from '@ngrx/store';
+import { createSelector } from '@ngrx/store';
 import { AppState, WorkspaceState, FileTreeState, OpenApiState } from './state';
 import { GeneratedFile } from '../services/wasm-worker.service';
 

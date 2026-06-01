@@ -4,7 +4,6 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { ApiService } from './api.service';
 import { BackendConfigService } from './backend-config.service';
-import { Organization, Repository, User } from '../models/types';
 
 describe('ApiService', () => {
   let service: ApiService;
@@ -85,7 +84,7 @@ describe('ApiService', () => {
       const req = httpMock.expectOne(`${baseUrl}/orgs`);
       expect(req.request.method).toBe('POST');
       expect(req.request.headers.get('Authorization')).toBe('Bearer mytoken');
-      req.flush({ id: 1, login: 'org', userId: 1 } as Organization);
+      req.flush({ id: 1, login: 'org', userId: 1 });
     });
 
     it('should createRepo', () => {
@@ -96,7 +95,7 @@ describe('ApiService', () => {
       const req = httpMock.expectOne(`${baseUrl}/repos`);
       expect(req.request.method).toBe('POST');
       expect(req.request.headers.get('Authorization')).toBe('Bearer mytoken');
-      req.flush({ id: 1, name: 'repo', organizationId: 1 } as Repository);
+      req.flush({ id: 1, name: 'repo', organizationId: 1 });
     });
 
     it('should syncGithub', () => {

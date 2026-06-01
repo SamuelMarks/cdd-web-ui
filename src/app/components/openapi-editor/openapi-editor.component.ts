@@ -252,7 +252,7 @@ export class OpenApiEditorComponent {
         : yaml.dump(parsed, { indent: 2, lineWidth: -1 });
       this.onContentChange(formatted);
       this.notificationService.success('Document formatted successfully.');
-    } catch (e) {
+    } catch {
       this.notificationService.error('Cannot format invalid document.');
     }
   }
@@ -267,7 +267,7 @@ export class OpenApiEditorComponent {
     try {
       await navigator.clipboard.writeText(content);
       this.notificationService.success('Copied to clipboard.');
-    } catch (e) {
+    } catch {
       this.notificationService.error('Failed to copy to clipboard.');
     }
   }

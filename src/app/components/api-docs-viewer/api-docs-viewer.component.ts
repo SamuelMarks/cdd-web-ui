@@ -5,7 +5,6 @@ import {
   inject,
   OnInit,
   OnDestroy,
-  effect,
   computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';

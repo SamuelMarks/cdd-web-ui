@@ -1,7 +1,7 @@
-import { Injectable, inject, isDevMode } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
-import { firstValueFrom } from 'rxjs';
+
 import { BackendConfigService } from './backend-config.service';
 
 /** Map of ecosystem names to their respective GitHub WASM release URLs. */
@@ -10,6 +10,8 @@ export const WASM_GITHUB_URLS: Record<string, string> = {
   'cdd-cpp': 'https://github.com/SamuelMarks/cdd-cpp/releases/download/latest/cdd-cpp.wasm',
   'cdd-csharp':
     'https://github.com/SamuelMarks/cdd-csharp/releases/download/latest/cdd-csharp.wasm',
+  'cdd-csharp-wasm.zip':
+    'https://github.com/SamuelMarks/cdd-csharp/releases/download/latest/cdd-csharp-wasm.zip',
   'cdd-go': 'https://github.com/SamuelMarks/cdd-go/releases/download/latest/cdd-go.wasm',
   'cdd-java.js.wasm':
     'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js.wasm',
@@ -112,6 +114,13 @@ export class WasmLoaderService {
     // For simplicity, we fire them all.
     await Promise.all(
       WASM_ECOSYSTEMS.map(async (ecosystem) => {
+        if (ecosystem === 'cdd-csharp' || ecosystem === 'cdd-csharp-wasm.zip') {
+          loadedCount++;
+          if (onProgress) {
+            onProgress(loadedCount, totalCount);
+          }
+          return;
+        }
         try {
           const response = await this.fetchWasmResponse(ecosystem);
           if (!response.ok) {

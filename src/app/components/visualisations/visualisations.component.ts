@@ -336,7 +336,7 @@ export class VisualisationsComponent implements OnDestroy {
       .style('fill', 'none')
       .style('stroke', 'var(--mat-sys-outline)')
       .style('stroke-width', '1.5px')
-      .attr('d', (d) => {
+      .attr('d', () => {
         const o = { x: source.x0, y: source.y0 } as VisualNode;
         return this.diagonal(o, o);
       });
@@ -352,7 +352,7 @@ export class VisualisationsComponent implements OnDestroy {
       .exit()
       .transition()
       .duration(this.duration)
-      .attr('d', (d) => {
+      .attr('d', () => {
         const o = { x: source.x, y: source.y } as VisualNode;
         return this.diagonal(o, o);
       })

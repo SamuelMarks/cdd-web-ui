@@ -8,7 +8,6 @@ import {
   ElementRef,
   inject,
   TemplateRef,
-  viewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +15,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { LayoutOrientation } from '../../store/state';
+import { WINDOW } from '../../tokens';
 
 /**
  * A layout component that provides a resizable dual-pane interface with a central action bar.
@@ -138,6 +138,8 @@ export class SplitPaneComponent {
 
   /** Element reference for size calculations. */
   private el = inject(ElementRef);
+  /** Window reference. */
+  private windowRef = inject(WINDOW);
 
   // Internal state
   /** Tracks whether the resizer is currently being dragged. */
@@ -177,14 +179,14 @@ export class SplitPaneComponent {
 
     if (this.isMobile()) {
       // Vertical split
-      let newY = event.clientY - rect.top;
+      const newY = event.clientY - rect.top;
       let newPos = (newY / rect.height) * 100;
       // Clamp between 20% and 80%
       newPos = Math.max(20, Math.min(newPos, 80));
       this.splitPos.set(newPos);
     } else {
       // Horizontal split
-      let newX = event.clientX - rect.left;
+      const newX = event.clientX - rect.left;
       let newPos = (newX / rect.width) * 100;
       // Clamp between 20% and 80%
       newPos = Math.max(20, Math.min(newPos, 80));
@@ -203,7 +205,9 @@ export class SplitPaneComponent {
    * Checks window size to toggle mobile mode layout.
    */
   checkMobile(): void {
-    this.isMobile.set(window.innerWidth <= 768);
+    if (this.windowRef) {
+      this.isMobile.set(this.windowRef.innerWidth <= 768);
+    }
   }
 
   /**

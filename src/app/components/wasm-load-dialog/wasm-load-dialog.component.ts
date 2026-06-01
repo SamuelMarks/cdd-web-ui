@@ -29,7 +29,7 @@ import { WasmLoaderService } from '../../services/wasm-loader.service';
           Ruby; etc.). Each supports: Swagger 2.0 &amp; OpenAPI 3.2.0; can generate &lbrace;SDKs,
           CLIs, server stubs&rbrace;, and is bidirectional (OpenAPI &#8644; language)
         </p>
-        <p>Every compiler is compiled to WebAssembly (WASM). Do you want to load ~380MB of WASM?</p>
+        <p>Every compiler is compiled to WebAssembly (WASM). Do you want to load ~295MB of WASM?</p>
         <p>
           This is required to generate code using the selected language in the browser (with no
           server).
@@ -45,7 +45,7 @@ import { WasmLoaderService } from '../../services/wasm-loader.service';
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       @if (!loading()) {
-        <button mat-flat-button color="primary" (click)="loadWasm()">Load ~380MB of WASM</button>
+        <button mat-flat-button color="primary" (click)="loadWasm()">Load ~295MB of WASM</button>
       }
     </mat-dialog-actions>
   `,

@@ -248,7 +248,7 @@ export class CodeViewerComponent {
     try {
       await navigator.clipboard.writeText(content);
       this.notificationService.success('Copied to clipboard.');
-    } catch (e) {
+    } catch {
       this.notificationService.error('Failed to copy to clipboard.');
     }
   }

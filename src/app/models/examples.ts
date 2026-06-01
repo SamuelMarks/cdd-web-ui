@@ -56,13 +56,13 @@ paths:
         content:
           application/json:
             schema:
-              \$ref: '#/components/schemas/Pet'
+              $ref: '#/components/schemas/Pet'
           application/xml:
             schema:
-              \$ref: '#/components/schemas/Pet'
+              $ref: '#/components/schemas/Pet'
           application/x-www-form-urlencoded:
             schema:
-              \$ref: '#/components/schemas/Pet'
+              $ref: '#/components/schemas/Pet'
         required: true
       responses:
         "200":
@@ -70,10 +70,10 @@ paths:
           content:
             application/json:
               schema:
-                \$ref: '#/components/schemas/Pet'
+                $ref: '#/components/schemas/Pet'
             application/xml:
               schema:
-                \$ref: '#/components/schemas/Pet'
+                $ref: '#/components/schemas/Pet'
         "400":
           description: Invalid ID supplied
         "404":
@@ -97,13 +97,13 @@ paths:
         content:
           application/json:
             schema:
-              \$ref: '#/components/schemas/Pet'
+              $ref: '#/components/schemas/Pet'
           application/xml:
             schema:
-              \$ref: '#/components/schemas/Pet'
+              $ref: '#/components/schemas/Pet'
           application/x-www-form-urlencoded:
             schema:
-              \$ref: '#/components/schemas/Pet'
+              $ref: '#/components/schemas/Pet'
         required: true
       responses:
         "200":
@@ -111,10 +111,10 @@ paths:
           content:
             application/json:
               schema:
-                \$ref: '#/components/schemas/Pet'
+                $ref: '#/components/schemas/Pet'
             application/xml:
               schema:
-                \$ref: '#/components/schemas/Pet'
+                $ref: '#/components/schemas/Pet'
         "400":
           description: Invalid input
         "422":
@@ -153,12 +153,12 @@ paths:
               schema:
                 type: array
                 items:
-                  \$ref: '#/components/schemas/Pet'
+                  $ref: '#/components/schemas/Pet'
             application/xml:
               schema:
                 type: array
                 items:
-                  \$ref: '#/components/schemas/Pet'
+                  $ref: '#/components/schemas/Pet'
         "400":
           description: Invalid status value
         default:
@@ -172,8 +172,8 @@ paths:
       tags:
       - pet
       summary: Finds Pets by tags.
-      description: "Multiple tags can be provided with comma separated strings. Use\
-        \ tag1, tag2, tag3 for testing."
+      description: "Multiple tags can be provided with comma separated strings. Use$
+         tag1, tag2, tag3 for testing."
       operationId: findPetsByTags
       parameters:
       - name: tags
@@ -193,12 +193,12 @@ paths:
               schema:
                 type: array
                 items:
-                  \$ref: '#/components/schemas/Pet'
+                  $ref: '#/components/schemas/Pet'
             application/xml:
               schema:
                 type: array
                 items:
-                  \$ref: '#/components/schemas/Pet'
+                  $ref: '#/components/schemas/Pet'
         "400":
           description: Invalid tag value
         default:
@@ -228,10 +228,10 @@ paths:
           content:
             application/json:
               schema:
-                \$ref: '#/components/schemas/Pet'
+                $ref: '#/components/schemas/Pet'
             application/xml:
               schema:
-                \$ref: '#/components/schemas/Pet'
+                $ref: '#/components/schemas/Pet'
         "400":
           description: Invalid ID supplied
         "404":
@@ -273,10 +273,10 @@ paths:
           content:
             application/json:
               schema:
-                \$ref: '#/components/schemas/Pet'
+                $ref: '#/components/schemas/Pet'
             application/xml:
               schema:
-                \$ref: '#/components/schemas/Pet'
+                $ref: '#/components/schemas/Pet'
         "400":
           description: Invalid input
         default:
@@ -349,7 +349,7 @@ paths:
           content:
             application/json:
               schema:
-                \$ref: '#/components/schemas/ApiResponse'
+                $ref: '#/components/schemas/ApiResponse'
         "400":
           description: No file uploaded
         "404":
@@ -392,20 +392,20 @@ paths:
         content:
           application/json:
             schema:
-              \$ref: '#/components/schemas/Order'
+              $ref: '#/components/schemas/Order'
           application/xml:
             schema:
-              \$ref: '#/components/schemas/Order'
+              $ref: '#/components/schemas/Order'
           application/x-www-form-urlencoded:
             schema:
-              \$ref: '#/components/schemas/Order'
+              $ref: '#/components/schemas/Order'
       responses:
         "200":
           description: successful operation
           content:
             application/json:
               schema:
-                \$ref: '#/components/schemas/Order'
+                $ref: '#/components/schemas/Order'
         "400":
           description: Invalid input
         "422":
@@ -434,10 +434,10 @@ paths:
           content:
             application/json:
               schema:
-                \$ref: '#/components/schemas/Order'
+                $ref: '#/components/schemas/Order'
             application/xml:
               schema:
-                \$ref: '#/components/schemas/Order'
+                $ref: '#/components/schemas/Order'
         "400":
           description: Invalid ID supplied
         "404":
@@ -480,23 +480,23 @@ paths:
         content:
           application/json:
             schema:
-              \$ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/User'
           application/xml:
             schema:
-              \$ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/User'
           application/x-www-form-urlencoded:
             schema:
-              \$ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/User'
       responses:
         "200":
           description: successful operation
           content:
             application/json:
               schema:
-                \$ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/User'
             application/xml:
               schema:
-                \$ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/User'
         default:
           description: Unexpected error
   /user/createWithList:
@@ -512,17 +512,17 @@ paths:
             schema:
               type: array
               items:
-                \$ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/User'
       responses:
         "200":
           description: Successful operation
           content:
             application/json:
               schema:
-                \$ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/User'
             application/xml:
               schema:
-                \$ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/User'
         default:
           description: Unexpected error
   /user/login:
@@ -603,10 +603,10 @@ paths:
           content:
             application/json:
               schema:
-                \$ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/User'
             application/xml:
               schema:
-                \$ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/User'
         "400":
           description: Invalid username supplied
         "404":
@@ -631,13 +631,13 @@ paths:
         content:
           application/json:
             schema:
-              \$ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/User'
           application/xml:
             schema:
-              \$ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/User'
           application/x-www-form-urlencoded:
             schema:
-              \$ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/User'
       responses:
         "200":
           description: successful operation
@@ -769,7 +769,7 @@ components:
           type: string
           example: doggie
         category:
-          \$ref: '#/components/schemas/Category'
+          $ref: '#/components/schemas/Category'
         photoUrls:
           type: array
           xml:
@@ -783,7 +783,7 @@ components:
           xml:
             wrapped: true
           items:
-            \$ref: '#/components/schemas/Tag'
+            $ref: '#/components/schemas/Tag'
         status:
           type: string
           description: pet status in the store
@@ -811,10 +811,10 @@ components:
       content:
         application/json:
           schema:
-            \$ref: '#/components/schemas/Pet'
+            $ref: '#/components/schemas/Pet'
         application/xml:
           schema:
-            \$ref: '#/components/schemas/Pet'
+            $ref: '#/components/schemas/Pet'
     UserArray:
       description: List of user object
       content:
@@ -822,7 +822,7 @@ components:
           schema:
             type: array
             items:
-              \$ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/User'
   securitySchemes:
     petstore_auth:
       type: oauth2

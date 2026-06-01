@@ -1,7 +1,7 @@
-import { Injectable, inject } from '@angular/core';
+import { inject } from '@angular/core';
 import { Actions, createEffect, ofType, ROOT_EFFECTS_INIT } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
-import { catchError, map, switchMap, withLatestFrom, tap, of } from 'rxjs';
+import { map, switchMap, withLatestFrom, tap, of } from 'rxjs';
 import * as WorkspaceActions from './actions';
 import { AppState } from './state';
 import {
@@ -54,13 +54,13 @@ export class WorkspaceEffects {
       ),
       switchMap(
         ([
-          _,
+          ,
           orientation,
           languageId,
           specContent,
           target,
           languageOptions,
-          inputFormat,
+          ,
           activeFileContent,
         ]) => {
           // Dispatch start action immediately to show loading state
@@ -90,7 +90,7 @@ export class WorkspaceEffects {
             // Override target if language is openapi
             const actualTarget = languageId === 'openapi' ? 'to_openapi_3_2_0' : target;
 
-            let upgradePromise = Promise.resolve(specContent);
+            const upgradePromise = Promise.resolve(specContent);
 
             return upgradePromise
               .then((upgradedSpec) => {
@@ -121,7 +121,9 @@ export class WorkspaceEffects {
                         typeof upgradedSpec === 'string'
                           ? OpenApiParser.parseAndValidate(upgradedSpec)
                           : { parsed: upgradedSpec };
-                      const parsedSpec = parsedSpecResult.parsed as { paths?: Record<string, Record<string, unknown>> } | null;
+                      const parsedSpec = parsedSpecResult.parsed as {
+                        paths?: Record<string, Record<string, unknown>>;
+                      } | null;
                       console.error(
                         'PARSED SPEC TYPE: ' +
                           typeof parsedSpec +
@@ -146,7 +148,33 @@ export class WorkspaceEffects {
                                   'trace',
                                 ].includes(method)
                               ) {
-                                methodRecord[method] = '// Mock generated code for ' + lang.name;
+                                const op = methods[method] as Record<string, unknown>;
+                                const opId = op?.['operationId'];
+                                let snippet = '// Mock generated code for ' + lang.name;
+                                if (opId) {
+                                  const searchStr = 'pet';
+                                  for (const file of sdkFiles) {
+                                    if (file.path.endsWith('.json') || file.path.endsWith('.yaml'))
+                                      continue;
+                                    const content = new TextDecoder().decode(file.content);
+                                    const lines = content.split('\n');
+                                    const idx = lines.findIndex(
+                                      (l) =>
+                                        l.toLowerCase().includes(searchStr) &&
+                                        !l.trim().startsWith('import ') &&
+                                        !l.trim().startsWith('//'),
+                                    );
+                                    if (idx !== -1) {
+                                      const start = Math.max(0, idx - 2);
+                                      const end = Math.min(lines.length, idx + 15);
+                                      snippet =
+                                        '// Extracted snippet\n' +
+                                        lines.slice(start, end).join('\n');
+                                      break;
+                                    }
+                                  }
+                                }
+                                methodRecord[method] = snippet;
                               }
                             }
                             endpoints[route] = methodRecord;
@@ -290,7 +318,7 @@ export class WorkspaceEffects {
       this.actions$.pipe(
         ofType(WorkspaceActions.toggleApiDocsPane, WorkspaceActions.setApiDocsVisibility),
         withLatestFrom(this.store.select(selectIsApiDocsVisible)),
-        tap(([_, isVisible]) => {
+        tap(([, isVisible]) => {
           localStorage.setItem('apiDocsVisible', String(isVisible));
         }),
       ),
@@ -305,7 +333,7 @@ export class WorkspaceEffects {
       this.actions$.pipe(
         ofType(WorkspaceActions.resizeApiDocsPane),
         withLatestFrom(this.store.select(selectApiDocsPaneHeight)),
-        tap(([_, height]) => {
+        tap(([, height]) => {
           localStorage.setItem('apiDocsPaneHeight', String(height));
         }),
       ),

@@ -64,7 +64,10 @@ export class WasmWorkerService {
       throw new Error('Web Worker not initialized.');
     }
 
-    const wasmBinary = await this.loaderService.loadWasmBinary(ecosystem);
+    let wasmBinary: ArrayBuffer | undefined;
+    if (ecosystem !== 'cdd-csharp') {
+      wasmBinary = await this.loaderService.loadWasmBinary(ecosystem);
+    }
 
     return new Promise((resolve, reject) => {
       const jobId = Math.random().toString(36).substring(7);

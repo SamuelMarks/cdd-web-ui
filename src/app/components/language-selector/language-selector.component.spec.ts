@@ -1,4 +1,4 @@
-import { TestBed, ComponentFixture, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { LanguageSelectorComponent } from './language-selector.component';
 import { Component, signal } from '@angular/core';
 import { LanguageService } from '../../services/language.service';
@@ -38,7 +38,7 @@ class TestHostComponent {
 
 describe('LanguageSelectorComponent', () => {
   let component: LanguageSelectorComponent;
-  let fixture: ComponentFixture<LanguageSelectorComponent>;
+
   let hostComponent: TestHostComponent;
   let hostFixture: ComponentFixture<TestHostComponent>;
 

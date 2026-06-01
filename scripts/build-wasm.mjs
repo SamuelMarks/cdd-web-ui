@@ -93,7 +93,11 @@ function getGithubReleaseUrl(repo, tool) {
               const json = JSON.parse(data);
               // Look for an asset matching tool.wasm, tool-wasm.zip, or tool.js.wasm
               let asset = json.assets?.find((a) =>
-                tool === 'cdd-rust' ? a.name === 'cdd-cli.wasm' : a.name === `${tool}.wasm`,
+                tool === 'cdd-rust'
+                  ? a.name === 'cdd-cli.wasm'
+                  : tool === 'cdd-ts'
+                    ? a.name === 'cdd-ts-javy.wasm'
+                    : a.name === `${tool}.wasm`,
               );
               if (!asset) {
                 asset = json.assets?.find((a) => a.name === `${tool}-wasm.zip`);
@@ -164,7 +168,7 @@ async function run() {
       localToolDir = path.resolve(process.cwd(), `../cdd-ctl/sdks/${tool}`);
     }
 
-    if (fs.existsSync(localToolDir)) {
+    if (buildLocally && fs.existsSync(localToolDir)) {
       let currentHash = '';
       try {
         currentHash = execSync('git rev-parse HEAD', {

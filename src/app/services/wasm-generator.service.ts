@@ -83,7 +83,10 @@ export class WasmGeneratorService {
     }
 
     try {
-      const wasmBinary = await this.wasmLoaderService.loadWasmBinary(lang.repo);
+      let wasmBinary: ArrayBuffer = new Uint8Array(0).buffer;
+      if (lang.repo !== 'cdd-csharp') {
+        wasmBinary = await this.wasmLoaderService.loadWasmBinary(lang.repo);
+      }
 
       const generatedFiles = await CddWasmSdk.fromOpenApi({
         ecosystem: ecosystemName,
@@ -135,20 +138,30 @@ export class WasmGeneratorService {
    * @param repository The repo.
    * @param languageId The language id.
    */
-  async generateCiCd(repository: Repository, languageId: string | number): Promise<string> {
+  generateCiCd(repository: Repository, languageId: string | number): Promise<string> {
     const lang = this.langService.languages().find((l) => l.id === languageId);
     if (!lang || !lang.availableInWasm) {
-      return `# CI/CD generation for ${lang?.name || languageId} is disabled due to lack of WASM support.\n`;
+      return Promise.resolve(
+        `# CI/CD generation for ${lang?.name || languageId} is disabled due to lack of WASM support.\n`,
+      );
     }
     switch (languageId) {
       case 'python':
-        return `name: Python SDK CI\non:\n  push:\n    branches: [ "main" ]\n  pull_request:\n    branches: [ "main" ]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n    - name: Set up Python\n      uses: actions/setup-python@v5\n      with:\n        python-version: '3.11'\n    - name: Install dependencies\n      run: |\n        python -m pip install --upgrade pip\n        pip install -r requirements.txt\n    - name: Test with pytest\n      run: |\n        pytest\n`;
+        return Promise.resolve(
+          `name: Python SDK CI\non:\n  push:\n    branches: [ "main" ]\n  pull_request:\n    branches: [ "main" ]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n    - name: Set up Python\n      uses: actions/setup-python@v5\n      with:\n        python-version: '3.11'\n    - name: Install dependencies\n      run: |\n        python -m pip install --upgrade pip\n        pip install -r requirements.txt\n    - name: Test with pytest\n      run: |\n        pytest\n`,
+        );
       case 'rust':
-        return `name: Rust SDK CI\non:\n  push:\n    branches: [ "main" ]\n  pull_request:\n    branches: [ "main" ]\nenv:\n  CARGO_TERM_COLOR: always\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n    - name: Build\n      run: cargo build --verbose\n    - name: Run tests\n      run: cargo test --verbose\n`;
+        return Promise.resolve(
+          `name: Rust SDK CI\non:\n  push:\n    branches: [ "main" ]\n  pull_request:\n    branches: [ "main" ]\nenv:\n  CARGO_TERM_COLOR: always\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n    - name: Build\n      run: cargo build --verbose\n    - name: Run tests\n      run: cargo test --verbose\n`,
+        );
       case 'typescript':
-        return `name: TypeScript SDK CI\non:\n  push:\n    branches: [ "main" ]\n  pull_request:\n    branches: [ "main" ]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n    - name: Use Node.js\n      uses: actions/setup-node@v4\n      with:\n        node-version: '20.x'\n    - run: npm ci\n    - run: npm run build\n    - run: npm test\n`;
+        return Promise.resolve(
+          `name: TypeScript SDK CI\non:\n  push:\n    branches: [ "main" ]\n  pull_request:\n    branches: [ "main" ]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n    - name: Use Node.js\n      uses: actions/setup-node@v4\n      with:\n        node-version: '20.x'\n    - run: npm ci\n    - run: npm run build\n    - run: npm test\n`,
+        );
       default:
-        return `# Default CI workflow for ${lang?.name}\nname: Build\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: echo "Replace with actual build commands"\n`;
+        return Promise.resolve(
+          `# Default CI workflow for ${lang?.name}\nname: Build\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: echo "Replace with actual build commands"\n`,
+        );
     }
   }
 
@@ -161,18 +174,21 @@ export class WasmGeneratorService {
   async generateOpenApi(
     repository: Repository,
     languageId: string | number,
-    sdkContent: string,
+    _sdkContent: string,
   ): Promise<string> {
+    void _sdkContent;
     const lang = this.langService.languages().find((l) => l.id === languageId);
     if (!lang || !lang.availableInWasm) {
       return `/* Generation from ${lang?.name || languageId} is disabled due to lack of WASM support. */\n`;
     }
 
-    const runMode = this.configService.runMode();
-    const ecosystemName = lang.repo as Ecosystem;
-
     try {
-      const buffer = await this.wasmLoaderService.loadWasmBinary(lang.repo);
+      let buffer: ArrayBuffer;
+      if (lang.repo !== 'cdd-csharp') {
+        buffer = await this.wasmLoaderService.loadWasmBinary(lang.repo);
+      } else {
+        buffer = new Uint8Array(0).buffer;
+      }
 
       await WebAssembly.instantiate(buffer, {
         wasi_snapshot_preview1: {
@@ -224,7 +240,7 @@ export class WasmGeneratorService {
       });
 
       return `{\n  "openapi": "3.1.0",\n  "info": {\n    "title": "Generated API from ${lang.name}",\n    "version": "1.0.0"\n  },\n  "paths": {}\n}`;
-    } catch (err) {
+    } catch {
       return `{\n  "openapi": "3.1.0",\n  "info": {\n    "title": "Mock API from ${lang.name}",\n    "version": "1.0.0"\n  },\n  "paths": {}\n}`;
     }
   }

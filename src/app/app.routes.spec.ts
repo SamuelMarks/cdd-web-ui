@@ -10,7 +10,7 @@ describe('AppRoutes', () => {
     const route = routes.find((r) => r.path === '');
     expect(route).toBeDefined();
     if (route && route.loadComponent) {
-      const component = await (route.loadComponent as Function)();
+      const component = await (route.loadComponent as () => Promise<unknown>)();
       expect(component).toBeTruthy();
     }
   });

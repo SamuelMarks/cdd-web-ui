@@ -7,13 +7,13 @@ describe('AppConfig', () => {
     expect(appConfig.providers).toBeDefined();
   });
 
-  it('should initialize wasm support', () => {
+  it('should initialize wasm support', async () => {
     const mockLanguageService = {
       loadWasmSupport: vi.fn(),
     } as unknown as LanguageService;
 
     const initFn = initWasmSupport(mockLanguageService);
-    initFn();
+    await initFn();
 
     expect(mockLanguageService.loadWasmSupport).toHaveBeenCalled();
   });
