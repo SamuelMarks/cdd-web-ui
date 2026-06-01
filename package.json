@@ -1,6 +1,7 @@
 {
-  "name": "tmp-app",
+  "name": "cdd-web-ui",
   "version": "0.0.1",
+  "type": "module",
   "scripts": {
     "ng": "ng",
     "prestart": "npm run build:wasm",
@@ -21,7 +22,7 @@
     "test:coverage": "vitest run --coverage",
     "build:wasm": "node scripts/build-wasm.mjs",
     "build:wasm:local": "node scripts/build-wasm.mjs --local",
-    "deploy:gh": "npx angular-cli-ghpages --dir=dist/tmp-app/browser"
+    "deploy:gh": "npx angular-cli-ghpages --dir=dist/cdd-web-ui/browser"
   },
   "private": true,
   "packageManager": "npm@11.11.0",

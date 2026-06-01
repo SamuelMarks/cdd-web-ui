@@ -17,7 +17,7 @@ RUN npm run build:prod
 # Serve statically using NGINX
 FROM nginx:alpine
 # Copy custom nginx config if we had one for fallback routing (SPA), but default is okay if we just add a small tweak
-COPY --from=builder /app/dist/tmp-app/browser /usr/share/nginx/html/
+COPY --from=builder /app/dist/cdd-web-ui/browser /usr/share/nginx/html/
 
 # Add a default nginx config for Angular routing
 RUN echo 'server { \

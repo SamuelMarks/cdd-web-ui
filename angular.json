@@ -7,7 +7,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "tmp-app": {
+    "cdd-web-ui": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -85,10 +85,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "tmp-app:build:production"
+              "buildTarget": "cdd-web-ui:build:production"
             },
             "development": {
-              "buildTarget": "tmp-app:build:development"
+              "buildTarget": "cdd-web-ui:build:development"
             }
           },
           "defaultConfiguration": "development",

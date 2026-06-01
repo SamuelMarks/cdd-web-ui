@@ -31,6 +31,6 @@ RUN npm run build:prod
 
 # Serve statically
 FROM nginx:mainline-bullseye
-COPY --from=builder /app/dist/tmp-app/browser /usr/share/nginx/html/
+COPY --from=builder /app/dist/cdd-web-ui/browser /usr/share/nginx/html/
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

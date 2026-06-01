@@ -98,4 +98,4 @@ jobs:
         working-directory: ./cdd-web-ui
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx angular-cli-ghpages --dir=dist/tmp-app/browser --no-silent
+        run: npx angular-cli-ghpages --dir=dist/cdd-web-ui/browser --no-silent

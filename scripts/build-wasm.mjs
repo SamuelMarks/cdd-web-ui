@@ -642,7 +642,7 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
     supportMap[lang] = supported;
   }
 
-  fs.writeFileSync(SUPPORT_FILE_DEST, JSON.stringify(supportMap, null, 2));
+  fs.writeFileSync(SUPPORT_FILE_DEST, JSON.stringify(supportMap, null, 2) + '\n');
   console.log(`✅ Copied wasm-support.json to public/assets/`);
   console.log('\nWASM Gather Complete.');
 }
