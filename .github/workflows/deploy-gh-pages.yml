@@ -20,6 +20,12 @@ jobs:
         with:
           path: 'cdd-web-ui'
 
+      - name: Checkout cdd-docs-ui
+        uses: actions/checkout@v6
+        with:
+          repository: 'SamuelMarks/cdd-docs-ui'
+          path: 'cdd-docs-ui'
+
       - name: Checkout cdd-ctl
         uses: actions/checkout@v6
         with:
@@ -77,6 +83,12 @@ jobs:
           # Create the latest tag on the current commit and push it
           git tag latest
           git push origin latest
+
+      - name: Build cdd-docs-ui
+        working-directory: ./cdd-docs-ui
+        run: |
+          npm install --ignore-scripts
+          npm run build
 
       - name: Install UI Dependencies
         working-directory: ./cdd-web-ui
