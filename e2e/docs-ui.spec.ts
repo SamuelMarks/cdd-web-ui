@@ -47,14 +47,22 @@ test.describe('SDK Examples UI Integration Tests', () => {
       await expect(sdkTab).toBeVisible({ timeout: 120000 });
       await sdkTab.click();
 
-      const codeBlock = cddApiDocs.locator('.cdd-tab-content-sdk pre code').first();
+      const codeBlocks = cddApiDocs.locator('.cdd-tab-content-sdk pre code');
+      await expect(codeBlocks.first()).not.toBeEmpty({ timeout: 120000 });
 
-      const codeText = await codeBlock.textContent();
-      expect(codeText?.trim().length).toBeGreaterThan(0);
+      const count = await codeBlocks.count();
+      expect(count).toBeGreaterThan(0);
 
-      const lower = codeText?.toLowerCase() || '';
-      expect(lower).not.toContain('mock generated code');
-      expect(lower).toContain('pet');
+      let foundPet = false;
+      for (let i = 0; i < count; i++) {
+        const text = await codeBlocks.nth(i).textContent();
+        const lower = text?.toLowerCase() || '';
+        expect(lower).not.toContain('mock generated code');
+        if (lower.includes('pet')) {
+          foundPet = true;
+        }
+      }
+      expect(foundPet).toBe(true);
     });
   }
 });
