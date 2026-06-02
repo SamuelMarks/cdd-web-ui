@@ -113,6 +113,7 @@ export class WasmWorkerService {
           languageOptions,
           cddJavaJsUrl: this.loaderService.getEnvUrl('cdd-java.js'),
           cddJavaWasmUrl: this.loaderService.getEnvUrl('cdd-java.wasm'),
+          cddCsharpDirUrl: 'assets/wasm/cdd-csharp/',
         },
       });
     });

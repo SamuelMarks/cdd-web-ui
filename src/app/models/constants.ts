@@ -21,7 +21,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
-    iconUrl: '/assets/icons/c.svg',
+    iconUrl: 'assets/icons/c.svg',
   },
   {
     /** id */
@@ -35,7 +35,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
-    iconUrl: '/assets/icons/cpp.svg',
+    iconUrl: 'assets/icons/cpp.svg',
   },
   {
     /** id */
@@ -49,7 +49,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
-    iconUrl: '/assets/icons/csharp.svg',
+    iconUrl: 'assets/icons/csharp.svg',
   },
   {
     /** id */
@@ -63,7 +63,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
-    iconUrl: '/assets/icons/go.svg',
+    iconUrl: 'assets/icons/go.svg',
   },
   {
     /** id */
@@ -77,7 +77,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
-    iconUrl: '/assets/icons/java.svg',
+    iconUrl: 'assets/icons/java.svg',
   },
   {
     /** id */
@@ -91,7 +91,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
-    iconUrl: '/assets/icons/kotlin.svg',
+    iconUrl: 'assets/icons/kotlin.svg',
   },
   {
     /** id */
@@ -105,7 +105,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
-    iconUrl: '/assets/icons/php.svg',
+    iconUrl: 'assets/icons/php.svg',
   },
   {
     /** id */
@@ -119,7 +119,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
-    iconUrl: '/assets/icons/python.svg',
+    iconUrl: 'assets/icons/python.svg',
   },
   {
     /** id */
@@ -133,7 +133,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
-    iconUrl: '/assets/icons/ruby.svg',
+    iconUrl: 'assets/icons/ruby.svg',
   },
   {
     /** id */
@@ -147,7 +147,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** selectedByDefault */
     selectedByDefault: true,
     /** iconUrl */
-    iconUrl: '/assets/icons/rust.svg',
+    iconUrl: 'assets/icons/rust.svg',
   },
   {
     /** id */
@@ -161,7 +161,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
-    iconUrl: '/assets/icons/sh.svg',
+    iconUrl: 'assets/icons/sh.svg',
   },
   {
     /** id */
@@ -175,7 +175,7 @@ export const LANGUAGES: LanguageConfig[] = [
     /** selectedByDefault */
     selectedByDefault: false,
     /** iconUrl */
-    iconUrl: '/assets/icons/swift.svg',
+    iconUrl: 'assets/icons/swift.svg',
   },
   {
     /** id */
@@ -189,9 +189,9 @@ export const LANGUAGES: LanguageConfig[] = [
     /** selectedByDefault */
     selectedByDefault: true,
     /** iconUrl */
-    iconUrl: '/assets/icons/typescript.svg',
+    iconUrl: 'assets/icons/typescript.svg',
   },
 ];
 
 /** Base URL for the API Docs UI iframe. */
-export const DOCS_UI_BASE_URL = '/docs-ui/index.html';
+export const DOCS_UI_BASE_URL = 'docs-ui/index.html';

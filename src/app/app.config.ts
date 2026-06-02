@@ -29,7 +29,7 @@ import { WorkspaceEffects } from './store/effects';
  */
 const monacoConfig = {
   /** baseUrl */
-  baseUrl: '/assets/vs', // configure base path for monaco editor
+  baseUrl: 'assets/vs', // configure base path for monaco editor
   /** defaultOptions */
   defaultOptions: { scrollBeyondLastLine: false }, // pass default options to be used
 };

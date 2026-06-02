@@ -35,14 +35,14 @@ describe('LanguageService', () => {
     req.flush({
       ts: true,
       go: true,
-      python: null,
+      'python-all': true,
     });
 
     await promise;
 
     const langs = service.languages();
     expect(langs.find((l) => l.id === 'typescript')?.availableInWasm).toBe(true);
-    expect(langs.find((l) => l.id === 'python')?.availableInWasm).toBe(false);
+    expect(langs.find((l) => l.id === 'python')?.availableInWasm).toBe(true);
     expect(langs.find((l) => l.id === 'go')?.availableInWasm).toBe(true);
     expect(langs.find((l) => l.id === 'rust')?.availableInWasm).toBe(false);
   });

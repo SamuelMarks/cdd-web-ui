@@ -33,6 +33,7 @@ export class LanguageService {
             let supportKey = l.id;
             if (l.id === 'typescript') supportKey = 'ts';
             if (l.id === 'openapi') supportKey = 'cpp';
+            if (l.id === 'python') supportKey = 'python-all';
 
             return {
               ...l,
