@@ -168,7 +168,7 @@ async function run() {
       localToolDir = path.resolve(process.cwd(), `../cdd-ctl/sdks/${tool}`);
     }
 
-    if (buildLocally && fs.existsSync(localToolDir)) {
+    if (fs.existsSync(localToolDir)) {
       let currentHash = '';
       try {
         currentHash = execSync('git rev-parse HEAD', {
