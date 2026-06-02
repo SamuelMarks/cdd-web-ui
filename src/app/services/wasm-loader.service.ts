@@ -63,7 +63,7 @@ export class WasmLoaderService {
    */
   getLocalWasmPath(githubUrl: string): string {
     const filename = githubUrl.split('/').pop() || '';
-    return `assets/wasm/${filename}`;
+    return `./assets/wasm/${filename}`;
   }
 
   /**
