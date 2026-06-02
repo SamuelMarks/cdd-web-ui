@@ -2,7 +2,7 @@ import { BackendConfigService } from './backend-config.service';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { DOCUMENT } from '@angular/common';
-import { WasmLoaderService, WASM_GITHUB_URLS } from './wasm-loader.service';
+import { WasmLoaderService } from './wasm-loader.service';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 import { MatDialog } from '@angular/material/dialog';
@@ -62,7 +62,7 @@ describe('WasmLoaderService', () => {
 
     // First try: local fetch, so 1 call
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-ts.wasm');
+    expect(globalThis.fetch).toHaveBeenCalledWith('assets/wasm/cdd-ts.wasm');
 
     // Second call should use cache
     const cachedBuffer = await service.loadWasmBinary('cdd-ts');
@@ -82,7 +82,7 @@ describe('WasmLoaderService', () => {
 
     await service.loadWasmBinary('cdd-ts');
 
-    expect(globalThis.fetch).toHaveBeenCalledWith('/assets/wasm/cdd-ts.wasm');
+    expect(globalThis.fetch).toHaveBeenCalledWith('assets/wasm/cdd-ts.wasm');
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -98,7 +98,7 @@ describe('WasmLoaderService', () => {
 
     await service.loadWasmBinary('cdd-ts');
 
-    expect(globalThis.fetch).toHaveBeenCalledWith(WASM_GITHUB_URLS['cdd-ts']);
+    expect(globalThis.fetch).toHaveBeenCalledWith('assets/wasm/cdd-ts.wasm');
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -132,7 +132,7 @@ describe('WasmLoaderService', () => {
 
   it('should throw an error if no GitHub URL is configured for the ecosystem', async () => {
     await expect(service.loadWasmBinary('unknown-ecosystem')).rejects.toThrow(
-      /No GitHub URL configured for ecosystem: unknown-ecosystem/,
+      'No URL configured for ecosystem: unknown-ecosystem',
     );
   });
 
@@ -220,13 +220,11 @@ describe('WasmLoaderService', () => {
   it('should return correct getEnvUrl for local and remote environments', () => {
     mockDocument.location.hostname = 'localhost';
     let url = service.getEnvUrl('cdd-java.js');
-    expect(url).toBe('/assets/wasm/cdd-java.js');
+    expect(url).toBe('assets/wasm/cdd-java.js');
 
     mockDocument.location.hostname = 'example.com';
     url = service.getEnvUrl('cdd-java.js');
-    expect(url).toBe(
-      'https://github.com/SamuelMarks/cdd-java/releases/latest/download/cdd-java.js',
-    );
+    expect(url).toBe('assets/wasm/cdd-java.js');
 
     // Invalid ecosystem
     const invalidUrl = service.getEnvUrl('invalid');
@@ -234,6 +232,6 @@ describe('WasmLoaderService', () => {
 
     // Empty split
     const emptySplit = service.getLocalWasmPath('http://example.com/');
-    expect(emptySplit).toBe('/assets/wasm/');
+    expect(emptySplit).toBe('assets/wasm/');
   });
 });
