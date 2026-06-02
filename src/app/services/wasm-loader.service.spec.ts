@@ -225,7 +225,7 @@ describe('WasmLoaderService', () => {
     mockDocument.location.hostname = 'example.com';
     url = service.getEnvUrl('cdd-java.js');
     expect(url).toBe(
-      'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js',
+      'https://github.com/SamuelMarks/cdd-java/releases/latest/download/cdd-java.js',
     );
 
     // Invalid ecosystem

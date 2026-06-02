@@ -6,27 +6,27 @@ import { BackendConfigService } from './backend-config.service';
 
 /** Map of ecosystem names to their respective GitHub WASM release URLs. */
 export const WASM_GITHUB_URLS: Record<string, string> = {
-  'cdd-c': 'https://github.com/SamuelMarks/cdd-c/releases/download/latest/cdd-c.wasm',
-  'cdd-cpp': 'https://github.com/SamuelMarks/cdd-cpp/releases/download/latest/cdd-cpp.wasm',
+  'cdd-c': 'https://github.com/SamuelMarks/cdd-c/releases/latest/download/cdd-c.wasm',
+  'cdd-cpp': 'https://github.com/SamuelMarks/cdd-cpp/releases/latest/download/cdd-cpp.wasm',
   'cdd-csharp':
-    'https://github.com/SamuelMarks/cdd-csharp/releases/download/latest/cdd-csharp.wasm',
+    'https://github.com/SamuelMarks/cdd-csharp/releases/latest/download/cdd-csharp.wasm',
   'cdd-csharp-wasm.zip':
-    'https://github.com/SamuelMarks/cdd-csharp/releases/download/latest/cdd-csharp-wasm.zip',
-  'cdd-go': 'https://github.com/SamuelMarks/cdd-go/releases/download/latest/cdd-go.wasm',
+    'https://github.com/SamuelMarks/cdd-csharp/releases/latest/download/cdd-csharp-wasm.zip',
+  'cdd-go': 'https://github.com/SamuelMarks/cdd-go/releases/latest/download/cdd-go.wasm',
   'cdd-java.js.wasm':
-    'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js.wasm',
-  'cdd-java.js': 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.js',
-  'cdd-java': 'https://github.com/SamuelMarks/cdd-java/releases/download/latest/cdd-java.wasm',
-  'cdd-kotlin': 'https://github.com/offscale/cdd-kotlin/releases/download/latest/cdd-kotlin.wasm',
-  'cdd-php': 'https://github.com/SamuelMarks/cdd-php/releases/download/latest/cdd-php.wasm',
+    'https://github.com/SamuelMarks/cdd-java/releases/latest/download/cdd-java.js.wasm',
+  'cdd-java.js': 'https://github.com/SamuelMarks/cdd-java/releases/latest/download/cdd-java.js',
+  'cdd-java': 'https://github.com/SamuelMarks/cdd-java/releases/latest/download/cdd-java.wasm',
+  'cdd-kotlin': 'https://github.com/offscale/cdd-kotlin/releases/latest/download/cdd-kotlin.wasm',
+  'cdd-php': 'https://github.com/SamuelMarks/cdd-php/releases/latest/download/cdd-php.wasm',
   'cdd-python-all':
-    'https://github.com/offscale/cdd-python-all/releases/download/latest/cdd-python-all.wasm',
-  'cdd-ruby': 'https://github.com/SamuelMarks/cdd-ruby/releases/download/latest/cdd-ruby.wasm',
-  'cdd-rust': 'https://github.com/offscale/cdd-rust/releases/download/latest/cdd-rust.wasm',
-  'cdd-sh': 'https://github.com/SamuelMarks/cdd-sh/releases/download/latest/cdd-sh.wasm',
-  'cdd-swift': 'https://github.com/SamuelMarks/cdd-swift/releases/download/latest/cdd-swift.wasm',
-  'cdd-ts': 'https://github.com/offscale/cdd-ts/releases/download/latest/cdd-ts.wasm',
-  'cdd-ts.js': 'https://github.com/offscale/cdd-ts/releases/download/latest/cdd-ts.js',
+    'https://github.com/offscale/cdd-python-all/releases/latest/download/cdd-python-all.wasm',
+  'cdd-ruby': 'https://github.com/SamuelMarks/cdd-ruby/releases/latest/download/cdd-ruby.wasm',
+  'cdd-rust': 'https://github.com/offscale/cdd-rust/releases/latest/download/cdd-rust.wasm',
+  'cdd-sh': 'https://github.com/SamuelMarks/cdd-sh/releases/latest/download/cdd-sh.wasm',
+  'cdd-swift': 'https://github.com/SamuelMarks/cdd-swift/releases/latest/download/cdd-swift.wasm',
+  'cdd-ts': 'https://github.com/offscale/cdd-ts/releases/latest/download/cdd-ts.wasm',
+  'cdd-ts.js': 'https://github.com/offscale/cdd-ts/releases/latest/download/cdd-ts.js',
 };
 
 /** List of all supported WASM ecosystems. */
