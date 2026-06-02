@@ -6,13 +6,15 @@ on:
     tags: ['v*']
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 env:
-  DEPLOY_LOCATION: samuelmarks.github.io/cdd-web-ui
+  DEPLOY_LOCATION: offscale.github.io/cdd-web-ui
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout cdd-web-ui
@@ -67,23 +69,6 @@ jobs:
           allowUpdates: true
           replacesArtifacts: true
 
-      - name: Update latest tag
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        working-directory: ./cdd-web-ui
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git fetch --tags
-
-          # Delete the latest tag locally and remotely if it exists
-          git tag -d latest || true
-          git push origin :refs/tags/latest || true
-
-          # Create the latest tag on the current commit and push it
-          git tag latest
-          git push origin latest
-
       - name: Build cdd-docs-ui
         working-directory: ./cdd-docs-ui
         run: |
@@ -93,6 +78,12 @@ jobs:
       - name: Install UI Dependencies
         working-directory: ./cdd-web-ui
         run: npm ci --ignore-scripts
+
+      - name: Copy WASM Binaries to Web UI
+        run: |
+          mkdir -p cdd-web-ui/public/assets/wasm
+          cp cdd-ctl/optimized-wasm/*.wasm cdd-web-ui/public/assets/wasm/ || true
+          cp cdd-ctl/cdd-ctl-wasm-sdk/assets/wasm-support.json cdd-web-ui/public/assets/wasm-support.json || true
 
       - name: Compute base-href and Build Angular App
         working-directory: ./cdd-web-ui
@@ -106,8 +97,21 @@ jobs:
           echo "Building Angular with --base-href=$BASE_HREF"
           npx ng build --configuration production --base-href $BASE_HREF
 
-      - name: Deploy using angular-cli-ghpages
-        working-directory: ./cdd-web-ui
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx angular-cli-ghpages --dir=dist/cdd-web-ui/browser --no-silent
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './cdd-web-ui/dist/cdd-web-ui/browser'
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

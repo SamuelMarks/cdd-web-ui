@@ -24,7 +24,7 @@ export class LanguageService {
   async loadWasmSupport(): Promise<void> {
     try {
       const supportMap = await firstValueFrom(
-        this.http.get<Record<string, boolean>>('/assets/wasm-support.json'),
+        this.http.get<Record<string, boolean>>('assets/wasm-support.json'),
       );
 
       if (supportMap) {

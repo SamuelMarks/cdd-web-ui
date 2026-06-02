@@ -63,44 +63,27 @@ export class WasmLoaderService {
    */
   getLocalWasmPath(githubUrl: string): string {
     const filename = githubUrl.split('/').pop() || '';
-    return `/assets/wasm/${filename}`;
+    return `assets/wasm/${filename}`;
   }
 
   /**
-   * Gets the correct URL for a WASM binary or JS file based on the current environment.
+   * Gets the correct URL for a WASM binary or JS file.
    */
   getEnvUrl(ecosystem: string): string {
     const githubUrl = this.getGithubWasmUrl(ecosystem);
     if (!githubUrl) return '';
-
-    const isLocal =
-      this.doc &&
-      (this.doc.location.hostname === 'localhost' || this.doc.location.hostname === '127.0.0.1');
-    if (isLocal) {
-      return this.getLocalWasmPath(githubUrl);
-    }
-    return githubUrl;
+    return this.getLocalWasmPath(githubUrl);
   }
 
   /**
    * Fetches the WASM binary or JS file from the correct environment URL.
    */
   private async fetchWasmResponse(ecosystem: string): Promise<Response> {
-    const githubUrl = this.getGithubWasmUrl(ecosystem);
-    if (!githubUrl) {
-      throw new Error(`No GitHub URL configured for ecosystem: ${ecosystem}`);
+    const url = this.getEnvUrl(ecosystem);
+    if (!url) {
+      throw new Error(`No URL configured for ecosystem: ${ecosystem}`);
     }
-
-    const isLocal =
-      this.doc &&
-      (this.doc.location.hostname === 'localhost' || this.doc.location.hostname === '127.0.0.1');
-
-    if (isLocal) {
-      const localPath = this.getLocalWasmPath(githubUrl);
-      return fetch(localPath);
-    }
-
-    return fetch(githubUrl);
+    return fetch(url);
   }
 
   /**

@@ -30,7 +30,7 @@ describe('LanguageService', () => {
   it('should load wasm support and update languages', async () => {
     const promise = service.loadWasmSupport();
 
-    const req = httpMock.expectOne('/assets/wasm-support.json');
+    const req = httpMock.expectOne('assets/wasm-support.json');
     expect(req.request.method).toBe('GET');
     req.flush({
       ts: true,
@@ -50,7 +50,7 @@ describe('LanguageService', () => {
   it('should handle null supportMap gracefully', async () => {
     const promise = service.loadWasmSupport();
 
-    const req = httpMock.expectOne('/assets/wasm-support.json');
+    const req = httpMock.expectOne('assets/wasm-support.json');
     req.flush(null);
 
     await promise;
@@ -63,7 +63,7 @@ describe('LanguageService', () => {
   it('should gracefully handle error when loading wasm config', async () => {
     const promise = service.loadWasmSupport();
 
-    const req = httpMock.expectOne('/assets/wasm-support.json');
+    const req = httpMock.expectOne('assets/wasm-support.json');
     req.flush('Not Found', { status: 404, statusText: 'Not Found' });
 
     await promise;
@@ -89,7 +89,7 @@ describe('LanguageService', () => {
     ]);
     const promise = service.loadWasmSupport();
 
-    const req = httpMock.expectOne('/assets/wasm-support.json');
+    const req = httpMock.expectOne('assets/wasm-support.json');
     req.flush({
       cpp: true,
     });

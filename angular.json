@@ -55,7 +55,7 @@
               ],
               "outputHashing": "all",
               "assets": [
-                { "glob": "**/*", "input": "public", "ignore": ["assets/wasm/**"] },
+                { "glob": "**/*", "input": "public" },
                 {
                   "glob": "**/*",
                   "input": "node_modules/monaco-editor/min/vs",
