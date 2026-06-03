@@ -293,9 +293,7 @@ describe('WasmWorkerService', () => {
 
   it('should ignore messages from other jobs', async () => {
     const ignoreWorker = new MockWorker();
-    ignoreWorker.postMessage = function (data: {
-      jobId?: string;
-    }) {
+    ignoreWorker.postMessage = function (data: { jobId?: string }) {
       if (this.onmessage) {
         // Send unrelated job ID first
         this.onmessage(

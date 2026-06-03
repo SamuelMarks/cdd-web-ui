@@ -61,7 +61,9 @@ describe('BackendConfigService', () => {
 
   it('should return served_github if hostname is not localhost', () => {
     // Spy on prototype so it applies to the new instance created inside the test
-    const spy = vi.spyOn(BackendConfigService.prototype, '_getHostname').mockReturnValue('example.com');
+    const spy = vi
+      .spyOn(BackendConfigService.prototype, '_getHostname')
+      .mockReturnValue('example.com');
     const s = new BackendConfigService();
     expect(s.runMode()).toBe('served_github');
     spy.mockRestore();
