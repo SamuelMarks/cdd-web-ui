@@ -60,8 +60,7 @@ export const handleMessage = async ({ data }: MessageEvent) => {
     /* istanbul ignore else */
     if (shouldLoadJava) {
       try {
-        const urlToFetch =
-          data.payload.cddJavaJsUrl || './assets/wasm/cdd-java.js';
+        const urlToFetch = data.payload.cddJavaJsUrl || './assets/wasm/cdd-java.js';
         console.log(`Worker loading cdd-java.js via fetch+eval from ${urlToFetch}...`);
         const resp = await fetch(urlToFetch);
         const scriptStr = await resp.text();

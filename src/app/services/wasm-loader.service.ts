@@ -25,7 +25,7 @@ export const WASM_GITHUB_URLS: Record<string, string> = {
   'cdd-rust': 'https://github.com/offscale/cdd-rust/releases/latest/download/cdd-rust.wasm',
   'cdd-sh': 'https://github.com/SamuelMarks/cdd-sh/releases/latest/download/cdd-sh.wasm',
   'cdd-swift': 'https://github.com/SamuelMarks/cdd-swift/releases/latest/download/cdd-swift.wasm',
-  'cdd-ts': 'https://github.com/offscale/cdd-ts/releases/latest/download/cdd-ts.wasm',
+  'cdd-ts': 'https://github.com/offscale/cdd-ts/releases/latest/download/cdd-ts-javy.wasm',
   'cdd-ts.js': 'https://github.com/offscale/cdd-ts/releases/latest/download/cdd-ts.js',
 };
 
