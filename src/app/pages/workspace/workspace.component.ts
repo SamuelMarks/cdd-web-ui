@@ -73,8 +73,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                   <img
                     [ngSrc]="
                       inputFormat() === 'google_discovery'
-                        ? '/assets/icons/google.svg'
-                        : '/assets/icons/openapi.svg'
+                        ? 'assets/icons/google.svg'
+                        : 'assets/icons/openapi.svg'
                     "
                     width="20"
                     height="20"
@@ -101,7 +101,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               <mat-option value="openapi_3_2_0">
                 <div class="format-option">
                   <img
-                    ngSrc="/assets/icons/openapi.svg"
+                    ngSrc="assets/icons/openapi.svg"
                     width="20"
                     height="20"
                     alt=""
@@ -113,7 +113,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               <mat-option value="openapi_older">
                 <div class="format-option">
                   <img
-                    ngSrc="/assets/icons/openapi.svg"
+                    ngSrc="assets/icons/openapi.svg"
                     width="20"
                     height="20"
                     alt=""

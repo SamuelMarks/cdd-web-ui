@@ -105,7 +105,7 @@ import { WasmLoadDialogComponent } from './components/wasm-load-dialog/wasm-load
               aria-label="View cdd-ctl on GitHub"
               matTooltip="View cdd-ctl on GitHub"
             >
-              <img ngSrc="/assets/icons/github.svg" alt="" width="24" height="24" />
+              <img ngSrc="assets/icons/github.svg" alt="" width="24" height="24" />
             </a>
             <button mat-icon-button class="theme-toggle" (click)="theme.toggleTheme()">
               @if (theme.isDarkTheme()) {
@@ -165,7 +165,7 @@ import { WasmLoadDialogComponent } from './components/wasm-load-dialog/wasm-load
               aria-label="Star cdd-web-ui on GitHub"
               i18n-aria-label="@@starOnGithubAria"
             >
-              <img ngSrc="/assets/icons/github.svg" alt="" width="16" height="16" />
+              <img ngSrc="assets/icons/github.svg" alt="" width="16" height="16" />
               <span i18n="@@starOnGithub">Star us on GitHub</span>
             </a>
           </div>

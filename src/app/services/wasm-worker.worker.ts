@@ -183,7 +183,7 @@ export const handleMessage = async ({ data }: MessageEvent) => {
               .withResourceLoader((_type: string, name: string) => {
                 return data.payload.cddCsharpDirUrl
                   ? data.payload.cddCsharpDirUrl + name
-                  : location.origin + '/assets/wasm/cdd-csharp/' + name;
+                  : './assets/wasm/cdd-csharp/' + name;
               })
               .create();
 

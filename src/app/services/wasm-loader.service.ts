@@ -72,6 +72,9 @@ export class WasmLoaderService {
   getEnvUrl(ecosystem: string): string {
     const githubUrl = this.getGithubWasmUrl(ecosystem);
     if (!githubUrl) return '';
+    if (this.config.runMode() === 'served_github') {
+      return githubUrl;
+    }
     return this.getLocalWasmPath(githubUrl);
   }
 
