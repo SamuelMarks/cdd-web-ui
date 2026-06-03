@@ -189,18 +189,8 @@ export const handleMessage = async ({ data }: MessageEvent) => {
                   return name;
                 }
 
-                let cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
-                if (cleanBaseUrl.startsWith('./')) {
-                  cleanBaseUrl = cleanBaseUrl.substring(2);
-                }
-                const cleanName = name.startsWith('./') ? name.substring(2) : name;
-
-                let finalPath = cleanName;
-                if (!cleanName.startsWith(cleanBaseUrl)) {
-                  finalPath = cleanBaseUrl + cleanName;
-                }
-
-                return new URL(finalPath, self.location.href).href;
+                // baseUrl is now guaranteed to be an absolute URL from the main thread
+                return new URL(name, baseUrl).href;
               })
               .create();
 

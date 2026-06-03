@@ -111,9 +111,9 @@ export class WasmWorkerService {
           wasmBinary,
           target,
           languageOptions,
-          cddJavaJsUrl: this.loaderService.getEnvUrl('cdd-java.js'),
-          cddJavaWasmUrl: this.loaderService.getEnvUrl('cdd-java'),
-          cddCsharpDirUrl: './assets/wasm/cdd-csharp/',
+          cddJavaJsUrl: new URL(this.loaderService.getEnvUrl('cdd-java.js'), window.location.href).href,
+          cddJavaWasmUrl: new URL(this.loaderService.getEnvUrl('cdd-java'), window.location.href).href,
+          cddCsharpDirUrl: new URL('./assets/wasm/cdd-csharp/', window.location.href).href,
         },
       });
     });

@@ -79,6 +79,13 @@ function downloadFile(url, dest) {
   });
 }
 
+function getReleaseFileName(tool) {
+  if (tool === 'cdd-csharp') return 'cdd-csharp-wasm.zip';
+  if (tool === 'cdd-ts') return 'cdd-ts-javy.wasm';
+  if (tool === 'cdd-rust') return 'cdd-cli.wasm';
+  return `${tool}.wasm`;
+}
+
 function getGithubReleaseUrl(repo, tool) {
   return new Promise((resolve, reject) => {
     https
@@ -118,21 +125,19 @@ function getGithubReleaseUrl(repo, tool) {
               } else {
                 // Check for tags fallback since some releases are tagged without a "latest" release concept
                 resolve(
-                  `https://github.com/${repo}/releases/latest/download/${tool === 'cdd-csharp' ? tool + '-wasm.zip' : tool + '.wasm'}`,
+                  `https://github.com/${repo}/releases/latest/download/${getReleaseFileName(tool)}`,
                 );
               }
             } catch (e) {
               resolve(
-                `https://github.com/${repo}/releases/latest/download/${tool === 'cdd-csharp' ? tool + '-wasm.zip' : tool + '.wasm'}`,
+                `https://github.com/${repo}/releases/latest/download/${getReleaseFileName(tool)}`,
               );
             }
           });
         },
       )
       .on('error', () => {
-        resolve(
-          `https://github.com/${repo}/releases/latest/download/${tool === 'cdd-csharp' ? tool + '-wasm.zip' : tool + '.wasm'}`,
-        );
+        resolve(`https://github.com/${repo}/releases/latest/download/${getReleaseFileName(tool)}`);
       });
   });
 }
@@ -620,18 +625,40 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
       } catch (e) {
         console.log(`  ❌ Failed to download from GitHub releases: ${e.message}`);
         // Special fallback to v0.0.1 tag manually if latest isn't published
+        const fallbackFilename = getReleaseFileName(tool);
+        const isFallbackZip = fallbackFilename.endsWith('.zip');
+        const fallbackDlDest = isFallbackZip ? `${wasmDest}.zip` : wasmDest;
+
         try {
           console.log(`  Attempting fallback to v0.0.1 tag...`);
-          const fallbackUrl = `https://github.com/${repo}/releases/download/v0.0.1/${tool}.wasm`;
-          await downloadFile(fallbackUrl, wasmDest);
-          console.log(`  ✅ Successfully downloaded ${tool}.wasm (v0.0.1 fallback)`);
+          const fallbackUrl = `https://github.com/${repo}/releases/download/v0.0.1/${fallbackFilename}`;
+          await downloadFile(fallbackUrl, fallbackDlDest);
+          if (isFallbackZip) {
+            if (tool === 'cdd-csharp') {
+              execSync(
+                `rm -rf ${DEST_DIR}/cdd-csharp && unzip -q ${fallbackDlDest} -d ${DEST_DIR} && rm ${fallbackDlDest}`,
+              );
+            } else {
+              execSync(`unzip -p ${fallbackDlDest} > ${wasmDest} && rm ${fallbackDlDest}`);
+            }
+          }
+          console.log(`  ✅ Successfully downloaded ${fallbackFilename} (v0.0.1 fallback)`);
           supported = true;
         } catch (e2) {
           try {
             console.log(`  Attempting fallback to 0.0.1 tag...`);
-            const fallbackUrl2 = `https://github.com/${repo}/releases/download/0.0.1/${tool}.wasm`;
-            await downloadFile(fallbackUrl2, wasmDest);
-            console.log(`  ✅ Successfully downloaded ${tool}.wasm (0.0.1 fallback)`);
+            const fallbackUrl2 = `https://github.com/${repo}/releases/download/0.0.1/${fallbackFilename}`;
+            await downloadFile(fallbackUrl2, fallbackDlDest);
+            if (isFallbackZip) {
+              if (tool === 'cdd-csharp') {
+                execSync(
+                  `rm -rf ${DEST_DIR}/cdd-csharp && unzip -q ${fallbackDlDest} -d ${DEST_DIR} && rm ${fallbackDlDest}`,
+                );
+              } else {
+                execSync(`unzip -p ${fallbackDlDest} > ${wasmDest} && rm ${fallbackDlDest}`);
+              }
+            }
+            console.log(`  ✅ Successfully downloaded ${fallbackFilename} (0.0.1 fallback)`);
             supported = true;
           } catch (e3) {
             try {
@@ -639,9 +666,14 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
               const fallbackUrl3 = `https://github.com/${repo}/releases/download/v0.0.1/${tool}-wasm.zip`;
               const dlDest = `${wasmDest}.zip`;
               await downloadFile(fallbackUrl3, dlDest);
-              execSync(`unzip -p ${dlDest} > ${wasmDest}`);
-              fs.unlinkSync(dlDest);
-              console.log(`  ✅ Successfully downloaded ${tool}.wasm (v0.0.1 zip fallback)`);
+              if (tool === 'cdd-csharp') {
+                execSync(
+                  `rm -rf ${DEST_DIR}/cdd-csharp && unzip -q ${dlDest} -d ${DEST_DIR} && rm ${dlDest}`,
+                );
+              } else {
+                execSync(`unzip -p ${dlDest} > ${wasmDest} && rm ${dlDest}`);
+              }
+              console.log(`  ✅ Successfully downloaded ${tool}-wasm.zip (v0.0.1 zip fallback)`);
               supported = true;
             } catch (e4) {
               console.log(`  ❌ Failed to download fallback: ${e4.message}`);
