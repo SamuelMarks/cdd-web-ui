@@ -115,6 +115,8 @@ describe('wasm-worker.worker.ts', () => {
   });
 
   it('should handle string parsed from YAML', async () => {
+    const { CddWasmSdk } = await import('cdd-ctl-wasm-sdk');
+    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValue([]);
     const { handleMessage } = await import('./wasm-worker.worker');
     await handleMessage({
       data: {

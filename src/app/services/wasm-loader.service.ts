@@ -62,7 +62,10 @@ export class WasmLoaderService {
    * Parses the GitHub URL to determine the local path.
    */
   getLocalWasmPath(githubUrl: string): string {
-    const filename = githubUrl.split('/').pop() || '';
+    let filename = githubUrl.split('/').pop() || '';
+    if (filename === 'cdd-ts-javy.wasm') {
+      filename = 'cdd-ts.wasm';
+    }
     return `./assets/wasm/${filename}`;
   }
 

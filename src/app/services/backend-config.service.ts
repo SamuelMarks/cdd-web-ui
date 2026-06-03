@@ -36,6 +36,11 @@ export class BackendConfigService {
     return localStorage.getItem(this.BACKEND_URL_KEY);
   }
 
+  /** @internal */
+  _getHostname(): string | undefined {
+    return typeof window !== 'undefined' ? window.location.hostname : undefined;
+  }
+
   /**
    * Retrieves the run mode from local storage.
    * @returns The saved run mode, defaulting to local_relative.
@@ -51,12 +56,8 @@ export class BackendConfigService {
       return stored;
     }
 
-    /* istanbul ignore next */
-    if (
-      typeof window !== 'undefined' &&
-      window.location.hostname !== 'localhost' &&
-      window.location.hostname !== '127.0.0.1'
-    ) {
+    const hostname = this._getHostname();
+    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
       return 'served_github';
     }
 

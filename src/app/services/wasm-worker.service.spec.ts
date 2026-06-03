@@ -290,4 +290,31 @@ describe('WasmWorkerService', () => {
     expect(capturedPayload.target).toBe('to_docs_json');
     expect(capturedPayload.languageOptions).toBe(options);
   });
+
+  it('should ignore messages from other jobs', async () => {
+    const ignoreWorker = new MockWorker();
+    ignoreWorker.postMessage = function (data: {
+      jobId?: string;
+    }) {
+      if (this.onmessage) {
+        // Send unrelated job ID first
+        this.onmessage(
+          new MessageEvent('message', {
+            data: { status: 'success', jobId: 'unrelated-job-id', data: [] },
+          }),
+        );
+        // Then send correct job ID
+        this.onmessage(
+          new MessageEvent('message', {
+            data: { status: 'success', jobId: data.jobId, data: [{ path: 'test.ts' }] },
+          }),
+        );
+      }
+    };
+    (service as unknown as { worker: Worker | null }).worker = ignoreWorker as unknown as Worker;
+
+    const result = await service.generateCode('cdd-python-all', 'spec', 'to_sdk');
+    expect(result.length).toBe(1);
+    expect(result[0].path).toBe('test.ts');
+  });
 });
