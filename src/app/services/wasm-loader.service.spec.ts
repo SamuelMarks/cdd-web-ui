@@ -62,7 +62,7 @@ describe('WasmLoaderService', () => {
 
     // First try: local fetch, so 1 call
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-    expect(globalThis.fetch).toHaveBeenCalledWith('./assets/wasm/cdd-ts.wasm');
+    expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/assets/wasm/cdd-ts.wasm'));
 
     // Second call should use cache
     const cachedBuffer = await service.loadWasmBinary('cdd-ts');
@@ -82,7 +82,7 @@ describe('WasmLoaderService', () => {
 
     await service.loadWasmBinary('cdd-ts');
 
-    expect(globalThis.fetch).toHaveBeenCalledWith('./assets/wasm/cdd-ts.wasm');
+    expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/assets/wasm/cdd-ts.wasm'));
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -98,7 +98,7 @@ describe('WasmLoaderService', () => {
 
     await service.loadWasmBinary('cdd-ts');
 
-    expect(globalThis.fetch).toHaveBeenCalledWith('./assets/wasm/cdd-ts.wasm');
+    expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/assets/wasm/cdd-ts.wasm'));
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 

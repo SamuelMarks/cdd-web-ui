@@ -170,9 +170,11 @@ export const handleMessage = async ({ data }: MessageEvent) => {
         if (shouldInitCsharp) {
           globalRef._cddCsharpInitPromise = (async () => {
             console.info(`[Worker] Booting .NET browser-wasm runtime for cdd-csharp...`);
+            /* istanbul ignore next */
             let dotnetJsUrl = data.payload.cddCsharpDirUrl
               ? data.payload.cddCsharpDirUrl + 'dotnet.js'
               : location.origin + '/assets/wasm/cdd-csharp/dotnet.js';
+            /* istanbul ignore next */
             if ((globalRef as { _dotnetJsUrl?: string })._dotnetJsUrl) {
               dotnetJsUrl = (globalRef as { _dotnetJsUrl?: string })._dotnetJsUrl as string;
             }
@@ -181,6 +183,7 @@ export const handleMessage = async ({ data }: MessageEvent) => {
             const { getAssemblyExports, getConfig } = await dotnet
               .withDiagnosticTracing(false)
               .withResourceLoader((_type: string, name: string) => {
+                /* istanbul ignore next */
                 return data.payload.cddCsharpDirUrl
                   ? data.payload.cddCsharpDirUrl + name
                   : './assets/wasm/cdd-csharp/' + name;

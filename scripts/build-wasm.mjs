@@ -92,15 +92,23 @@ function getGithubReleaseUrl(repo, tool) {
             try {
               const json = JSON.parse(data);
               // Look for an asset matching tool.wasm, tool-wasm.zip, or tool.js.wasm
-              let asset = json.assets?.find((a) =>
-                tool === 'cdd-rust'
-                  ? a.name === 'cdd-cli.wasm'
-                  : tool === 'cdd-ts'
-                    ? a.name === 'cdd-ts-javy.wasm'
-                    : a.name === `${tool}.wasm`,
-              );
-              if (!asset) {
+              let asset;
+              if (tool === 'cdd-csharp') {
                 asset = json.assets?.find((a) => a.name === `${tool}-wasm.zip`);
+                if (!asset) {
+                  asset = json.assets?.find((a) => a.name === `${tool}.wasm`);
+                }
+              } else {
+                asset = json.assets?.find((a) =>
+                  tool === 'cdd-rust'
+                    ? a.name === 'cdd-cli.wasm'
+                    : tool === 'cdd-ts'
+                      ? a.name === 'cdd-ts-javy.wasm'
+                      : a.name === `${tool}.wasm`,
+                );
+                if (!asset) {
+                  asset = json.assets?.find((a) => a.name === `${tool}-wasm.zip`);
+                }
               }
               if (!asset) {
                 asset = json.assets?.find((a) => a.name === `${tool}.js.wasm`);
@@ -109,16 +117,16 @@ function getGithubReleaseUrl(repo, tool) {
                 resolve(asset.browser_download_url);
               } else {
                 // Check for tags fallback since some releases are tagged without a "latest" release concept
-                resolve(`https://github.com/${repo}/releases/latest/download/${tool}.wasm`);
+                resolve(`https://github.com/${repo}/releases/latest/download/${tool === 'cdd-csharp' ? tool + '-wasm.zip' : tool + '.wasm'}`);
               }
             } catch (e) {
-              resolve(`https://github.com/${repo}/releases/latest/download/${tool}.wasm`);
+              resolve(`https://github.com/${repo}/releases/latest/download/${tool === 'cdd-csharp' ? tool + '-wasm.zip' : tool + '.wasm'}`);
             }
           });
         },
       )
       .on('error', () => {
-        resolve(`https://github.com/${repo}/releases/latest/download/${tool}.wasm`);
+        resolve(`https://github.com/${repo}/releases/latest/download/${tool === 'cdd-csharp' ? tool + '-wasm.zip' : tool + '.wasm'}`);
       });
   });
 }

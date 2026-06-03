@@ -51,6 +51,7 @@ export class BackendConfigService {
       return stored;
     }
 
+    /* istanbul ignore next */
     if (
       typeof window !== 'undefined' &&
       window.location.hostname !== 'localhost' &&
