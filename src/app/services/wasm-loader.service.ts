@@ -20,7 +20,7 @@ export const WASM_GITHUB_URLS: Record<string, string> = {
   'cdd-kotlin': 'https://github.com/offscale/cdd-kotlin/releases/latest/download/cdd-kotlin.wasm',
   'cdd-php': 'https://github.com/SamuelMarks/cdd-php/releases/latest/download/cdd-php.wasm',
   'cdd-python-all':
-    'https://github.com/offscale/cdd-python-all/releases/latest/download/openapi_python_client-0.0.1-py3-none-any.whl',
+    'https://github.com/offscale/cdd-python-all/releases/latest/download/cdd-python-all.wasm',
   'cdd-ruby': 'https://github.com/SamuelMarks/cdd-ruby/releases/latest/download/cdd-ruby.wasm',
   'cdd-rust': 'https://github.com/offscale/cdd-rust/releases/latest/download/cdd-rust.wasm',
   'cdd-sh': 'https://github.com/SamuelMarks/cdd-sh/releases/latest/download/cdd-sh.wasm',

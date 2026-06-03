@@ -184,18 +184,23 @@ export const handleMessage = async ({ data }: MessageEvent) => {
               .withResourceLoader((_type: string, name: string) => {
                 /* istanbul ignore next */
                 const baseUrl = data.payload.cddCsharpDirUrl || './assets/wasm/cdd-csharp/';
-                
+
                 if (name.startsWith('http://') || name.startsWith('https://')) {
                   return name;
                 }
-                
-                if (name.includes('cdd-csharp')) {
-                  return new URL(name, self.location.href).href;
+
+                let cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+                if (cleanBaseUrl.startsWith('./')) {
+                  cleanBaseUrl = cleanBaseUrl.substring(2);
                 }
-                
-                const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
                 const cleanName = name.startsWith('./') ? name.substring(2) : name;
-                return new URL(cleanBaseUrl + cleanName, self.location.href).href;
+
+                let finalPath = cleanName;
+                if (!cleanName.includes(cleanBaseUrl) && !cleanName.includes('cdd-csharp')) {
+                  finalPath = cleanBaseUrl + cleanName;
+                }
+
+                return new URL(finalPath, self.location.href).href;
               })
               .create();
 
