@@ -62,7 +62,7 @@ describe('WasmLoaderService', () => {
 
     // First try: local fetch, so 1 call
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-    expect(globalThis.fetch).toHaveBeenCalledWith('assets/wasm/cdd-ts.wasm');
+    expect(globalThis.fetch).toHaveBeenCalledWith('./assets/wasm/cdd-ts.wasm');
 
     // Second call should use cache
     const cachedBuffer = await service.loadWasmBinary('cdd-ts');
@@ -82,7 +82,7 @@ describe('WasmLoaderService', () => {
 
     await service.loadWasmBinary('cdd-ts');
 
-    expect(globalThis.fetch).toHaveBeenCalledWith('assets/wasm/cdd-ts.wasm');
+    expect(globalThis.fetch).toHaveBeenCalledWith('./assets/wasm/cdd-ts.wasm');
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -98,7 +98,7 @@ describe('WasmLoaderService', () => {
 
     await service.loadWasmBinary('cdd-ts');
 
-    expect(globalThis.fetch).toHaveBeenCalledWith('assets/wasm/cdd-ts.wasm');
+    expect(globalThis.fetch).toHaveBeenCalledWith('./assets/wasm/cdd-ts.wasm');
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -220,11 +220,11 @@ describe('WasmLoaderService', () => {
   it('should return correct getEnvUrl for local and remote environments', () => {
     mockDocument.location.hostname = 'localhost';
     let url = service.getEnvUrl('cdd-java.js');
-    expect(url).toBe('assets/wasm/cdd-java.js');
+    expect(url).toBe('./assets/wasm/cdd-java.js');
 
     mockDocument.location.hostname = 'example.com';
     url = service.getEnvUrl('cdd-java.js');
-    expect(url).toBe('assets/wasm/cdd-java.js');
+    expect(url).toBe('./assets/wasm/cdd-java.js');
 
     // Invalid ecosystem
     const invalidUrl = service.getEnvUrl('invalid');
@@ -232,6 +232,6 @@ describe('WasmLoaderService', () => {
 
     // Empty split
     const emptySplit = service.getLocalWasmPath('http://example.com/');
-    expect(emptySplit).toBe('assets/wasm/');
+    expect(emptySplit).toBe('./assets/wasm/');
   });
 });
