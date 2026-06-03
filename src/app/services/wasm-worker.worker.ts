@@ -183,9 +183,8 @@ export const handleMessage = async ({ data }: MessageEvent) => {
               .withDiagnosticTracing(false)
               .withResourceLoader((_type: string, name: string) => {
                 /* istanbul ignore next */
-                return data.payload.cddCsharpDirUrl
-                  ? data.payload.cddCsharpDirUrl + name
-                  : './assets/wasm/cdd-csharp/' + name;
+                const baseUrl = data.payload.cddCsharpDirUrl || './assets/wasm/cdd-csharp/';
+                return new URL(baseUrl + name, self.location.href).href;
               })
               .create();
 
