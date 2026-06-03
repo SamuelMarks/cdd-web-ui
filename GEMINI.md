@@ -13,7 +13,8 @@ When instructed to build and deploy the CDD Web UI to the `offscale.github.io` r
    You must copy the contents of `dist/cdd-web-ui/browser/*` into the target `cdd-web-ui` directory in the `offscale.github.io` repo.
    **DO NOT** copy the `browser/` folder itself, only its contents.
 
-   *Example copy command:*
+   _Example copy command:_
+
    ```bash
    d="/Users/samuel/repos/offscale.github.io/cdd-web-ui" && rm -rf "$d"/* && cp -r dist/cdd-web-ui/browser/* "$d/"
    ```

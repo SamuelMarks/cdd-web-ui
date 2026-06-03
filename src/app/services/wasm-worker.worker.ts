@@ -173,7 +173,7 @@ export const handleMessage = async ({ data }: MessageEvent) => {
             /* istanbul ignore next */
             let dotnetJsUrl = data.payload.cddCsharpDirUrl
               ? data.payload.cddCsharpDirUrl + 'dotnet.js'
-              : location.origin + '/assets/wasm/cdd-csharp/dotnet.js';
+              : './assets/wasm/cdd-csharp/dotnet.js';
             /* istanbul ignore next */
             if ((globalRef as { _dotnetJsUrl?: string })._dotnetJsUrl) {
               dotnetJsUrl = (globalRef as { _dotnetJsUrl?: string })._dotnetJsUrl as string;

@@ -117,16 +117,22 @@ function getGithubReleaseUrl(repo, tool) {
                 resolve(asset.browser_download_url);
               } else {
                 // Check for tags fallback since some releases are tagged without a "latest" release concept
-                resolve(`https://github.com/${repo}/releases/latest/download/${tool === 'cdd-csharp' ? tool + '-wasm.zip' : tool + '.wasm'}`);
+                resolve(
+                  `https://github.com/${repo}/releases/latest/download/${tool === 'cdd-csharp' ? tool + '-wasm.zip' : tool + '.wasm'}`,
+                );
               }
             } catch (e) {
-              resolve(`https://github.com/${repo}/releases/latest/download/${tool === 'cdd-csharp' ? tool + '-wasm.zip' : tool + '.wasm'}`);
+              resolve(
+                `https://github.com/${repo}/releases/latest/download/${tool === 'cdd-csharp' ? tool + '-wasm.zip' : tool + '.wasm'}`,
+              );
             }
           });
         },
       )
       .on('error', () => {
-        resolve(`https://github.com/${repo}/releases/latest/download/${tool === 'cdd-csharp' ? tool + '-wasm.zip' : tool + '.wasm'}`);
+        resolve(
+          `https://github.com/${repo}/releases/latest/download/${tool === 'cdd-csharp' ? tool + '-wasm.zip' : tool + '.wasm'}`,
+        );
       });
   });
 }

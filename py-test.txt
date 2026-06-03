@@ -1,0 +1,13 @@
+(node:12699) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:12700) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/docs-ui.spec.ts:39:9 › SDK Examples UI Integration Tests › Generates SDK example for Python and renders in Docs UI (2.0m)
+(node:13290) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  ✘  2 [chromium] › e2e/docs-ui.spec.ts:39:9 › SDK Examples UI Integration Tests › Generates SDK example for Python and renders in Docs UI (retry #1) (2.0m)
+(node:13785) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)

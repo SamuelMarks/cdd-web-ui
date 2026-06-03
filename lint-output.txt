@@ -1,0 +1,93 @@
+
+> tmp-app@0.0.1 lint
+> eslint .
+
+
+/Users/samuel/repos/cdd-web-ui/src/app/app.routes.spec.ts
+  13:65  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  13:75  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/samuel/repos/cdd-web-ui/src/app/components/code-viewer/code-viewer.component.spec.ts
+  269:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/samuel/repos/cdd-web-ui/src/app/components/split-pane/split-pane.component.spec.ts
+  125:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/samuel/repos/cdd-web-ui/src/app/components/visualisations/visualisations.component.spec.ts
+  137:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  137:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/samuel/repos/cdd-web-ui/src/app/pages/workspace/workspace.component.spec.ts
+  315:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/samuel/repos/cdd-web-ui/src/app/services/wasm-generator.service.spec.ts
+  390:84  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  399:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  399:72  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  458:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/samuel/repos/cdd-web-ui/src/app/services/wasm-loader.service.spec.ts
+  15:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/samuel/repos/cdd-web-ui/src/app/services/wasm-worker.service.spec.ts
+  250:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  252:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/samuel/repos/cdd-web-ui/src/app/services/wasm-worker.worker.spec.ts
+    5:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    6:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+    8:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   13:60  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   26:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   27:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   57:63  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   66:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   81:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  108:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  151:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  185:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  208:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  255:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  269:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  273:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  275:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  284:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  288:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  311:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  329:61  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  337:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  352:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  353:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  356:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  368:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  371:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  389:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  396:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  400:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  416:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  418:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  438:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  445:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  447:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/samuel/repos/cdd-web-ui/src/app/services/wasm-worker.worker.ts
+   44:47  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  169:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  170:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  220:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/samuel/repos/cdd-web-ui/src/app/store/effects.spec.ts
+  158:67  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  176:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  196:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  217:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  219:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  238:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  238:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/samuel/repos/cdd-web-ui/src/app/store/effects.ts
+  151:63  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 62 problems (0 errors, 62 warnings)
+
