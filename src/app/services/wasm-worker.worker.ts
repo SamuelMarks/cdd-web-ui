@@ -196,7 +196,7 @@ export const handleMessage = async ({ data }: MessageEvent) => {
                 const cleanName = name.startsWith('./') ? name.substring(2) : name;
 
                 let finalPath = cleanName;
-                if (!cleanName.includes(cleanBaseUrl) && !cleanName.includes('cdd-csharp')) {
+                if (!cleanName.startsWith(cleanBaseUrl)) {
                   finalPath = cleanBaseUrl + cleanName;
                 }
 
