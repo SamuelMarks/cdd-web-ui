@@ -1,23 +1,41 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+MODE=${PRECOMMIT_MODE:-fast}
 
-echo "Running Formatters..."
-npm run format
-npm run format:check
+if [ "$MODE" = "slow" ]; then
+  echo "🐌 Running Precommit Hooks in SLOW mode..."
+  echo "To run in fast mode, unset PRECOMMIT_MODE or set it to 'fast'."
+  echo ""
 
-echo "Running Linters..."
-npm run lint
+  echo "Running Formatters..."
+  npm run format
+  npm run format:check
 
-echo "Running Build..."
-npm run build
+  echo "Running Linters..."
+  npm run lint
 
-echo "Running Tests with Coverage..."
-npm run test:coverage
+  echo "Running Build..."
+  npm run build
 
-echo "Running E2E Tests..."
-npm run e2e
+  echo "Running Tests with Coverage..."
+  npm run test:coverage
 
-echo "Updating Coverage Shields..."
-node scripts/update-shields.mjs
+  echo "Running E2E Tests..."
+  npm run e2e
 
-git add README.md
+  echo "Updating Coverage Shields..."
+  node scripts/update-shields.mjs
+
+  git add README.md
+else
+  echo "⚡ Running Precommit Hooks in FAST mode..."
+  echo "To run full checks, use: PRECOMMIT_MODE=slow git commit ..."
+  echo ""
+
+  echo "Running Formatters..."
+  npm run format
+
+  echo "Running Linters..."
+  npm run lint
+
+  echo "Running Unit Tests..."
+  npm run test
+fi
