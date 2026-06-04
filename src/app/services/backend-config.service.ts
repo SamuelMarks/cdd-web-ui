@@ -1,5 +1,6 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { RunMode } from '../models/types';
+import { WINDOW } from '../tokens';
 
 /**
  * Service to manage backend connection configuration (Online vs Offline mode) and the run mode.
@@ -13,6 +14,9 @@ export class BackendConfigService {
   private readonly BACKEND_URL_KEY = 'cdd_backend_url';
   /** The local storage key for the run mode. */
   private readonly RUN_MODE_KEY = 'cdd_run_mode';
+
+  /** The injected WINDOW token */
+  private readonly window = inject(WINDOW);
 
   /** Signal holding the current backend URL. Null means offline mode. */
   readonly backendUrl = signal<string | null>(this.loadFromStorage());
@@ -36,10 +40,9 @@ export class BackendConfigService {
     return localStorage.getItem(this.BACKEND_URL_KEY);
   }
 
-  /** @internal */
+  /** Gets the current hostname. */
   _getHostname(): string | undefined {
-    /* istanbul ignore next */
-    return typeof window !== 'undefined' ? window.location.hostname : undefined;
+    return this.window ? this.window.location.hostname : undefined;
   }
 
   /**

@@ -119,6 +119,13 @@ describe('WasmWorkerService', () => {
     expect(mockLoaderService.loadWasmBinary).toHaveBeenCalledWith('cdd-python-all');
   });
 
+  it('should not call loadWasmBinary if ecosystem is cdd-csharp', async () => {
+    const files = await service.generateCode('cdd-csharp', '{}');
+    expect(files.length).toBe(1);
+    expect(files[0].path).toBe('test.ts');
+    expect(mockLoaderService.loadWasmBinary).not.toHaveBeenCalled();
+  });
+
   it('should handle log messages and pass to LoggingService', async () => {
     const files = await service.generateCode('cdd-python-all', 'log_test');
     expect(files.length).toBe(1);

@@ -169,11 +169,9 @@ export const handleMessage = async ({ data }: MessageEvent) => {
         if (shouldInitCsharp) {
           globalRef._cddCsharpInitPromise = (async () => {
             console.info(`[Worker] Booting .NET browser-wasm runtime for cdd-csharp...`);
-            /* istanbul ignore next */
             let dotnetJsUrl = data.payload.cddCsharpDirUrl
               ? data.payload.cddCsharpDirUrl + 'dotnet.js'
               : './assets/wasm/cdd-csharp/dotnet.js';
-            /* istanbul ignore next */
             if ((globalRef as { _dotnetJsUrl?: string })._dotnetJsUrl) {
               dotnetJsUrl = (globalRef as { _dotnetJsUrl?: string })._dotnetJsUrl as string;
             }

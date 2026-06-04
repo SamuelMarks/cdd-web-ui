@@ -261,6 +261,19 @@ describe('WasmGeneratorService', () => {
       expect(code).toContain('/* WASM executed successfully but generated no files. */');
     });
 
+    it('should assign empty ArrayBuffer for csharp in generateSdk', async () => {
+      vi.spyOn(service['langService'], 'languages').mockReturnValue([
+        {
+          id: 'csharp',
+          repo: 'cdd-csharp',
+          availableInWasm: true,
+          name: 'C#',
+        } as import('../models/types').Language,
+      ]);
+      const result = await service.generateSdk(dummyRepo, 'csharp', '{}');
+      expect(result).toBeDefined();
+    });
+
     it('should handle successful wasm generation', async () => {
       const code = await service.generateSdk(dummyRepo, 'python', 'success-spec');
       expect(code).toContain('Generated content for success');

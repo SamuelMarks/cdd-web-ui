@@ -3,6 +3,7 @@ import { appConfig } from './app/app.config';
 import { App } from './app/app';
 import * as Sentry from '@sentry/angular';
 
+/** DSN for Sentry error tracking */
 const sentryDsn = 'https://placeholder-dsn@o0.ingest.sentry.io/0'; // Replace with real DSN in prod
 if (!sentryDsn.includes('placeholder-dsn')) {
   Sentry.init({

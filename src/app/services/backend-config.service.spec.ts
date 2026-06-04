@@ -2,13 +2,21 @@ import '@angular/compiler';
 import '@angular/localize/init';
 import { TestBed } from '@angular/core/testing';
 import { BackendConfigService } from './backend-config.service';
+import { WINDOW } from '../tokens';
 
 describe('BackendConfigService', () => {
   let service: BackendConfigService;
 
   beforeEach(() => {
     localStorage.clear();
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: WINDOW,
+          useValue: { location: { hostname: 'localhost' } },
+        },
+      ],
+    });
     service = TestBed.inject(BackendConfigService);
   });
 
@@ -48,31 +56,44 @@ describe('BackendConfigService', () => {
 
   it('should load url from storage on init', () => {
     localStorage.setItem('cdd_backend_url', 'http://example.com');
-    const newService = new BackendConfigService();
+    const newService = TestBed.runInInjectionContext(() => new BackendConfigService());
     expect(newService.isOnline()).toBe(true);
     expect(newService.backendUrl()).toBe('http://example.com');
   });
 
   it('should initialize and compute isOnline correctly', () => {
     localStorage.setItem('cdd_backend_url', 'http://test.com');
-    const s = new BackendConfigService();
+    const s = TestBed.runInInjectionContext(() => new BackendConfigService());
     expect(s.backendUrl()).toBe('http://test.com');
     expect(s.isOnline()).toBe(true);
   });
 
   it('should return served_github if hostname is not localhost', () => {
-    // Spy on prototype so it applies to the new instance created inside the test
     const spy = vi
       .spyOn(BackendConfigService.prototype, '_getHostname')
       .mockReturnValue('example.com');
-    const s = new BackendConfigService();
+    const s = TestBed.runInInjectionContext(() => new BackendConfigService());
     expect(s.runMode()).toBe('served_github');
     spy.mockRestore();
   });
 
+  it('should return undefined hostname when WINDOW is null', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: WINDOW,
+          useValue: null,
+        },
+      ],
+    });
+    const s = TestBed.runInInjectionContext(() => new BackendConfigService());
+    expect(s._getHostname()).toBeUndefined();
+  });
+
   it('should return hostname from window', () => {
-    const s = new BackendConfigService();
-    expect(s._getHostname()).toBe(window.location.hostname);
+    const s = TestBed.runInInjectionContext(() => new BackendConfigService());
+    expect(s._getHostname()).toBe('localhost');
   });
 
   it('should set and load run mode', () => {
@@ -80,7 +101,7 @@ describe('BackendConfigService', () => {
     expect(service.runMode()).toBe('local_cdd_ctl_wasm');
     expect(localStorage.getItem('cdd_run_mode')).toBe('local_cdd_ctl_wasm');
 
-    const newService = new BackendConfigService();
+    const newService = TestBed.runInInjectionContext(() => new BackendConfigService());
     expect(newService.runMode()).toBe('local_cdd_ctl_wasm');
   });
 
@@ -88,7 +109,7 @@ describe('BackendConfigService', () => {
     const spy = vi
       .spyOn(BackendConfigService.prototype, '_getHostname')
       .mockReturnValue('localhost');
-    const s = new BackendConfigService();
+    const s = TestBed.runInInjectionContext(() => new BackendConfigService());
     expect(s.runMode()).toBe('local_relative');
     spy.mockRestore();
   });

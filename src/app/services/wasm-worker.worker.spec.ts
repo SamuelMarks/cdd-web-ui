@@ -64,6 +64,37 @@ describe('wasm-worker.worker.ts', () => {
     expect(content).toContain('"endpoints"');
   });
 
+  it('should use cddCsharpDirUrl if provided in payload', async () => {
+    delete (globalThis as unknown as Record<string, unknown>)._dotnetJsUrl;
+    vi.stubGlobal('_cddCsharpExports', null);
+    vi.stubGlobal('_cddCsharpInitPromise', null);
+
+    // Provide a mocked dotnet.js via dynamic import by setting cddCsharpDirUrl to a data URL
+    const mockDotnet =
+      "export const dotnet = { withDiagnosticTracing: () => ({ withResourceLoader: (loader) => { return { create: async () => ({ getConfig: () => ({ mainAssemblyName: 'test' }), getAssemblyExports: async () => ({ BrowserInterop: { GenerateFromOpenApi: () => '{}' } }) }) }; } }) };";
+    const dirUrl =
+      'data:text/javascript;base64,' + Buffer.from(mockDotnet).toString('base64') + '#';
+
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        payload: {
+          ecosystem: 'cdd-csharp',
+          target: 'to_sdk',
+          specContent: '{}',
+          cddCsharpDirUrl: dirUrl,
+        },
+        jobId: 'csharp-job',
+      },
+    });
+
+    const successCall = postMessageSpy.mock.calls.find(
+      (call) => call[0].status === 'success' && call[0].jobId === 'csharp-job',
+    );
+    expect(successCall).toBeDefined();
+  });
+
   it('should use custom _dotnetJsUrl if provided', async () => {
     (globalThis as unknown as Record<string, unknown>)._dotnetJsUrl = 'custom-dotnet.js';
     vi.stubGlobal('_cddCsharpExports', null);
