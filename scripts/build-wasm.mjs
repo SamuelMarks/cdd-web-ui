@@ -176,7 +176,8 @@ async function run() {
 
   for (const [lang, repo] of Object.entries(REPOS)) {
     const tool = repo.split('/')[1];
-    const wasmDest = path.join(DEST_DIR, `${tool}.wasm`);
+    let wasmDest = path.join(DEST_DIR, `${tool}.wasm`);
+    if (tool === 'cdd-ts') wasmDest = path.join(DEST_DIR, 'cdd-ts-javy.wasm');
     let supported = false;
 
     console.log(`Processing ${tool} (${lang})...`);
@@ -620,7 +621,7 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
             fs.unlinkSync(dlDest);
           }
         }
-        console.log(`  ✅ Successfully downloaded ${tool}.wasm`);
+        console.log(`  ✅ Successfully downloaded ${path.basename(wasmDest)}`);
         supported = true;
       } catch (e) {
         console.log(`  ❌ Failed to download from GitHub releases: ${e.message}`);

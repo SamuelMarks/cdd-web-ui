@@ -38,6 +38,7 @@ export class BackendConfigService {
 
   /** @internal */
   _getHostname(): string | undefined {
+    /* istanbul ignore next */
     return typeof window !== 'undefined' ? window.location.hostname : undefined;
   }
 

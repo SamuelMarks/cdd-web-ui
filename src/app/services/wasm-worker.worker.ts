@@ -189,8 +189,10 @@ export const handleMessage = async ({ data }: MessageEvent) => {
                   return name;
                 }
 
-                // baseUrl is now guaranteed to be an absolute URL from the main thread
-                return new URL(name, baseUrl).href;
+                // baseUrl is now guaranteed to be an absolute URL from the main thread,
+                // but we fall back to self.location.href just in case for tests.
+                const absoluteBaseUrl = new URL(baseUrl, self.location.href).href;
+                return new URL(name, absoluteBaseUrl).href;
               })
               .create();
 

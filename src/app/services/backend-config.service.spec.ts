@@ -14,6 +14,7 @@ describe('BackendConfigService', () => {
 
   afterEach(() => {
     localStorage.clear();
+    vi.unstubAllGlobals();
   });
 
   it('should be created in offline mode by default', () => {
@@ -72,5 +73,23 @@ describe('BackendConfigService', () => {
   it('should return hostname from window', () => {
     const s = new BackendConfigService();
     expect(s._getHostname()).toBe(window.location.hostname);
+  });
+
+  it('should set and load run mode', () => {
+    service.setRunMode('local_cdd_ctl_wasm');
+    expect(service.runMode()).toBe('local_cdd_ctl_wasm');
+    expect(localStorage.getItem('cdd_run_mode')).toBe('local_cdd_ctl_wasm');
+
+    const newService = new BackendConfigService();
+    expect(newService.runMode()).toBe('local_cdd_ctl_wasm');
+  });
+
+  it('should return local_relative if hostname is localhost', () => {
+    const spy = vi
+      .spyOn(BackendConfigService.prototype, '_getHostname')
+      .mockReturnValue('localhost');
+    const s = new BackendConfigService();
+    expect(s.runMode()).toBe('local_relative');
+    spy.mockRestore();
   });
 });

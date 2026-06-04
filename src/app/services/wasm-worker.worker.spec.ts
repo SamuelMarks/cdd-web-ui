@@ -359,7 +359,7 @@ describe('wasm-worker.worker.ts', () => {
     delete (globalThis as unknown as Record<string, unknown>)._cddCsharpInitPromise;
     delete (globalThis as unknown as Record<string, unknown>)._cddCsharpExports;
     const mockDotnet =
-      "export const dotnet = { withDiagnosticTracing: () => ({ withResourceLoader: (loader) => { loader('type', 'name', 'uri', 'integrity', 'behavior'); return { create: async () => ({ getConfig: () => ({ mainAssemblyName: 'test' }), getAssemblyExports: async () => ({ BrowserInterop: { GenerateFromOpenApi: () => '{}' } }) }) }; } }) };";
+      "export const dotnet = { withDiagnosticTracing: () => ({ withResourceLoader: (loader) => { loader('type', 'name'); loader('type', 'http://example.com/name'); return { create: async () => ({ getConfig: () => ({ mainAssemblyName: 'test' }), getAssemblyExports: async () => ({ BrowserInterop: { GenerateFromOpenApi: () => '{}' } }) }) }; } }) };";
     (globalThis as unknown as Record<string, unknown>)._dotnetJsUrl =
       'data:text/javascript;base64,' + Buffer.from(mockDotnet).toString('base64');
     await import('./wasm-worker.worker');
