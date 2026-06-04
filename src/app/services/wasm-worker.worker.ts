@@ -233,7 +233,7 @@ export const handleMessage = async ({ data }: MessageEvent) => {
         additionalArgs,
         cddJavaJsUrl: data.payload.cddJavaJsUrl,
         cddJavaWasmUrl: data.payload.cddJavaWasmUrl,
-      } as unknown as Parameters<typeof CddWasmSdk.fromOpenApi>[0]);
+      });
 
       console.info(`[Worker] Finished generating ${generatedFiles.length} files.`);
       postMessage({ status: 'success', jobId, data: generatedFiles });
