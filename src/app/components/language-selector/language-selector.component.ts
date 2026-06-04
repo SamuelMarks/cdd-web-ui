@@ -20,6 +20,7 @@ import { LanguageService } from '../../services/language.service';
 import { OfflineService } from '../../services/offline.service';
 import { Target, LanguageOptions } from '../../models/types';
 import { StorageService } from '../../services/storage.service';
+import { environment } from '../../../environments/environment';
 
 /**
  * Dropdown component to select the target programming language and its generation options.
@@ -40,75 +41,77 @@ import { StorageService } from '../../services/storage.service';
   template: `
     <div class="language-selector-container">
       <div class="language-selector-wrapper">
-        <mat-form-field
-          appearance="outline"
-          class="language-selector-field"
-          [class.has-error]="hasError()"
-          [matTooltip]="
-            hasError() ? errorMessage() || 'Failed to generate code for this language' : ''
-          "
-          subscriptSizing="dynamic"
-          [color]="hasError() ? 'warn' : 'primary'"
-        >
-          <mat-label [class.error-text]="hasError()" i18n>Language</mat-label>
-          <mat-select
-            [value]="selectedLanguageId()"
-            (selectionChange)="onSelectionChange($event.value)"
-            aria-label="Select Target Language"
-            i18n-aria-label="@@selectTargetLangAria"
+        @if (!environment.singleLanguageMode) {
+          <mat-form-field
+            appearance="outline"
+            class="language-selector-field"
+            [class.has-error]="hasError()"
+            [matTooltip]="
+              hasError() ? errorMessage() || 'Failed to generate code for this language' : ''
+            "
+            subscriptSizing="dynamic"
+            [color]="hasError() ? 'warn' : 'primary'"
           >
-            <mat-select-trigger>
-              <div class="language-option-trigger">
-                @if (selectedLanguage()?.iconUrl) {
-                  <img
-                    [ngSrc]="selectedLanguage()?.iconUrl!"
-                    width="20"
-                    height="20"
-                    alt=""
-                    class="language-icon"
-                  />
-                }
-                <span class="language-name" [class.error-text]="hasError()">{{
-                  selectedLanguage()?.name
-                }}</span>
-              </div>
-            </mat-select-trigger>
-            @for (lang of processedLanguages(); track lang.id) {
-              <mat-option [value]="lang.id" [disabled]="lang.isDisabled">
-                <div
-                  class="language-option"
-                  [matTooltip]="
-                    lang.isDisabled
-                      ? 'Languages shown as disabled are not available in the current offline-only environment. To enable generation for all supported languages, configure the application for &quot;Online Mode&quot; by following the backend setup instructions on our GitHub repository.'
-                      : ''
-                  "
-                >
-                  @if (lang.iconUrl) {
+            <mat-label [class.error-text]="hasError()" i18n>Language</mat-label>
+            <mat-select
+              [value]="selectedLanguageId()"
+              (selectionChange)="onSelectionChange($event.value)"
+              aria-label="Select Target Language"
+              i18n-aria-label="@@selectTargetLangAria"
+            >
+              <mat-select-trigger>
+                <div class="language-option-trigger">
+                  @if (selectedLanguage()?.iconUrl) {
                     <img
-                      [ngSrc]="lang.iconUrl"
+                      [ngSrc]="selectedLanguage()?.iconUrl!"
                       width="20"
                       height="20"
                       alt=""
                       class="language-icon"
                     />
                   }
-                  <span class="language-name">{{ lang.name }}</span>
-                  @if (lang.isDisabled) {
-                    <mat-icon class="disabled-indicator" aria-hidden="true">wifi_off</mat-icon>
-                  }
+                  <span class="language-name" [class.error-text]="hasError()">{{
+                    selectedLanguage()?.name
+                  }}</span>
                 </div>
-              </mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-        <mat-icon
-          class="offline-info-icon"
-          aria-hidden="true"
-          matTooltip="Languages shown as disabled are not available in the current offline-only environment. To enable generation for all supported languages, configure the application for 'Online Mode' by following the backend setup instructions on our GitHub repository."
-          i18n-matTooltip
-        >
-          help_outline
-        </mat-icon>
+              </mat-select-trigger>
+              @for (lang of processedLanguages(); track lang.id) {
+                <mat-option [value]="lang.id" [disabled]="lang.isDisabled">
+                  <div
+                    class="language-option"
+                    [matTooltip]="
+                      lang.isDisabled
+                        ? 'Languages shown as disabled are not available in the current offline-only environment. To enable generation for all supported languages, configure the application for &quot;Online Mode&quot; by following the backend setup instructions on our GitHub repository.'
+                        : ''
+                    "
+                  >
+                    @if (lang.iconUrl) {
+                      <img
+                        [ngSrc]="lang.iconUrl"
+                        width="20"
+                        height="20"
+                        alt=""
+                        class="language-icon"
+                      />
+                    }
+                    <span class="language-name">{{ lang.name }}</span>
+                    @if (lang.isDisabled) {
+                      <mat-icon class="disabled-indicator" aria-hidden="true">wifi_off</mat-icon>
+                    }
+                  </div>
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-icon
+            class="offline-info-icon"
+            aria-hidden="true"
+            matTooltip="Languages shown as disabled are not available in the current offline-only environment. To enable generation for all supported languages, configure the application for 'Online Mode' by following the backend setup instructions on our GitHub repository."
+            i18n-matTooltip
+          >
+            help_outline
+          </mat-icon>
+        }
       </div>
 
       <mat-form-field appearance="outline" class="target-selector-field" subscriptSizing="dynamic">
@@ -124,6 +127,9 @@ import { StorageService } from '../../services/storage.service';
           <mat-option value="to_server" i18n>Server</mat-option>
           @if (selectedLanguageId() === 'typescript') {
             <mat-option value="to_orm" i18n>ORM Entities</mat-option>
+          }
+          @if (environment.singleLanguageMode) {
+            <mat-option value="to_openapi_3_2_0" i18n>OpenAPI 3.2.0</mat-option>
           }
         </mat-select>
       </mat-form-field>
@@ -233,6 +239,9 @@ import { StorageService } from '../../services/storage.service';
 })
 /** LanguageSelectorComponent */
 export class LanguageSelectorComponent {
+  /** Environment configuration */
+  protected readonly environment = environment;
+
   /** The currently selected language ID. */
   selectedLanguageId = input.required<string>();
   /** The currently selected target. */

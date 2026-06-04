@@ -10,6 +10,8 @@ import { BackendConfigService } from './services/backend-config.service';
 import { ThemeService } from './services/theme.service';
 import { OnlineSettingsComponent } from './components/online-settings.component';
 import { WasmLoadDialogComponent } from './components/wasm-load-dialog/wasm-load-dialog.component';
+import { WasmLoaderService } from './services/wasm-loader.service';
+import { environment } from '../environments/environment';
 
 /**
  * The root application component containing the overall app layout shell (Header, Main Content, Footer).
@@ -50,7 +52,7 @@ import { WasmLoadDialogComponent } from './components/wasm-load-dialog/wasm-load
                 style="color: inherit; text-decoration: none;"
                 aria-label="Home"
                 i18n-aria-label="@@homeLinkAria"
-                >CDD (WASM) web UI</a
+                >{{ environment.appName }}</a
               >
             </h1>
             @if (config.isOnline()) {
@@ -141,9 +143,7 @@ import { WasmLoadDialogComponent } from './components/wasm-load-dialog/wasm-load
 
         <footer class="app-footer" role="contentinfo">
           <div class="footer-left">
-            <span i18n="@@footerCopyright"
-              >&copy; 2026 Compiler Driven Development (CDD) WASM web demo.</span
-            >
+            <span i18n="@@footerCopyright">{{ environment.footerText }}</span>
             <span class="footer-divider">|</span>
             <span class="footer-version">v{{ appVersion }}</span>
           </div>
@@ -180,6 +180,8 @@ import { WasmLoadDialogComponent } from './components/wasm-load-dialog/wasm-load
 })
 /** App */
 export class App implements OnInit {
+  /** The application environment config. */
+  protected readonly environment = environment;
   /** The application title. */
   title = 'cdd-web-ui';
   /** The current application version. */
@@ -191,24 +193,32 @@ export class App implements OnInit {
   readonly theme = inject(ThemeService);
   /** Material dialog service instance. */
   private readonly dialog = inject(MatDialog);
+  /** WASM loader service instance */
+  private readonly wasmLoader = inject(WasmLoaderService);
 
   /** Whether the application is ready to render its main UI. */
   readonly isReady = signal(false);
 
   /**
    * Initializes the application.
-   * Shows the WASM load dialog, and sets the app as ready when it closes successfully.
+   * Based on environment configuration, either eagerly loads WASM in the background
+   * or shows the WASM load confirmation dialog.
    */
   ngOnInit(): void {
-    // Show the dialog first, do not render main UI until it closes with success.
-    // This happens regardless of the environment (local or production) for replication purposes.
-    const dialogRef = this.dialog.open(WasmLoadDialogComponent, {
-      width: '400px',
-      disableClose: true,
-    });
-    dialogRef.afterClosed().subscribe(() => {
+    if (this.environment.eagerLoadWasm) {
+      // Eagerly preload WASM without prompting. Does not block the UI from rendering.
+      this.wasmLoader.preloadAllWasm().catch((e) => console.error('Eager WASM load failed:', e));
       this.isReady.set(true);
-    });
+    } else {
+      // Show the dialog first, do not render main UI until it closes with success.
+      const dialogRef = this.dialog.open(WasmLoadDialogComponent, {
+        width: '400px',
+        disableClose: true,
+      });
+      dialogRef.afterClosed().subscribe(() => {
+        this.isReady.set(true);
+      });
+    }
   }
 
   /**

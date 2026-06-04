@@ -1,4 +1,4 @@
-.PHONY: build_docker run_docker test_docker clean_docker build_production_docs docs
+.PHONY: build_docker run_docker test_docker clean_docker build_production_docs docs build_production_c_only deploy_c_only
 
 build_docker:
 	docker build -f alpine.Dockerfile -t cdd-web-alpine .
@@ -37,3 +37,12 @@ docs:
 	mkdir -p docs
 	ln -sfn ../documentation docs/html
 
+
+build_production_c_only:
+	npm ci
+	npm run build:c-only -- --base-href /cdd-web-ui-c-only/
+
+deploy_c_only: build_production_c_only
+	@echo "Deploying to offscale.github.io..."
+	d="/Users/samuel/repos/offscale.github.io/cdd-web-ui-c-only" && rm -rf "$$d"/* && cp -r dist/cdd-web-ui/browser/* "$$d/"
+	rm -rf "/Users/samuel/repos/offscale.github.io/cdd-web-ui-c-only/assets/wasm"

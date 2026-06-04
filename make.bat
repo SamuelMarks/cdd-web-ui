@@ -8,6 +8,8 @@ IF "%1"=="run_docker_prod" GOTO run_docker_prod
 IF "%1"=="test_docker_prod" GOTO test_docker_prod
 IF "%1"=="clean_docker_prod" GOTO clean_docker_prod
 IF "%1"=="build_production_docs" GOTO build_production_docs
+IF "%1"=="build_production_c_only" GOTO build_production_c_only
+IF "%1"=="deploy_c_only" GOTO deploy_c_only
 IF "%1"=="docs" GOTO docs
 GOTO :EOF
 
@@ -91,4 +93,19 @@ call npm run doc
 if not exist docs mkdir docs
 if exist docs\html rmdir /q /s docs\html
 mklink /J docs\html "%CD%\documentation"
+GOTO :EOF
+
+:build_production_c_only
+call npm ci
+call npm run build:c-only -- --base-href /cdd-web-ui-c-only/
+GOTO :EOF
+
+:deploy_c_only
+CALL make.bat build_production_c_only
+echo Deploying to offscale.github.io...
+set TARGET_DIR=..\offscale.github.io\cdd-web-ui-c-only
+if exist "%TARGET_DIR%" rmdir /s /q "%TARGET_DIR%"
+mkdir "%TARGET_DIR%"
+xcopy /E /I /Y dist\cdd-web-ui\browser "%TARGET_DIR%"
+if exist "%TARGET_DIR%\assets\wasm" rmdir /s /q "%TARGET_DIR%\assets\wasm"
 GOTO :EOF

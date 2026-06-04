@@ -23,7 +23,7 @@ export type Ecosystem =
 export type Target = 'to_sdk' | 'to_sdk_cli' | 'to_server' | 'to_openapi_3_2_0' | 'to_orm';
 
 /** The supported input formats for the API specification. */
-export type InputFormat = 'openapi_3_2_0' | 'openapi_older' | 'google_discovery';
+export type InputFormat = 'openapi_3_2_0' | 'openapi_older' | 'google_discovery' | 'c_source';
 
 /** The execution mode for WASM or Native runtimes. */
 export type RunMode =

@@ -9,6 +9,8 @@
     "build": "ng build",
     "build:prod": "ng build --configuration production",
     "build:dev": "ng build --configuration development",
+    "build:c-only": "ng build --configuration c-only",
+    "serve:c-only": "ng serve --configuration c-only",
     "watch": "ng build --watch --configuration development",
     "test": "vitest run",
     "e2e": "playwright test",

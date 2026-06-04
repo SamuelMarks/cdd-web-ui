@@ -74,7 +74,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                     [ngSrc]="
                       inputFormat() === 'google_discovery'
                         ? 'assets/icons/google.svg'
-                        : 'assets/icons/openapi.svg'
+                        : inputFormat() === 'c_source'
+                          ? 'assets/icons/c.svg'
+                          : 'assets/icons/openapi.svg'
                     "
                     width="20"
                     height="20"
@@ -90,6 +92,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                         <ng-container i18n="@@formatOpenApiOlder"
                           >Swagger / OpenAPI &lt; 3.2.0</ng-container
                         >
+                      }
+                      @case ('c_source') {
+                        <ng-container i18n="@@formatCSource">C Source Code</ng-container>
                       }
                       @default {
                         <ng-container i18n="@@formatOpenApi320">OpenAPI 3.2.0</ng-container>
@@ -132,6 +137,18 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                     class="format-icon"
                   />
                   <span class="format-name" i18n>Google Discovery</span>
+                </div>
+              </mat-option>
+              <mat-option value="c_source">
+                <div class="format-option">
+                  <img
+                    ngSrc="assets/icons/c.svg"
+                    width="20"
+                    height="20"
+                    alt=""
+                    class="format-icon"
+                  />
+                  <span class="format-name" i18n>C Source Code</span>
                 </div>
               </mat-option>
             </mat-select>

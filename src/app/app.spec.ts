@@ -6,6 +6,7 @@ import { vi } from 'vitest';
 import { App } from './app';
 import { BackendConfigService } from './services/backend-config.service';
 import { ThemeService } from './services/theme.service';
+import { WasmLoaderService } from './services/wasm-loader.service';
 
 describe('App', () => {
   let configSpy: {
@@ -14,6 +15,7 @@ describe('App', () => {
     runMode: import('@angular/core').WritableSignal<string>;
   };
   let themeSpy: { isDarkTheme: WritableSignal<boolean>; toggleTheme: ReturnType<typeof vi.fn> };
+  let wasmLoaderSpy: { preloadAllWasm: ReturnType<typeof vi.fn> };
   let isDarkThemeSignal: WritableSignal<boolean>;
 
   beforeEach(async () => {
@@ -29,12 +31,17 @@ describe('App', () => {
       toggleTheme: vi.fn(),
     };
 
+    wasmLoaderSpy = {
+      preloadAllWasm: vi.fn().mockResolvedValue(undefined),
+    };
+
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
         provideRouter([]),
         { provide: BackendConfigService, useValue: configSpy },
         { provide: ThemeService, useValue: themeSpy },
+        { provide: WasmLoaderService, useValue: wasmLoaderSpy },
       ],
     }).compileComponents();
   });
@@ -91,5 +98,38 @@ describe('App', () => {
     fixture.detectChanges();
     const button = fixture.nativeElement.querySelector('button.theme-toggle');
     expect(button.textContent || '').toContain('Switch to Dark Mode');
+  });
+
+  it('should handle eagerLoadWasm true and set isReady', async () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    app['environment'] = { ...app['environment'], eagerLoadWasm: true };
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    app.ngOnInit();
+    // Allow the unhandled promise catch block to clear
+    await Promise.resolve();
+
+    expect(wasmLoaderSpy.preloadAllWasm).toHaveBeenCalled();
+    expect(app.isReady()).toBe(true);
+    consoleSpy.mockRestore();
+  });
+
+  it('should log error if eagerLoadWasm fails', async () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    app['environment'] = { ...app['environment'], eagerLoadWasm: true };
+    wasmLoaderSpy.preloadAllWasm.mockRejectedValue(new Error('Preload failed'));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    app.ngOnInit();
+    // Allow the unhandled promise catch block to clear
+    await Promise.resolve();
+    await Promise.resolve(); // Extra tick for the promise catch chain
+
+    expect(wasmLoaderSpy.preloadAllWasm).toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledWith('Eager WASM load failed:', expect.any(Error));
+    expect(app.isReady()).toBe(true);
+    consoleSpy.mockRestore();
   });
 });

@@ -40,6 +40,69 @@
             "styles": ["src/styles.scss"]
           },
           "configurations": {
+            "c-only": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.c-only.ts"
+                }
+              ],
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "5MB",
+                  "maximumError": "10MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kB",
+                  "maximumError": "8kB"
+                }
+              ],
+              "outputHashing": "all",
+              "assets": [
+                {
+                  "glob": "favicon.svg",
+                  "input": "public",
+                  "output": ""
+                },
+                {
+                  "glob": "wasm-support.json",
+                  "input": "public/assets",
+                  "output": "assets"
+                },
+                {
+                  "glob": "c.svg",
+                  "input": "public/assets/icons",
+                  "output": "assets/icons"
+                },
+                {
+                  "glob": "google.svg",
+                  "input": "public/assets/icons",
+                  "output": "assets/icons"
+                },
+                {
+                  "glob": "openapi.svg",
+                  "input": "public/assets/icons",
+                  "output": "assets/icons"
+                },
+                {
+                  "glob": "cdd-c.wasm",
+                  "input": "public/assets/wasm",
+                  "output": "assets/wasm"
+                },
+                {
+                  "glob": "**/*",
+                  "input": "node_modules/monaco-editor/min/vs",
+                  "output": "assets/vs"
+                },
+                {
+                  "glob": "**/*",
+                  "input": "../cdd-docs-ui/dist",
+                  "output": "/docs-ui"
+                }
+              ]
+            },
             "production": {
               "budgets": [
                 {
@@ -77,6 +140,60 @@
               },
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "c-only-development": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.c-only.ts"
+                }
+              ],
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "outputHashing": "none",
+              "assets": [
+                {
+                  "glob": "favicon.svg",
+                  "input": "public",
+                  "output": ""
+                },
+                {
+                  "glob": "wasm-support.json",
+                  "input": "public/assets",
+                  "output": "assets"
+                },
+                {
+                  "glob": "c.svg",
+                  "input": "public/assets/icons",
+                  "output": "assets/icons"
+                },
+                {
+                  "glob": "google.svg",
+                  "input": "public/assets/icons",
+                  "output": "assets/icons"
+                },
+                {
+                  "glob": "openapi.svg",
+                  "input": "public/assets/icons",
+                  "output": "assets/icons"
+                },
+                {
+                  "glob": "cdd-c.wasm",
+                  "input": "public/assets/wasm",
+                  "output": "assets/wasm"
+                },
+                {
+                  "glob": "**/*",
+                  "input": "node_modules/monaco-editor/min/vs",
+                  "output": "assets/vs"
+                },
+                {
+                  "glob": "**/*",
+                  "input": "../cdd-docs-ui/dist",
+                  "output": "/docs-ui"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -84,6 +201,9 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "configurations": {
+            "c-only": {
+              "buildTarget": "cdd-web-ui:build:c-only-development"
+            },
             "production": {
               "buildTarget": "cdd-web-ui:build:production"
             },
