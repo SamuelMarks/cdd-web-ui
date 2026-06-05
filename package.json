@@ -14,7 +14,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "vitest run",
     "e2e": "playwright test",
-    "preinstall": "test -d ../cdd-ctl || git clone https://github.com/SamuelMarks/cdd-ctl ../cdd-ctl",
+    "preinstall": "bash scripts/setup-deps.sh",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

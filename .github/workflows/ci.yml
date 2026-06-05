@@ -9,31 +9,59 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout cdd-web-ui
+        uses: actions/checkout@v6
+        with:
+          path: cdd-web-ui
+
+      - name: Checkout cdd-ctl
+        uses: actions/checkout@v6
+        with:
+          repository: SamuelMarks/cdd-ctl
+          path: cdd-ctl
+
+      - name: Checkout cdd-docs-ui
+        uses: actions/checkout@v6
+        with:
+          repository: SamuelMarks/cdd-docs-ui
+          path: cdd-docs-ui
+
+      - name: Checkout cdd-openapi-test-harness
+        uses: actions/checkout@v6
+        with:
+          repository: SamuelMarks/cdd-openapi-test-harness
+          path: cdd-openapi-test-harness
+          submodules: recursive
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 'lts/*'
-          cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
+        working-directory: cdd-web-ui
 
       - name: Check Formatting
         run: npm run format:check
+        working-directory: cdd-web-ui
 
       - name: Lint Code
         run: npm run lint
+        working-directory: cdd-web-ui
 
       - name: Build
         run: npm run build
+        working-directory: cdd-web-ui
 
       - name: Run Tests with Coverage
         run: npm run test:coverage
+        working-directory: cdd-web-ui
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
+        working-directory: cdd-web-ui
 
       - name: Run E2E Tests
         run: npm run e2e
+        working-directory: cdd-web-ui
