@@ -30,7 +30,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm start',
+    command: process.env['CI'] ? 'npx --yes serve -s dist/cdd-web-ui/browser -p 4200' : 'npm start',
     url: 'http://localhost:4200',
     reuseExistingServer: !process.env['CI'],
     timeout: 300000,

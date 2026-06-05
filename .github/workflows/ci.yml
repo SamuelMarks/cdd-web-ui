@@ -51,15 +51,20 @@ jobs:
         run: npm run test:coverage
         working-directory: cdd-web-ui
 
-      - name: Install Playwright Browsers
-        run: npx --yes @playwright/test install chromium firefox
+      - name: Get Playwright Version
+        id: playwright-version
+        run: echo "PLAYWRIGHT_VERSION=$(node -e "console.log(require('./package.json').devDependencies['@playwright/test'].replace(/[\^~]/g, ''))")" >> $GITHUB_ENV
         working-directory: cdd-web-ui
-        env:
-          CI: true
-          DEBUG: pw:install
 
-      - name: Install Playwright OS Dependencies
-        run: npx --yes @playwright/test install-deps chromium firefox
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+
+      - name: Install Playwright Browsers and OS Dependencies
+        run: npx --yes @playwright/test install --with-deps chromium firefox
         working-directory: cdd-web-ui
         env:
           CI: true
