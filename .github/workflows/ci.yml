@@ -52,8 +52,11 @@ jobs:
         working-directory: cdd-web-ui
 
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium firefox
         working-directory: cdd-web-ui
+        env:
+          CI: true
+          DEBIAN_FRONTEND: noninteractive
 
       - name: Run E2E Tests
         run: npm run e2e
