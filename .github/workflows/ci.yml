@@ -14,24 +14,17 @@ jobs:
         with:
           path: cdd-web-ui
 
-      - name: Checkout cdd-ctl
+      - name: Checkout cdd-browser-sdk
         uses: actions/checkout@v6
         with:
-          repository: SamuelMarks/cdd-ctl
-          path: cdd-ctl
+          repository: SamuelMarks/cdd-browser-sdk
+          path: cdd-browser-sdk
 
       - name: Checkout cdd-docs-ui
         uses: actions/checkout@v6
         with:
           repository: SamuelMarks/cdd-docs-ui
           path: cdd-docs-ui
-
-      - name: Checkout cdd-openapi-test-harness
-        uses: actions/checkout@v6
-        with:
-          repository: SamuelMarks/cdd-openapi-test-harness
-          path: cdd-openapi-test-harness
-          submodules: recursive
 
       - name: Setup Node.js
         uses: actions/setup-node@v6

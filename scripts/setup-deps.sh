@@ -11,16 +11,10 @@ npm install
 npm run build
 cd ..
 
-echo "Building cdd-java-cli..."
-cd cdd-openapi-test-harness/cdd-java/package
-npm install || true # it has no dependencies but just in case
-npm run build
-cd ../../..
-
-echo "Building cdd-ctl-wasm-sdk..."
-cd cdd-ctl/cdd-ctl-wasm-sdk
+echo "Building cdd-browser-sdk..."
+cd cdd-browser-sdk
 npm install
 npm run build
-cd ../..
+cd ..
 
 echo "Dependencies setup complete."
