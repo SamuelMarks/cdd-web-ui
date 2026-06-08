@@ -44,11 +44,15 @@ describe('Reducers', () => {
         state,
         Actions.setLanguageOptions({
           languageId: 'typescript',
-          options: { tests: true, noGithubActions: true },
+          options: { tests: true, mcp: true, noGithubActions: true },
         }),
       );
       state = workspaceReducer(state, Actions.setSelectedLanguage({ languageId: 'rust' }));
-      expect(state.languageOptions['rust']).toEqual({ tests: true, noGithubActions: true });
+      expect(state.languageOptions['rust']).toEqual({
+        tests: true,
+        mcp: true,
+        noGithubActions: true,
+      });
     });
 
     it('should set target', () => {

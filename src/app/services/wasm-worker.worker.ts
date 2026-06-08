@@ -133,6 +133,9 @@ export const handleMessage = async ({ data }: MessageEvent) => {
         if (languageOptions.tests) {
           additionalArgs.push('--tests');
         }
+        if (languageOptions.mcp) {
+          additionalArgs.push('--mcp');
+        }
         if (languageOptions.noImports) {
           additionalArgs.push('--no-imports');
         }
@@ -150,6 +153,14 @@ export const handleMessage = async ({ data }: MessageEvent) => {
       }
 
       console.info(`[Worker] Starting WASM generation for ${ecosystem}...`);
+
+      let cliTarget = target || 'to_sdk';
+      if (target === 'to_mcp') {
+        cliTarget = 'to_sdk_cli';
+        if (!additionalArgs.includes('--mcp')) {
+          additionalArgs.push('--mcp');
+        }
+      }
 
       if (ecosystem === 'cdd-csharp') {
         type CsharpExports = {
@@ -205,7 +216,7 @@ export const handleMessage = async ({ data }: MessageEvent) => {
         const resultStr = csharpExports.BrowserInterop.GenerateFromOpenApi(
           finalSpecContent as string,
           'from_openapi',
-          target || 'to_sdk',
+          cliTarget,
         );
 
         const files = [];
@@ -226,7 +237,7 @@ export const handleMessage = async ({ data }: MessageEvent) => {
 
       const generatedFiles = await CddWasmSdk.fromOpenApi({
         ecosystem,
-        target: target || 'to_sdk',
+        target: cliTarget,
         specContent: finalSpecContent,
         wasmBinary,
         printStdout: true, // Let it print, we've intercepted console

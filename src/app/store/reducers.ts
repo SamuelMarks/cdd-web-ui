@@ -50,7 +50,7 @@ export const workspaceReducer = createReducer(
     const currentOptions = state.languageOptions[currentLanguageId] || {};
     const newOptions = { ...(state.languageOptions[languageId] || {}) };
 
-    const sharedKeys = ['tests', 'noGithubActions', 'noInstallablePackage'];
+    const sharedKeys = ['tests', 'mcp', 'noGithubActions', 'noInstallablePackage'];
     for (const key of sharedKeys) {
       if (currentOptions[key] !== undefined) {
         newOptions[key] = currentOptions[key];

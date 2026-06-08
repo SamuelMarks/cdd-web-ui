@@ -10,6 +10,7 @@ describe('LanguageService', () => {
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [LanguageService],

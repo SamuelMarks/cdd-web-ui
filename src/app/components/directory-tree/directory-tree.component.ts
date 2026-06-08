@@ -147,20 +147,17 @@ export class DirectoryTreeComponent {
    */
   constructor() {
     // Rebuild tree when files input changes
-    effect(
-      () => {
-        const currentFiles = this.files();
-        if (currentFiles.length > 0) {
-          const paths = currentFiles.map((f) => f.path);
-          // We capture existing expansion state if we wanted to be perfectly stateful across regenerations
-          // For simplicity and speed, rebuilding tree sets everything to expanded by default in the util
-          this.treeNodes.set(FileTreeUtil.buildTree(paths));
-        } else {
-          this.treeNodes.set([]);
-        }
-      },
-      { allowSignalWrites: true },
-    );
+    effect(() => {
+      const currentFiles = this.files();
+      if (currentFiles.length > 0) {
+        const paths = currentFiles.map((f) => f.path);
+        // We capture existing expansion state if we wanted to be perfectly stateful across regenerations
+        // For simplicity and speed, rebuilding tree sets everything to expanded by default in the util
+        this.treeNodes.set(FileTreeUtil.buildTree(paths));
+      } else {
+        this.treeNodes.set([]);
+      }
+    });
   }
 
   /**

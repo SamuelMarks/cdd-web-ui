@@ -73,7 +73,7 @@ describe('ApiDocsViewerComponent', () => {
 
   it('should map generated files to sdkExamples using selected language (including docs.json)', () => {
     store.overrideSelector(selectGeneratedFiles, [
-      { path: 'docs.json', content: new TextEncoder().encode('{endpoints: {}}') },
+      { path: 'docs.json', content: new TextEncoder().encode('{"endpoints": {}}') },
     ]);
     store.overrideSelector(selectSelectedLanguageId, 'cdd-go');
     store.refreshState();

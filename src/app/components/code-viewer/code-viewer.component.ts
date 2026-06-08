@@ -171,15 +171,12 @@ export class CodeViewerComponent {
    */
   constructor() {
     // Automatically open a tab if a new active file path is provided externally
-    effect(
-      () => {
-        const activePath = this.activeFilePath();
-        if (activePath) {
-          this.ensureTabIsOpen(activePath);
-        }
-      },
-      { allowSignalWrites: true },
-    );
+    effect(() => {
+      const activePath = this.activeFilePath();
+      if (activePath) {
+        this.ensureTabIsOpen(activePath);
+      }
+    });
 
     // Sync file content to the form control
     effect(() => {

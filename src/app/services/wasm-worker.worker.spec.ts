@@ -2,6 +2,54 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // We'll test the message handler by intercepting addEventListener
 describe('wasm-worker.worker.ts', () => {
+  it('should handle to_mcp target without adding --mcp if already present', async () => {
+    const { CddWasmSdk } = await import('cdd-ctl-wasm-sdk');
+    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValue([]);
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'mcp-job-2',
+        payload: {
+          ecosystem: 'cdd-ts',
+          specContent: '{}',
+          target: 'to_mcp',
+          languageOptions: {
+            mcp: true,
+          },
+        },
+      },
+    });
+    const mockCall = vi
+      .mocked(CddWasmSdk.fromOpenApi)
+      .mock.calls.find((c) => c[0].ecosystem === 'cdd-ts' && c[0].target === 'to_sdk_cli');
+    expect(mockCall).toBeDefined();
+    expect(mockCall![0].additionalArgs?.filter((a) => a === '--mcp').length).toBe(1);
+  });
+
+  it('should handle to_mcp target correctly by setting --mcp and to_sdk_cli', async () => {
+    const { CddWasmSdk } = await import('cdd-ctl-wasm-sdk');
+    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValue([]);
+    const { handleMessage } = await import('./wasm-worker.worker');
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'mcp-job',
+        payload: {
+          ecosystem: 'cdd-ts',
+          specContent: '{}',
+          target: 'to_mcp',
+          languageOptions: {},
+        },
+      },
+    });
+    const mockCall = vi
+      .mocked(CddWasmSdk.fromOpenApi)
+      .mock.calls.find((c) => c[0].ecosystem === 'cdd-ts' && c[0].target === 'to_sdk_cli');
+    expect(mockCall).toBeDefined();
+    expect(mockCall![0].additionalArgs).toContain('--mcp');
+  });
+
   let messageHandler: (...args: unknown[]) => unknown;
   let originalAddEventListener: unknown;
   // let originalPostMessage: any;
@@ -208,6 +256,7 @@ describe('wasm-worker.worker.ts', () => {
             noGithubActions: true,
             noInstallablePackage: true,
             tests: true,
+            mcp: true,
             noImports: true,
             noWrapping: true,
             upgradeOpenApi: true,
@@ -229,6 +278,7 @@ describe('wasm-worker.worker.ts', () => {
       expect(args).toContain('--no-github-actions');
       expect(args).toContain('--no-installable-package');
       expect(args).toContain('--tests');
+      expect(args).toContain('--mcp');
       expect(args).toContain('--no-imports');
       expect(args).toContain('--no-wrapping');
       expect(args).toContain('--upgrade-openapi-3.2.0');

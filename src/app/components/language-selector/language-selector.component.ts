@@ -124,6 +124,7 @@ import { environment } from '../../../environments/environment';
         >
           <mat-option value="to_sdk" i18n>Client SDK</mat-option>
           <mat-option value="to_sdk_cli" i18n>Client CLI</mat-option>
+          <mat-option value="to_mcp" i18n>MCP Server</mat-option>
           <mat-option value="to_server" i18n>Server</mat-option>
           @if (selectedLanguageId() === 'typescript') {
             <mat-option value="to_orm" i18n>ORM Entities</mat-option>
@@ -229,6 +230,15 @@ import { environment } from '../../../environments/environment';
             <span i18n>Tests</span>
           </mat-checkbox>
         }
+
+        @if (selectedLanguageId() && target() !== 'to_mcp') {
+          <mat-checkbox
+            [checked]="options().mcp || false"
+            (change)="onOptionsChange('mcp', $event.checked)"
+          >
+            <span i18n>MCP</span>
+          </mat-checkbox>
+        }
       </div>
     </div>
   `,
@@ -297,23 +307,20 @@ export class LanguageSelectorComponent {
     }
 
     /** effect */
-    effect(
-      () => {
-        const currentSelectionId = this.selectedLanguageId();
-        const langs = this.processedLanguages();
-        const currentLang = langs.find((l) => l.id === currentSelectionId);
+    effect(() => {
+      const currentSelectionId = this.selectedLanguageId();
+      const langs = this.processedLanguages();
+      const currentLang = langs.find((l) => l.id === currentSelectionId);
 
-        if (currentLang && currentLang.isDisabled) {
-          const fallbackLang = langs.find((l) => !l.isDisabled);
-          if (fallbackLang) {
-            setTimeout(() => {
-              this.onSelectionChange(fallbackLang.id);
-            }, 0);
-          }
+      if (currentLang && currentLang.isDisabled) {
+        const fallbackLang = langs.find((l) => !l.isDisabled);
+        if (fallbackLang) {
+          setTimeout(() => {
+            this.onSelectionChange(fallbackLang.id);
+          }, 0);
         }
-      },
-      { allowSignalWrites: true },
-    );
+      }
+    });
   }
 
   /**

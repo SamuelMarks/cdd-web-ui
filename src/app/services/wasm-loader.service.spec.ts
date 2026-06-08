@@ -15,6 +15,8 @@ describe('WasmLoaderService', () => {
   let mockDocument: Document;
 
   beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     mockDocument = {
       location: { hostname: 'localhost' },
     };

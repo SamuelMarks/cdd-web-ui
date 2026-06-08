@@ -20,7 +20,13 @@ export type Ecosystem =
   | 'cdd-sh';
 
 /** The target output format for the code generator. */
-export type Target = 'to_sdk' | 'to_sdk_cli' | 'to_server' | 'to_openapi_3_2_0' | 'to_orm';
+export type Target =
+  | 'to_sdk'
+  | 'to_sdk_cli'
+  | 'to_server'
+  | 'to_openapi_3_2_0'
+  | 'to_orm'
+  | 'to_mcp';
 
 /** The supported input formats for the API specification. */
 export type InputFormat = 'openapi_3_2_0' | 'openapi_older' | 'google_discovery' | 'c_source';
@@ -55,6 +61,8 @@ export interface LanguageOptions {
   noInstallablePackage?: boolean;
   /** Whether to create composable tests & mocks. */
   tests?: boolean;
+  /** Whether to generate Model Context Protocol (MCP) server. */
+  mcp?: boolean;
   /** Additional dynamic properties. */
   [key: string]: unknown;
 }

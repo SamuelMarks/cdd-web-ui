@@ -31,6 +31,8 @@ describe('WorkspaceEffects', () => {
   let notificationServiceMock: { error: import('vitest').Mock; success: import('vitest').Mock };
 
   beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     wasmWorkerServiceMock = {
       generateCode: vi.fn(),
     };
