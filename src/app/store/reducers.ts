@@ -315,6 +315,17 @@ export const fileTreeReducer = createReducer(
       activeFilePath: filePath,
     }),
   ),
+  /** on */
+  on(Actions.updateActiveFileContent, (state, { content }): FileTreeState => {
+    if (!state.activeFilePath) return state;
+    const updatedFiles = state.files.map((f) =>
+      f.path === state.activeFilePath ? { ...f, content: new TextEncoder().encode(content) } : f,
+    );
+    return {
+      ...state,
+      files: updatedFiles,
+    };
+  }),
 );
 
 /** Initial state for OpenAPI. */

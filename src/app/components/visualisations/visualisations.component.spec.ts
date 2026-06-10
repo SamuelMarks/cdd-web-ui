@@ -208,6 +208,18 @@ info:
     expect(component.hasData).toBe(false);
   });
 
+  it('should handle handleResize when svgContainer is missing', () => {
+    (component as unknown as TestComp).svgContainer = null;
+    (component as unknown as TestComp).handleResize();
+    expect(component.width).not.toBe(0);
+  });
+
+  it('should handle handleResize when hasData is false', () => {
+    component.hasData = false;
+    (component as unknown as TestComp).handleResize();
+    // returns early
+  });
+
   it('should handle handleResize when width or height is 0', () => {
     component.hasData = true;
     vi.spyOn(component.svgContainer.nativeElement, 'getBoundingClientRect').mockReturnValue({

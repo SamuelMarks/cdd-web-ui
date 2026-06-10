@@ -118,7 +118,6 @@ export class VisualisationsComponent implements OnDestroy {
     this.resizeObserver.disconnect();
   }
 
-  /* istanbul ignore next */
   /** doc */
   private handleResize() {
     if (!this.svgContainer || !this.hasData) return;
@@ -170,7 +169,7 @@ export class VisualisationsComponent implements OnDestroy {
           };
           const methods = parsed.paths![pathStr];
           Object.keys(methods).forEach((method) => {
-            /* istanbul ignore next */ if (method !== 'parameters' && method !== '$ref') {
+            if (method !== 'parameters' && method !== '$ref') {
               pathNode.children!.push({
                 id: `method-${pathStr}-${method}`,
                 name: method.toUpperCase(),
@@ -243,7 +242,7 @@ export class VisualisationsComponent implements OnDestroy {
     this.height = Math.max(cHeight - this.margin.top - this.margin.bottom, 600);
 
     this.zoomCallback = (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
-      /* istanbul ignore next */ if (this.svg) {
+      if (this.svg) {
         this.svg.attr('transform', event.transform as unknown as string);
       }
     };

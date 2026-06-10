@@ -59,7 +59,7 @@ export class OpenApiParser {
       errors.push('Missing "openapi" or "swagger" version field.');
     }
 
-    /* istanbul ignore next */ if (!spec['info'] || typeof spec['info'] !== 'object') {
+    if (!spec['info'] || typeof spec['info'] !== 'object') {
       errors.push('Missing or invalid "info" object.');
     } else {
       const info = spec['info'] as Record<string, unknown>;

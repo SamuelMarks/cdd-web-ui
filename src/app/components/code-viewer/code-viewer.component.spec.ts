@@ -330,4 +330,22 @@ describe('CodeViewerComponent', () => {
     expect(component.getFilename('c.ts')).toBe('c.ts');
     expect(component.getFilename('')).toBe(''); // empty string fallback
   });
+
+  it('should emit fileContentChange when contentControl changes', () => {
+    let emittedValue = '';
+    component.fileContentChange.subscribe((val) => {
+      emittedValue = val;
+    });
+    component.contentControl.setValue('new content');
+    expect(emittedValue).toBe('new content');
+  });
+
+  it('should emit empty string when contentControl changes to null', () => {
+    let emittedValue = 'initial';
+    component.fileContentChange.subscribe((val) => {
+      emittedValue = val;
+    });
+    component.contentControl.setValue(null);
+    expect(emittedValue).toBe('');
+  });
 });

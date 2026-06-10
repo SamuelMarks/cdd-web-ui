@@ -49,15 +49,13 @@ console.error = (...args) => {
 export const handleMessage = async ({ data }: MessageEvent) => {
   if (data && data.payload && data.payload.ecosystem === 'cdd-java') {
     let shouldLoadJava = false;
-    /* istanbul ignore next */
+
     if (typeof self !== 'undefined') {
-      /* istanbul ignore next */
       if (!(self as unknown as { GraalVM?: unknown }).GraalVM) {
         shouldLoadJava = true;
       }
     }
 
-    /* istanbul ignore else */
     if (shouldLoadJava) {
       try {
         const urlToFetch = data.payload.cddJavaJsUrl || './assets/wasm/cdd-java.js';
@@ -90,15 +88,13 @@ export const handleMessage = async ({ data }: MessageEvent) => {
 
       let finalSpecContent = specContent;
       let shouldParseYaml = false;
-      /* istanbul ignore next */
+
       if (typeof specContent === 'string') {
-        /* istanbul ignore next */
         if (!specContent.trim().startsWith('{')) {
           shouldParseYaml = true;
         }
       }
 
-      /* istanbul ignore else */
       if (shouldParseYaml) {
         try {
           const parsed = yaml.load(specContent);
@@ -171,12 +167,11 @@ export const handleMessage = async ({ data }: MessageEvent) => {
           _cddCsharpInitPromise?: Promise<void>;
         };
         let shouldInitCsharp = false;
-        /* istanbul ignore next */
+
         if (!globalRef._cddCsharpInitPromise) {
           shouldInitCsharp = true;
         }
 
-        /* istanbul ignore else */
         if (shouldInitCsharp) {
           globalRef._cddCsharpInitPromise = (async () => {
             console.info(`[Worker] Booting .NET browser-wasm runtime for cdd-csharp...`);
@@ -191,7 +186,6 @@ export const handleMessage = async ({ data }: MessageEvent) => {
             const { getAssemblyExports, getConfig } = await dotnet
               .withDiagnosticTracing(false)
               .withResourceLoader((_type: string, name: string) => {
-                /* istanbul ignore next */
                 const baseUrl = data.payload.cddCsharpDirUrl || './assets/wasm/cdd-csharp/';
 
                 if (name.startsWith('http://') || name.startsWith('https://')) {

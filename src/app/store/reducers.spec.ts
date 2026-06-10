@@ -262,3 +262,30 @@ describe('Reducers', () => {
     });
   });
 });
+
+describe('updateActiveFileContent action', () => {
+  it('should return state unchanged if activeFilePath is null', () => {
+    const state = { ...initialFileTreeState, activeFilePath: null };
+    const action = Actions.updateActiveFileContent({ content: 'test' });
+    const result = fileTreeReducer(state, action);
+    expect(result).toBe(state);
+  });
+
+  it('should update the file content if activeFilePath is set', () => {
+    const file = { path: 'test.ts', content: new TextEncoder().encode('old') };
+    const state = {
+      ...initialFileTreeState,
+      activeFilePath: 'test.ts',
+      files: [
+        file as unknown as GeneratedFile,
+        {
+          path: 'other.ts',
+          content: new TextEncoder().encode('other'),
+        } as unknown as GeneratedFile,
+      ],
+    };
+    const action = Actions.updateActiveFileContent({ content: 'new content' });
+    const result = fileTreeReducer(state, action);
+    expect(result.files[0].content).toEqual(new TextEncoder().encode('new content'));
+  });
+});

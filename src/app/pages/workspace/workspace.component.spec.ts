@@ -344,5 +344,13 @@ describe('WorkspaceComponent', () => {
       const mouseupEvent = new MouseEvent('mouseup');
       document.dispatchEvent(mouseupEvent);
     });
+
+    it('should update active file content on onActiveFileContentChange', () => {
+      const dispatchSpy = vi.spyOn(store, 'dispatch');
+      component.onActiveFileContentChange('new content');
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        Actions.updateActiveFileContent({ content: 'new content' }),
+      );
+    });
   });
 });

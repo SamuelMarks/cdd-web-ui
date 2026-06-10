@@ -242,7 +242,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           <app-code-viewer
             [activeFilePath]="activeFilePath()"
             [fileContent]="activeFileContent()"
+            [isReadOnly]="orientation() === 'openapi-left'"
             (fileSelected)="onFileSelected($event)"
+            (fileContentChange)="onActiveFileContentChange($event)"
           ></app-code-viewer>
         </div>
       </div>
@@ -403,6 +405,12 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   /** onFileSelected */
   onFileSelected(filePath: string): void {
     this.store.dispatch(Actions.selectFile({ filePath }));
+  }
+
+  /** Updates the active file content. */
+  onActiveFileContentChange(content: string): void {
+    // Dispatch action to update active file content
+    this.store.dispatch(Actions.updateActiveFileContent({ content }));
   }
 
   /** Handles the mouse down event on the Bottom Pane resizer bar. */

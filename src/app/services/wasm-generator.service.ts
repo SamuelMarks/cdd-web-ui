@@ -84,7 +84,7 @@ export class WasmGeneratorService {
 
     try {
       let wasmBinary: ArrayBuffer = new Uint8Array(0).buffer;
-      /* istanbul ignore next */
+
       if (lang.repo !== 'cdd-csharp') {
         wasmBinary = await this.wasmLoaderService.loadWasmBinary(lang.repo);
       }
@@ -185,7 +185,7 @@ export class WasmGeneratorService {
 
     try {
       let buffer: ArrayBuffer;
-      /* istanbul ignore next */
+
       if (lang.repo !== 'cdd-csharp') {
         buffer = await this.wasmLoaderService.loadWasmBinary(lang.repo);
       } else {

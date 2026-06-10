@@ -57,7 +57,7 @@ jobs:
         working-directory: cdd-web-ui
 
       - name: Cache Playwright Browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright

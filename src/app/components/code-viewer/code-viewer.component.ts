@@ -9,6 +9,7 @@ import {
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 import { MatButtonModule } from '@angular/material/button';
@@ -126,12 +127,17 @@ import { WINDOW } from '../../tokens';
 export class CodeViewerComponent {
   /** The path of the currently active file to view. */
   activeFilePath = input<string | null>(null);
+  /** Whether the code viewer is read-only. */
+  isReadOnly = input<boolean>(true);
 
   /** The content of the currently active file. */
   fileContent = input<string | null>(null);
 
   /** Emitted when the user selects a tab. */
   fileSelected = output<string>();
+
+  /** Emitted when the file content changes in the editor. */
+  fileContentChange = output<string>();
 
   /** Internal state keeping track of which tabs are currently open. */
   openTabs = signal<string[]>([]);
@@ -153,7 +159,7 @@ export class CodeViewerComponent {
     /** language */
     language: this.determineLanguage(this.activeFilePath() || ''),
     /** readOnly */
-    readOnly: true,
+    readOnly: this.isReadOnly(),
     /** automaticLayout */
     automaticLayout: true,
     /** minimap */
@@ -170,6 +176,9 @@ export class CodeViewerComponent {
    * Initializes the component, setting up effects to open tabs automatically.
    */
   constructor() {
+    this.contentControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      this.fileContentChange.emit(value || '');
+    });
     // Automatically open a tab if a new active file path is provided externally
     effect(() => {
       const activePath = this.activeFilePath();

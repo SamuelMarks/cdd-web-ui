@@ -52,6 +52,12 @@ export const setOpenApiValidationErrors = createAction(
 /** Selects a file. */
 export const selectFile = createAction('[FileTree] Select File', props<{ filePath: string }>());
 
+/** Updates the content of the currently active file. */
+export const updateActiveFileContent = createAction(
+  '[FileTree] Update Active File Content',
+  props<{ content: string }>(),
+);
+
 /** Sets the generated files in the tree. */
 /** Sets the generated files. */
 export const setGeneratedFiles = createAction(
