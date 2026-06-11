@@ -31,6 +31,18 @@ jobs:
         with:
           node-version: 'lts/*'
 
+      - name: Build cdd-browser-sdk
+        run: |
+          npm ci
+          npm run build
+        working-directory: cdd-browser-sdk
+
+      - name: Build cdd-docs-ui
+        run: |
+          npm ci
+          npm run build
+        working-directory: cdd-docs-ui
+
       - name: Install Dependencies
         run: npm ci
         working-directory: cdd-web-ui
