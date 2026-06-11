@@ -44,7 +44,7 @@ jobs:
         working-directory: cdd-docs-ui
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
         working-directory: cdd-web-ui
 
       - name: Check Formatting
