@@ -598,6 +598,11 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
     }
 
     if (!builtLocally) {
+      if (!forceRebuild && fs.existsSync(wasmDest)) {
+        console.log(`  ⏭️  Skipping download, ${path.basename(wasmDest)} already exists.`);
+        supportMap[lang] = true;
+        continue;
+      }
       try {
         // First try to resolve URL dynamically via API to get actual asset URL, then fallback to redirect url
         const url = await getGithubReleaseUrl(repo, tool);

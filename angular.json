@@ -34,7 +34,7 @@
               },
               {
                 "glob": "**/*",
-                "input": "../cdd-docs-ui/dist",
+                "input": "node_modules/cdd-docs-ui/dist",
                 "output": "/docs-ui"
               }
             ],
@@ -99,7 +99,7 @@
                 },
                 {
                   "glob": "**/*",
-                  "input": "../cdd-docs-ui/dist",
+                  "input": "node_modules/cdd-docs-ui/dist",
                   "output": "/docs-ui"
                 }
               ]
@@ -125,7 +125,7 @@
                   "input": "node_modules/monaco-editor/min/vs",
                   "output": "assets/vs"
                 },
-                { "glob": "**/*", "input": "../cdd-docs-ui/dist", "output": "/docs-ui" }
+                { "glob": "**/*", "input": "node_modules/cdd-docs-ui/dist", "output": "/docs-ui" }
               ]
             },
             "development": {
@@ -191,7 +191,7 @@
                 },
                 {
                   "glob": "**/*",
-                  "input": "../cdd-docs-ui/dist",
+                  "input": "node_modules/cdd-docs-ui/dist",
                   "output": "/docs-ui"
                 }
               ]
