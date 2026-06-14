@@ -18,12 +18,5 @@ export function bootstrap(sentryDsn = 'https://placeholder-dsn@o0.ingest.sentry.
   return bootstrapApplication(App, appConfig).catch((err) => console.error(err));
 }
 
-// @ts-expect-error Types for import.meta.env might not be fully configured in all environments
-const isTestEnv = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.MODE === 'test';
-
-// Only bootstrap if we are not in a test environment
-/* istanbul ignore if */
-if (!isTestEnv) {
-  /* istanbul ignore next */
-  void bootstrap();
-}
+// Bootstrap the application
+void bootstrap();
