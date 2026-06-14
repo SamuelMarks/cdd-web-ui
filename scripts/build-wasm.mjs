@@ -82,7 +82,6 @@ function downloadFile(url, dest) {
 function getReleaseFileName(tool) {
   if (tool === 'cdd-csharp') return 'cdd-csharp-wasm.zip';
   if (tool === 'cdd-ts') return 'cdd-ts-javy.wasm';
-  if (tool === 'cdd-rust') return 'cdd-cli.wasm';
   return `${tool}.wasm`;
 }
 
@@ -107,11 +106,7 @@ function getGithubReleaseUrl(repo, tool) {
                 }
               } else {
                 asset = json.assets?.find((a) =>
-                  tool === 'cdd-rust'
-                    ? a.name === 'cdd-cli.wasm'
-                    : tool === 'cdd-ts'
-                      ? a.name === 'cdd-ts-javy.wasm'
-                      : a.name === `${tool}.wasm`,
+                  tool === 'cdd-ts' ? a.name === 'cdd-ts-javy.wasm' : a.name === `${tool}.wasm`,
                 );
                 if (!asset) {
                   asset = json.assets?.find((a) => a.name === `${tool}-wasm.zip`);
