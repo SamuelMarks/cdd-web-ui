@@ -127,6 +127,43 @@ _All 13 of the above implementations successfully compile to WebAssembly and run
 
 _See `cdd_docs_prompt.md` and `TO_DOCS_JSON.md` in this repository for the system prompts used to unify documentation and CLI interfaces across the entire `cdd-_` ecosystem.\*
 
+## Platform Architecture
+
+The `cdd` ecosystem is powered by a distributed microservice architecture:
+
+| Repository | Role | Description |
+|---|---|---|
+| [`cdd-web-ui`](https://github.com/SamuelMarks/cdd-web-ui) | Frontend | The central control plane dashboard and UI for managing organizations, repositories, and releases. |
+| [`cdd-control-plane`](https://github.com/SamuelMarks/cdd-control-plane) | Backend API | Manages Database, Auth, RBAC, organizations, and secrets. |
+| [`cdd-engine`](https://github.com/SamuelMarks/cdd-engine) | Generator | Core code generation, WASI orchestration, and AST transformations. |
+| [`cdd-gateway`](https://github.com/SamuelMarks/cdd-gateway) | Ingress | API Gateway, reverse proxy, and routing. |
+| [`cdd-publisher`](https://github.com/SamuelMarks/cdd-publisher) | Worker | Background worker for secure SDK releases to package registries. |
+| [`cdd-storage`](https://github.com/SamuelMarks/cdd-storage) | Storage | High-performance blob storage for JSON schemas and SDK zip artifacts. |
+| [`cdd-docs-ui`](https://github.com/SamuelMarks/cdd-docs-ui) | Frontend | Dynamic API documentation viewer rendered for published endpoints. |
+
+
+## Supported Ecosystems
+
+`cdd-ctl` daemonizes and interfaces with the following language SDKs:
+
+| Repository | Language | Client; Client CLI; Server | Extra features | Standards | CI Status | Browser/WASI | WASM Notes |
+|---|---|---|---|---|---|---|---|
+| [`cdd-c`](https://github.com/SamuelMarks/cdd-c) | C (C89) | Client; Client CLI; Server | FFI | Swagger 2.0 & OpenAPI 3.2.0 | [![CI](https://github.com/SamuelMarks/cdd-c/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/cdd-c/actions/workflows/ci.yml) | ✅ Supported | 0.80MB - Executes via pure WASI |
+| [`cdd-cpp`](https://github.com/SamuelMarks/cdd-cpp) | C++ | Client; Client CLI; Server | Upgrades Swagger & Google Discovery to OpenAPI 3.2.0 | Google Discovery; Swagger 2.0 & OpenAPI 3.2.0 | [![CI](https://github.com/SamuelMarks/cdd-cpp/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/cdd-cpp/actions/workflows/ci.yml) | ✅ Supported | 4.40MB - Executes via pure WASI |
+| [`cdd-csharp`](https://github.com/SamuelMarks/cdd-csharp) | C# | Client; Client CLI; Server | CLR | Swagger 2.0 & OpenAPI 3.2.0 | [![CI](https://github.com/SamuelMarks/cdd-csharp/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/cdd-csharp/actions/workflows/ci.yml) | ✅ Supported | 5.44MB - Executes via pure WASI (Wasi.Sdk) |
+| [`cdd-go`](https://github.com/SamuelMarks/cdd-go) | Go | Client; Client CLI; Server | | Swagger 2.0 & OpenAPI 3.2.0 | [![CI](https://github.com/SamuelMarks/cdd-go/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/cdd-go/actions/workflows/ci.yml) | ✅ Supported | 14.14MB - Executes via pure WASI |
+| [`cdd-java`](https://github.com/SamuelMarks/cdd-java) | Java | Client; Client CLI; Server | | Swagger 2.0 & OpenAPI 3.2.0 | [![CI](https://github.com/SamuelMarks/cdd-java/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/cdd-java/actions/workflows/ci.yml) | ✅ Supported | 21.39MB - Executes via pure WASI (GraalVM native-image) |
+| [`cdd-kotlin`](https://github.com/offscale/cdd-kotlin) | Kotlin (ktor for Multiplatform) | Client; Client CLI; Server | Auto-Admin UI | Swagger 2.0 & OpenAPI 3.2.0 | [![CI](https://github.com/offscale/cdd-kotlin/actions/workflows/ci.yml/badge.svg)](https://github.com/offscale/cdd-kotlin/actions/workflows/ci.yml) | ✅ Supported | 0.45MB - Executes via pure WASI |
+| [`cdd-php`](https://github.com/SamuelMarks/cdd-php) | PHP | Client; Client CLI; Server | | Swagger 2.0 & OpenAPI 3.2.0 | [![CI](https://github.com/SamuelMarks/cdd-php/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/cdd-php/actions/workflows/ci.yml) | ✅ Supported | 24.79MB - Executes via pure WASI |
+| [`cdd-python-all`](https://github.com/offscale/cdd-python-all) | Python | Client; Client CLI; Server |  | Swagger 2.0 & OpenAPI 3.2.0 | [![CI](https://github.com/offscale/cdd-python-all/actions/workflows/ci.yml/badge.svg)](https://github.com/offscale/cdd-python-all/actions/workflows/ci.yml) | ✅ Supported | 48.11MB - Executes via WASI (py2wasm) |
+| [`cdd-ruby`](https://github.com/SamuelMarks/cdd-ruby) | Ruby | Client; Client CLI; Server |  | Swagger 2.0 & OpenAPI 3.2.0 | [![CI](https://github.com/SamuelMarks/cdd-ruby/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/cdd-ruby/actions/workflows/ci.yml) | ✅ Supported | 51.21MB - Executes via WASI (rbwasm) |
+| [`cdd-rust`](https://github.com/offscale/cdd-rust) | Rust | Client; Client CLI; Server |  | Swagger 2.0 & OpenAPI 3.2.0 | [![CI](https://github.com/offscale/cdd-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/offscale/cdd-rust/actions/workflows/ci.yml) | ✅ Supported | 4.72MB - Executes via pure WASI |
+| [`cdd-sh`](https://github.com/SamuelMarks/cdd-sh) | Shell (/bin/sh) | Client; Client CLI; Server |  | Swagger 2.0 & OpenAPI 3.2.0 | [![CI](https://github.com/SamuelMarks/cdd-sh/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/cdd-sh/actions/workflows/ci.yml) | ✅ Supported | 10.48MB - Executes via pure WASI |
+| [`cdd-swift`](https://github.com/SamuelMarks/cdd-swift) | Swift | Client; Client CLI; Server |  | Swagger 2.0 & OpenAPI 3.2.0 | [![CI](https://github.com/SamuelMarks/cdd-swift/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelMarks/cdd-swift/actions/workflows/ci.yml) | ✅ Supported | 94.83MB - Executes via pure WASI |
+| [`cdd-ts`](https://github.com/offscale/cdd-ts) | TypeScript | Client; Client CLI; Server | Auto-Admin UI; Angular; React; Vue; fetch; Axios; Node.js | Swagger 2.0 & OpenAPI 3.2.0 | [![Tests and coverage](https://github.com/offscale/cdd-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/offscale/cdd-ts/actions/workflows/ci.yml) | ✅ Supported | 14.68MB - Executes via WASI (Node.js polyfilled) |
+
+*Note: See `cdd_docs_prompt.md` and `TO_DOCS_JSON.md` in this repository for the system prompts used to unify documentation and CLI interfaces across the entire `cdd-*` ecosystem.*
+
 ---
 
 ## License
