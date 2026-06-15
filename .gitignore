@@ -173,3 +173,18 @@ tool-outputs/
 /test_*.mjs
 /test_*.ts
 dist/cdd-web-ui/browser/
+
+# ---------------------------------------------------
+# CDD Ecosystem & Careless Add Overrides
+# ---------------------------------------------------
+# Temporary planning and scratch files
+*PLAN*.md
+scratch*
+*.tmp
+
+# Common build and runtime artifacts
+build/
+target/
+node_modules/
+dist/
+.env
