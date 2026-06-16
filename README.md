@@ -11,7 +11,7 @@ cdd-web-ui
 
 Compiler Driven Development is a methodology of rapid application development that focuses on producing _more_ code, not less. Rather than relying on a general-purpose language, DSL, or "generated DO NOT TOUCH" directories, CDD generates idiomatic native code (e.g., Python `class`es, SQL `CREATE TABLE`s, Rust `struct`s) directly into your workspace.
 
-This repository coordinates all known CDD implementations (`cdd-python`, `cdd-rust`, `cdd-typescript`, etc.) into a cohesive, offline-first web interface powered by WebAssembly (WASM).
+This repository coordinates all known CDD implementations (`cdd-c`, `cdd-rust`, `cdd-ts`, etc.) into a cohesive, offline-first web interface powered by WebAssembly (WASM).
 
 ## Features
 

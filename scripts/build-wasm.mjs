@@ -13,7 +13,6 @@ const forceRebuild =
   process.env.FORCE_REBUILD_WASM === 'true' ||
   process.env.FORCE_REBUILD_WASM === '1';
 
-
 if (!fs.existsSync(DEST_DIR)) {
   fs.mkdirSync(DEST_DIR, { recursive: true });
 }
@@ -160,7 +159,13 @@ async function run() {
       }
 
       const hashFile = path.join(DEST_DIR, `${tool}.wasm.hash`);
-      if (!forceRebuild && currentHash && fs.existsSync(hashFile) && fs.existsSync(wasmDest)) {
+      if (
+        !forceRebuild &&
+        currentHash &&
+        fs.existsSync(hashFile) &&
+        fs.existsSync(wasmDest) &&
+        fs.statSync(wasmDest).size > 0
+      ) {
         const savedHash = fs.readFileSync(hashFile, 'utf-8').trim();
         if (savedHash === currentHash) {
           console.log(`  ⏭️  Skipping local build, git hash hasn't changed.`);
@@ -468,7 +473,7 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
               cwd: localToolDir,
               stdio: 'inherit',
             });
-            if (fs.existsSync(wasmDest)) {
+            if (fs.existsSync(wasmDest) && fs.statSync(wasmDest).size > 0) {
               success = true;
             }
           } else if (fs.existsSync(packageJsonPath)) {
@@ -488,14 +493,14 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
             fs.existsSync(path.join(localToolDir, 'setup.py'))
           ) {
             console.log(`  Zipping Python project...`);
-            if (fs.existsSync(wasmDest)) {
+            if (fs.existsSync(wasmDest) && fs.statSync(wasmDest).size > 0) {
               fs.unlinkSync(wasmDest);
             }
             const sourceFiles = fs.existsSync(pyProjectPath)
               ? 'src pyproject.toml'
               : 'cdd setup.py';
             execSync(`zip -r ${wasmDest} ${sourceFiles}`, { cwd: localToolDir, stdio: 'inherit' });
-            if (fs.existsSync(wasmDest)) {
+            if (fs.existsSync(wasmDest) && fs.statSync(wasmDest).size > 0) {
               success = true;
             }
           } else if (fs.existsSync(makefilePath) || fs.existsSync(cmakePath)) {
@@ -558,7 +563,7 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
     }
 
     if (!builtLocally) {
-      if (!forceRebuild && fs.existsSync(wasmDest)) {
+      if (!forceRebuild && fs.existsSync(wasmDest) && fs.statSync(wasmDest).size > 0) {
         console.log(`  ⏭️  Skipping download, ${path.basename(wasmDest)} already exists.`);
         supportMap[lang] = true;
         continue;
@@ -582,7 +587,12 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
                 dlDest,
             );
           } else {
-            execSync('unzip -p ' + dlDest + ' > ' + wasmDest);
+            try {
+              execSync('unzip -p ' + dlDest + ' > ' + wasmDest);
+            } catch (e) {
+              if (fs.existsSync(wasmDest)) fs.unlinkSync(wasmDest);
+              throw e;
+            }
             fs.unlinkSync(dlDest);
           }
         }
@@ -605,7 +615,12 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
                 `rm -rf ${DEST_DIR}/cdd-csharp && unzip -q ${fallbackDlDest} -d ${DEST_DIR} && rm ${fallbackDlDest}`,
               );
             } else {
-              execSync(`unzip -p ${fallbackDlDest} > ${wasmDest} && rm ${fallbackDlDest}`);
+              try {
+                execSync(`unzip -p ${fallbackDlDest} > ${wasmDest} && rm ${fallbackDlDest}`);
+              } catch (e) {
+                if (fs.existsSync(wasmDest)) fs.unlinkSync(wasmDest);
+                throw e;
+              }
             }
           }
           console.log(`  ✅ Successfully downloaded ${fallbackFilename} (v0.0.1 fallback)`);
@@ -621,7 +636,12 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
                   `rm -rf ${DEST_DIR}/cdd-csharp && unzip -q ${fallbackDlDest} -d ${DEST_DIR} && rm ${fallbackDlDest}`,
                 );
               } else {
-                execSync(`unzip -p ${fallbackDlDest} > ${wasmDest} && rm ${fallbackDlDest}`);
+                try {
+                  execSync(`unzip -p ${fallbackDlDest} > ${wasmDest} && rm ${fallbackDlDest}`);
+                } catch (e) {
+                  if (fs.existsSync(wasmDest)) fs.unlinkSync(wasmDest);
+                  throw e;
+                }
               }
             }
             console.log(`  ✅ Successfully downloaded ${fallbackFilename} (0.0.1 fallback)`);
@@ -637,7 +657,12 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
                   `rm -rf ${DEST_DIR}/cdd-csharp && unzip -q ${dlDest} -d ${DEST_DIR} && rm ${dlDest}`,
                 );
               } else {
-                execSync(`unzip -p ${dlDest} > ${wasmDest} && rm ${dlDest}`);
+                try {
+                  execSync(`unzip -p ${dlDest} > ${wasmDest} && rm ${dlDest}`);
+                } catch (e) {
+                  if (fs.existsSync(wasmDest)) fs.unlinkSync(wasmDest);
+                  throw e;
+                }
               }
               console.log(`  ✅ Successfully downloaded ${tool}-wasm.zip (v0.0.1 zip fallback)`);
               supported = true;
