@@ -2,9 +2,9 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Pull cdd-ctl which manages the generators and SDKs
+# Pull sibling dependencies
 RUN apk add --no-cache git
-RUN git clone https://github.com/SamuelMarks/cdd-ctl ../cdd-ctl
+RUN git clone https://github.com/SamuelMarks/cdd-browser-sdk ../cdd-browser-sdk && git clone https://github.com/SamuelMarks/cdd-docs-ui ../cdd-docs-ui
 
 COPY package*.json ./
 RUN npm ci

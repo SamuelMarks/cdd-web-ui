@@ -8,8 +8,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 RUN rustup target add wasm32-wasi
 
-# Pull cdd-ctl which manages the generators and SDKs
-RUN git clone https://github.com/SamuelMarks/cdd-ctl ../cdd-ctl
+# Pull sibling dependencies
+RUN git clone https://github.com/SamuelMarks/cdd-browser-sdk ../cdd-browser-sdk && git clone https://github.com/SamuelMarks/cdd-docs-ui ../cdd-docs-ui
 
 COPY package*.json ./
 RUN npm ci

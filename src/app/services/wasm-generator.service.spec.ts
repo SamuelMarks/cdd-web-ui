@@ -7,7 +7,7 @@ import { Repository } from '../models/types';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { LanguageService } from './language.service';
 import { vi } from 'vitest';
-import { CddWasmSdk } from 'cdd-ctl-wasm-sdk';
+import { CddWasmSdk } from 'cdd-browser-sdk';
 import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
 
@@ -17,7 +17,7 @@ describe('WasmGeneratorService', () => {
 
   beforeEach(() => {
     vi.spyOn(CddWasmSdk, 'fromOpenApi').mockImplementation(
-      (opts: import('cdd-ctl-wasm-sdk').GenerateOptions) => {
+      (opts: import('cdd-browser-sdk').GenerateOptions) => {
         if (opts.ecosystem === 'cdd-go' || (opts.ecosystem as string) === 'go')
           return Promise.resolve([]);
         if (opts.ecosystem === 'cdd-python-all' && opts.specContent === 'success-spec') {

@@ -32,19 +32,20 @@ export interface AuthState {
  * Service to manage authentication, tokens, and user profiles.
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
   /** The router used for navigation after logout. */
   private readonly router = inject(Router);
+  /** The document used to manipulate the URL location. */
   private readonly document = inject(DOCUMENT);
-  
+
   // State
   /** The internal authentication state. */
   private readonly state = signal<AuthState>({
     token: localStorage.getItem('cdd_auth_token'),
     profile: null,
-    isAuthenticated: !!localStorage.getItem('cdd_auth_token')
+    isAuthenticated: !!localStorage.getItem('cdd_auth_token'),
   });
 
   // Selectors
@@ -72,10 +73,10 @@ export class AuthService {
    */
   setToken(token: string): void {
     localStorage.setItem('cdd_auth_token', token);
-    this.state.update(state => ({
+    this.state.update((state) => ({
       ...state,
       token,
-      isAuthenticated: true
+      isAuthenticated: true,
     }));
     this.loadProfile();
   }
@@ -88,7 +89,7 @@ export class AuthService {
     this.state.set({
       token: null,
       profile: null,
-      isAuthenticated: false
+      isAuthenticated: false,
     });
     void this.router.navigate(['/login']);
   }
@@ -112,14 +113,14 @@ export class AuthService {
     // using the token in the Authorization header.
     // Assuming token is valid, we set a mock profile.
     setTimeout(() => {
-      this.state.update(state => ({
+      this.state.update((state) => ({
         ...state,
         profile: {
           id: 'user-123',
           email: 'user@example.com',
           name: 'Demo User',
-          avatarUrl: 'https://github.com/identicons/demo.png'
-        }
+          avatarUrl: 'https://github.com/identicons/demo.png',
+        },
       }));
     }, 500);
   }

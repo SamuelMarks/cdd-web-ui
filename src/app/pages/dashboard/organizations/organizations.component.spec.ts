@@ -8,10 +8,9 @@ describe('OrganizationsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [OrganizationsComponent, ReactiveFormsModule]
-    })
-    .compileComponents();
-    
+      imports: [OrganizationsComponent, ReactiveFormsModule],
+    }).compileComponents();
+
     fixture = TestBed.createComponent(OrganizationsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -25,7 +24,7 @@ describe('OrganizationsComponent', () => {
     expect(component.showCreateForm()).toBe(false);
     component.toggleCreateForm();
     expect(component.showCreateForm()).toBe(true);
-    
+
     component.createOrgForm.controls.name.setValue('test');
     component.toggleCreateForm();
     expect(component.showCreateForm()).toBe(false);
@@ -35,9 +34,9 @@ describe('OrganizationsComponent', () => {
   it('should create organization when form is valid', () => {
     const initialCount = component.organizations().length;
     component.createOrgForm.controls.name.setValue('New Org');
-    
+
     component.onCreateOrg();
-    
+
     expect(component.organizations().length).toBe(initialCount + 1);
     expect(component.organizations()[initialCount].name).toBe('New Org');
   });
@@ -55,9 +54,9 @@ describe('OrganizationsComponent', () => {
   it('should not create organization when form is invalid', () => {
     const initialCount = component.organizations().length;
     component.createOrgForm.controls.name.setValue('');
-    
+
     component.onCreateOrg();
-    
+
     expect(component.organizations().length).toBe(initialCount);
   });
 
@@ -76,9 +75,9 @@ describe('OrganizationsComponent', () => {
     // valid form submit
     component.inviteForm.controls.email.setValue('test@test.com');
     component.inviteForm.controls.role.setValue('Admin');
-    
+
     component.onInvite();
-    
+
     expect(component.organizations()[0].members).toBe(initialMembers + 1);
     expect(component.selectedOrgForInvite()).toBeNull();
   });

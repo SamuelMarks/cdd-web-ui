@@ -6,15 +6,15 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let mockRouter: any;
-  let mockDocument: any;
+  let mockRouter: { navigate: ReturnType<typeof vi.fn> };
+  let mockDocument: { location: { href: string } };
 
   beforeEach(() => {
     mockRouter = {
-      navigate: vi.fn()
+      navigate: vi.fn(),
     };
     mockDocument = {
-      location: { href: '' }
+      location: { href: '' },
     };
 
     localStorage.clear();
@@ -23,8 +23,8 @@ describe('AuthService', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: Router, useValue: mockRouter },
-        { provide: DOCUMENT, useValue: mockDocument }
-      ]
+        { provide: DOCUMENT, useValue: mockDocument },
+      ],
     });
   });
 
@@ -36,7 +36,7 @@ describe('AuthService', () => {
 
   it('should be created and have initial state when no token exists', () => {
     service = TestBed.inject(AuthService);
-    
+
     expect(service).toBeTruthy();
     expect(service.token()).toBeNull();
     expect(service.profile()).toBeNull();
@@ -56,7 +56,7 @@ describe('AuthService', () => {
       id: 'user-123',
       email: 'user@example.com',
       name: 'Demo User',
-      avatarUrl: 'https://github.com/identicons/demo.png'
+      avatarUrl: 'https://github.com/identicons/demo.png',
     });
   });
 
@@ -76,7 +76,7 @@ describe('AuthService', () => {
   it('should logout, clear session and navigate to /login', () => {
     localStorage.setItem('cdd_auth_token', 'some-token');
     service = TestBed.inject(AuthService);
-    
+
     service.logout();
 
     expect(localStorage.getItem('cdd_auth_token')).toBeNull();
@@ -88,7 +88,7 @@ describe('AuthService', () => {
 
   it('should initiate OAuth login flow for github', () => {
     service = TestBed.inject(AuthService);
-    
+
     service.loginWithProvider('github');
 
     expect(mockDocument.location.href).toBe('http://localhost:3000/auth/github');
@@ -96,7 +96,7 @@ describe('AuthService', () => {
 
   it('should initiate OAuth login flow for google', () => {
     service = TestBed.inject(AuthService);
-    
+
     service.loginWithProvider('google');
 
     expect(mockDocument.location.href).toBe('http://localhost:3000/auth/google');

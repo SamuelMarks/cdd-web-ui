@@ -8,7 +8,7 @@ import {
   platformBrowserDynamicTesting,
 } from '@angular/platform-browser-dynamic/testing';
 
-import { CddWasmSdk, GenerateOptions } from 'cdd-ctl-wasm-sdk';
+import { CddWasmSdk, GenerateOptions } from 'cdd-browser-sdk';
 
 CddWasmSdk.fromOpenApi = (options: GenerateOptions) => {
   const ecosystem = options.ecosystem as string;

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // We'll test the message handler by intercepting addEventListener
 describe('wasm-worker.worker.ts', () => {
   it('should handle to_mcp target without adding --mcp if already present', async () => {
-    const { CddWasmSdk } = await import('cdd-ctl-wasm-sdk');
+    const { CddWasmSdk } = await import('cdd-browser-sdk');
     vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValue([]);
     const { handleMessage } = await import('./wasm-worker.worker');
     await handleMessage({
@@ -28,7 +28,7 @@ describe('wasm-worker.worker.ts', () => {
   });
 
   it('should handle to_mcp target correctly by setting --mcp and to_sdk_cli', async () => {
-    const { CddWasmSdk } = await import('cdd-ctl-wasm-sdk');
+    const { CddWasmSdk } = await import('cdd-browser-sdk');
     vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValue([]);
     const { handleMessage } = await import('./wasm-worker.worker');
     await handleMessage({
@@ -194,7 +194,7 @@ describe('wasm-worker.worker.ts', () => {
   });
 
   it('should handle string parsed from YAML', async () => {
-    const { CddWasmSdk } = await import('cdd-ctl-wasm-sdk');
+    const { CddWasmSdk } = await import('cdd-browser-sdk');
     vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValue([]);
     const { handleMessage } = await import('./wasm-worker.worker');
     await handleMessage({
@@ -213,7 +213,7 @@ describe('wasm-worker.worker.ts', () => {
 
   it('should parse YAML spec correctly', async () => {
     await import('./wasm-worker.worker');
-    const { CddWasmSdk } = await import('cdd-ctl-wasm-sdk');
+    const { CddWasmSdk } = await import('cdd-browser-sdk');
     vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValue([
       { path: 'test.ts', content: new Uint8Array() },
     ]);
@@ -237,7 +237,7 @@ describe('wasm-worker.worker.ts', () => {
 
   it('should pass correct languageOptions to CddWasmSdk', async () => {
     await import('./wasm-worker.worker');
-    const { CddWasmSdk } = await import('cdd-ctl-wasm-sdk');
+    const { CddWasmSdk } = await import('cdd-browser-sdk');
     vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValue([]);
     const { handleMessage } = await import('./wasm-worker.worker');
     await handleMessage({

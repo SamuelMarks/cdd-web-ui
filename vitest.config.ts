@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [angular()],
   resolve: {},
   optimizeDeps: {
-    exclude: ['cdd-ctl-wasm-sdk'],
+    exclude: ['cdd-browser-sdk'],
   },
   test: {
     watch: false,
@@ -15,7 +15,7 @@ export default defineConfig({
     include: ['src/**/*.spec.ts'],
     server: {
       deps: {
-        inline: [/cdd-ctl-wasm-sdk/, /@bjorn3\/browser_wasi_shim/, /@angular\/compiler/],
+        inline: [/cdd-browser-sdk/, /@bjorn3\/browser_wasi_shim/, /@angular\/compiler/],
       },
     },
     coverage: {

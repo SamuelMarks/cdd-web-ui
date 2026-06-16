@@ -1,26 +1,26 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, RouterStateSnapshot, ActivatedRouteSnapshot } from '@angular/router';
+import { Router, RouterStateSnapshot, ActivatedRouteSnapshot, UrlTree } from '@angular/router';
 import { authGuard } from './auth.guard';
 import { AuthService } from '../services/auth.service';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 describe('authGuard', () => {
-  let mockAuthService: any;
-  let mockRouter: any;
+  let mockAuthService: { isAuthenticated: ReturnType<typeof vi.fn> };
+  let mockRouter: { createUrlTree: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     mockAuthService = {
-      isAuthenticated: vi.fn()
+      isAuthenticated: vi.fn(),
     };
     mockRouter = {
-      createUrlTree: vi.fn()
+      createUrlTree: vi.fn(),
     };
 
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: mockAuthService },
-        { provide: Router, useValue: mockRouter }
-      ]
+        { provide: Router, useValue: mockRouter },
+      ],
     });
   });
 
@@ -37,7 +37,7 @@ describe('authGuard', () => {
 
   it('should return UrlTree to /login if not authenticated', () => {
     mockAuthService.isAuthenticated.mockReturnValue(false);
-    const mockUrlTree = {} as any;
+    const mockUrlTree = {} as UrlTree;
     mockRouter.createUrlTree.mockReturnValue(mockUrlTree);
 
     const route = {} as ActivatedRouteSnapshot;
@@ -47,7 +47,7 @@ describe('authGuard', () => {
 
     expect(result).toBe(mockUrlTree);
     expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/login'], {
-      queryParams: { returnUrl: '/protected' }
+      queryParams: { returnUrl: '/protected' },
     });
   });
 });

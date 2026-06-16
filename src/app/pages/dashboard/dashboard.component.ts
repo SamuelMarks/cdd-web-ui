@@ -2,6 +2,9 @@ import { Component, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
+/**
+ * Component for rendering the main dashboard layout, including the sidebar and top navigation.
+ */
 @Component({
   selector: 'app-dashboard',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
@@ -12,7 +15,7 @@ import { AuthService } from '../../services/auth.service';
         <div class="sidebar-header">
           <h2>CDD Control</h2>
         </div>
-        
+
         <nav class="sidebar-nav">
           <a routerLink="/dashboard/organizations" routerLinkActive="active" class="nav-item">
             Organizations
@@ -26,11 +29,9 @@ import { AuthService } from '../../services/auth.service';
           <a routerLink="/dashboard/audit-logs" routerLinkActive="active" class="nav-item">
             Audit Logs
           </a>
-          <a routerLink="/workspace" class="nav-item">
-            Workspace Preview
-          </a>
+          <a routerLink="/workspace" class="nav-item"> Workspace Preview </a>
         </nav>
-        
+
         <div class="sidebar-footer">
           @if (authService.profile(); as profile) {
             <div class="user-profile">
@@ -64,7 +65,10 @@ import { AuthService } from '../../services/auth.service';
       height: 100vh;
       overflow: hidden;
       background-color: var(--color-bg-subtle, #f5f5f5);
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
     }
 
     /* Sidebar Styles */
@@ -98,7 +102,9 @@ import { AuthService } from '../../services/auth.service';
       color: var(--color-text-default, #24292f);
       text-decoration: none;
       font-weight: 500;
-      transition: background-color 0.2s, color 0.2s;
+      transition:
+        background-color 0.2s,
+        color 0.2s;
 
       &:hover {
         background-color: var(--color-bg-subtle, #f5f5f5);
@@ -191,7 +197,7 @@ import { AuthService } from '../../services/auth.service';
       padding: 2rem;
       overflow-y: auto;
     }
-  `
+  `,
 })
 export class DashboardComponent {
   /**

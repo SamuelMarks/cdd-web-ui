@@ -3,7 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 
-const CDD_CTL_DIR = path.resolve(process.cwd(), '../cdd-ctl');
 const DEST_DIR = path.resolve(process.cwd(), 'public/assets/wasm');
 const SUPPORT_FILE_DEST = path.resolve(process.cwd(), 'public/assets', 'wasm-support.json');
 
@@ -14,25 +13,20 @@ const forceRebuild =
   process.env.FORCE_REBUILD_WASM === 'true' ||
   process.env.FORCE_REBUILD_WASM === '1';
 
-if (buildLocally && !fs.existsSync(CDD_CTL_DIR)) {
-  console.error(`Error: cdd-ctl repository not found at ${CDD_CTL_DIR}`);
-  console.error('Run: git clone https://github.com/SamuelMarks/cdd-ctl ../cdd-ctl');
-  process.exit(1);
-}
 
 if (!fs.existsSync(DEST_DIR)) {
   fs.mkdirSync(DEST_DIR, { recursive: true });
 }
 
 if (buildLocally) {
-  console.log('Building cdd-ctl-wasm-sdk locally...');
+  console.log('Building cdd-browser-sdk locally...');
   try {
     execSync('npm run build', {
-      cwd: path.join(CDD_CTL_DIR, 'cdd-ctl-wasm-sdk'),
+      cwd: path.resolve(process.cwd(), '../cdd-browser-sdk'),
       stdio: 'inherit',
     });
   } catch (e) {
-    console.warn('Failed to build cdd-ctl-wasm-sdk locally, continuing...');
+    console.warn('Failed to build cdd-browser-sdk locally, continuing...');
   }
 }
 
@@ -141,32 +135,6 @@ async function run() {
   console.log('\nGathering WASM files...');
 
   if (buildLocally) {
-    console.log('Running cdd-ctl build script...');
-    const localScript = path.join(CDD_CTL_DIR, 'scripts', 'build-wasm-all.mjs');
-    try {
-      execSync(`node ${localScript}`, { stdio: 'inherit' });
-      const WASM_SOURCE_DIR = path.join(CDD_CTL_DIR, 'cdd-ctl-wasm-sdk', 'assets', 'wasm');
-      if (fs.existsSync(WASM_SOURCE_DIR)) {
-        const wasmFiles = fs.readdirSync(WASM_SOURCE_DIR).filter((f) => f.endsWith('.wasm'));
-        for (const file of wasmFiles) {
-          fs.copyFileSync(path.join(WASM_SOURCE_DIR, file), path.join(DEST_DIR, file));
-        }
-      }
-      const SUPPORT_FILE_SOURCE = path.join(
-        CDD_CTL_DIR,
-        'cdd-ctl-wasm-sdk',
-        'assets',
-        'wasm-support.json',
-      );
-      if (fs.existsSync(SUPPORT_FILE_SOURCE)) {
-        fs.copyFileSync(SUPPORT_FILE_SOURCE, SUPPORT_FILE_DEST);
-      }
-      console.log('Local build complete.');
-      return;
-    } catch (e) {
-      console.error('Local build failed:', e.message);
-      process.exit(1);
-    }
   }
 
   for (const [lang, repo] of Object.entries(REPOS)) {
@@ -179,9 +147,6 @@ async function run() {
 
     let builtLocally = false;
     let localToolDir = path.resolve(process.cwd(), `../${tool}`);
-    if (!fs.existsSync(localToolDir)) {
-      localToolDir = path.resolve(process.cwd(), `../cdd-ctl/sdks/${tool}`);
-    }
 
     if (fs.existsSync(localToolDir)) {
       let currentHash = '';

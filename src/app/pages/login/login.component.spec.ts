@@ -6,18 +6,16 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 describe('LoginComponent', () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
-  let mockAuthService: any;
+  let mockAuthService: { loginWithProvider: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     mockAuthService = {
-      loginWithProvider: vi.fn()
+      loginWithProvider: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
       imports: [LoginComponent],
-      providers: [
-        { provide: AuthService, useValue: mockAuthService }
-      ]
+      providers: [{ provide: AuthService, useValue: mockAuthService }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(LoginComponent);

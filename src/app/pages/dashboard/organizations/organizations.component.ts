@@ -1,13 +1,23 @@
 import { Component, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
+/**
+ * Represents an organization containing members and roles.
+ */
 interface Organization {
+  /** The unique identifier of the organization */
   id: string;
+  /** The name of the organization */
   name: string;
+  /** The role of the user within this organization */
   role: 'Owner' | 'Admin' | 'Member';
+  /** The total count of members in the organization */
   members: number;
 }
 
+/**
+ * Component to manage user organizations, including creation and inviting members.
+ */
 @Component({
   selector: 'app-organizations',
   imports: [ReactiveFormsModule],
@@ -26,18 +36,20 @@ interface Organization {
           <form [formGroup]="createOrgForm" (ngSubmit)="onCreateOrg()">
             <div class="form-group">
               <label for="orgName">Organization Name</label>
-              <input 
-                type="text" 
-                id="orgName" 
-                formControlName="name" 
-                class="form-control" 
+              <input
+                type="text"
+                id="orgName"
+                formControlName="name"
+                class="form-control"
                 placeholder="e.g. Acme Corp"
               />
               @if (createOrgForm.get('name')?.invalid && createOrgForm.get('name')?.touched) {
                 <span class="error-text">Organization name is required.</span>
               }
             </div>
-            <button type="submit" class="btn btn-primary" [disabled]="createOrgForm.invalid">Create</button>
+            <button type="submit" class="btn btn-primary" [disabled]="createOrgForm.invalid">
+              Create
+            </button>
           </form>
         </div>
       }
@@ -71,11 +83,11 @@ interface Organization {
             <form [formGroup]="inviteForm" (ngSubmit)="onInvite()">
               <div class="form-group">
                 <label for="email">User Email</label>
-                <input 
-                  type="email" 
-                  id="email" 
-                  formControlName="email" 
-                  class="form-control" 
+                <input
+                  type="email"
+                  id="email"
+                  formControlName="email"
+                  class="form-control"
                   placeholder="user@example.com"
                 />
               </div>
@@ -87,8 +99,12 @@ interface Organization {
                 </select>
               </div>
               <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" (click)="closeInvite()">Cancel</button>
-                <button type="submit" class="btn btn-primary" [disabled]="inviteForm.invalid">Send Invite</button>
+                <button type="button" class="btn btn-secondary" (click)="closeInvite()">
+                  Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" [disabled]="inviteForm.invalid">
+                  Send Invite
+                </button>
               </div>
             </form>
           </div>
@@ -106,7 +122,10 @@ interface Organization {
       justify-content: space-between;
       align-items: center;
       margin-bottom: 2rem;
-      h1 { margin: 0; color: var(--color-text-default, #24292f); }
+      h1 {
+        margin: 0;
+        color: var(--color-text-default, #24292f);
+      }
     }
     .card {
       background: var(--color-bg-default, #ffffff);
@@ -117,7 +136,10 @@ interface Organization {
     }
     .create-org-card {
       margin-bottom: 2rem;
-      h2 { margin-top: 0; font-size: 1.25rem; }
+      h2 {
+        margin-top: 0;
+        font-size: 1.25rem;
+      }
     }
     .org-card {
       display: flex;
@@ -128,7 +150,10 @@ interface Organization {
       display: flex;
       align-items: center;
       gap: 1rem;
-      h3 { margin: 0; font-size: 1.125rem; }
+      h3 {
+        margin: 0;
+        font-size: 1.125rem;
+      }
     }
     .badge {
       background: var(--color-accent-subtle, #ddf4ff);
@@ -158,14 +183,21 @@ interface Organization {
       background-color: #2da44e;
       color: white;
       border-color: rgba(27, 31, 36, 0.15);
-      &:hover { background-color: #2c974b; }
-      &:disabled { opacity: 0.6; cursor: not-allowed; }
+      &:hover {
+        background-color: #2c974b;
+      }
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
     }
     .btn-secondary {
       background-color: #f6f8fa;
       color: #24292f;
       border-color: rgba(27, 31, 36, 0.15);
-      &:hover { background-color: #f3f4f6; }
+      &:hover {
+        background-color: #f3f4f6;
+      }
     }
     .form-group {
       margin-bottom: 1rem;
@@ -197,8 +229,11 @@ interface Organization {
     }
     .modal-backdrop {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -207,7 +242,9 @@ interface Organization {
     .modal {
       width: 100%;
       max-width: 400px;
-      h2 { margin-top: 0; }
+      h2 {
+        margin-top: 0;
+      }
     }
     .modal-actions {
       display: flex;
@@ -223,15 +260,18 @@ interface Organization {
       border-radius: 6px;
       color: var(--color-text-muted, #57606a);
     }
-  `
+  `,
 })
+/**
+ * Component to manage user organizations, including creation and inviting members.
+ */
 export class OrganizationsComponent {
   /**
    * List of organizations
    */
   organizations = signal<Organization[]>([
     { id: 'org-1', name: 'Offscale', role: 'Owner', members: 5 },
-    { id: 'org-2', name: 'Demo Team', role: 'Admin', members: 12 }
+    { id: 'org-2', name: 'Demo Team', role: 'Admin', members: 12 },
   ]);
 
   /**
@@ -248,7 +288,7 @@ export class OrganizationsComponent {
    * Form group for creating a new organization
    */
   createOrgForm = new FormGroup({
-    name: new FormControl('', Validators.required)
+    name: new FormControl('', Validators.required),
   });
 
   /**
@@ -256,14 +296,14 @@ export class OrganizationsComponent {
    */
   inviteForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email]),
-    role: new FormControl('Member', Validators.required)
+    role: new FormControl('Member', Validators.required),
   });
 
   /**
    * Toggles the visibility of the create form
    */
   toggleCreateForm(): void {
-    this.showCreateForm.update(v => !v);
+    this.showCreateForm.update((v) => !v);
     if (!this.showCreateForm()) {
       this.createOrgForm.reset();
     }
@@ -278,9 +318,9 @@ export class OrganizationsComponent {
         id: `org-${Date.now()}`,
         name: this.createOrgForm.value.name || '',
         role: 'Owner',
-        members: 1
+        members: 1,
       };
-      this.organizations.update(orgs => [...orgs, newOrg]);
+      this.organizations.update((orgs) => [...orgs, newOrg]);
       this.toggleCreateForm();
     }
   }
@@ -309,12 +349,14 @@ export class OrganizationsComponent {
       // In a real app, send API request here
       const org = this.selectedOrgForInvite();
       if (org) {
-        this.organizations.update(orgs => orgs.map(o => {
-          if (o.id === org.id) {
-            return { ...o, members: o.members + 1 };
-          }
-          return o;
-        }));
+        this.organizations.update((orgs) =>
+          orgs.map((o) => {
+            if (o.id === org.id) {
+              return { ...o, members: o.members + 1 };
+            }
+            return o;
+          }),
+        );
       }
       this.closeInvite();
     }

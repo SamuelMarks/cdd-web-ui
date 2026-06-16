@@ -42,10 +42,10 @@ import { ApiService } from '../services/api.service';
               >Locally (relative paths to wasm)</mat-option
             >
             <mat-option value="local_cdd_ctl_wasm" i18n="@@runModeLocalWasm"
-              >Locally (cdd-ctl wasm)</mat-option
+              >Locally (cdd-engine wasm)</mat-option
             >
             <mat-option value="local_cdd_ctl_native" i18n="@@runModeLocalNative"
-              >Locally (cdd-ctl native runtimes)</mat-option
+              >Locally (cdd-engine native runtimes)</mat-option
             >
             <mat-option value="served_github" i18n="@@runModeServedGithub"
               >Served (GitHub releases)</mat-option

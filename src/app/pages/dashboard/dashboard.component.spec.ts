@@ -7,23 +7,23 @@ import { provideRouter } from '@angular/router';
 describe('DashboardComponent', () => {
   let component: DashboardComponent;
   let fixture: ComponentFixture<DashboardComponent>;
-  let mockAuthService: any;
+  let mockAuthService: { profile: ReturnType<typeof signal>; logout: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     mockAuthService = {
-      profile: signal({ name: 'Test User', email: 'test@example.com', avatarUrl: 'http://avatar.com/test.png' }),
-      logout: vi.fn()
+      profile: signal({
+        name: 'Test User',
+        email: 'test@example.com',
+        avatarUrl: 'http://avatar.com/test.png',
+      }),
+      logout: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
       imports: [DashboardComponent],
-      providers: [
-        provideRouter([]),
-        { provide: AuthService, useValue: mockAuthService }
-      ]
-    })
-    .compileComponents();
-    
+      providers: [provideRouter([]), { provide: AuthService, useValue: mockAuthService }],
+    }).compileComponents();
+
     fixture = TestBed.createComponent(DashboardComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();

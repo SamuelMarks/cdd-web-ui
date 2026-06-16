@@ -21,7 +21,10 @@ import { AuthService } from '../../services/auth.service';
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
     }
     .spinner {
       width: 40px;
@@ -33,17 +36,19 @@ import { AuthService } from '../../services/auth.service';
       margin-bottom: 1rem;
     }
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
-  `
+  `,
 })
 export class AuthCallbackComponent implements OnInit {
   /** The activated route containing query parameters. */
   private readonly route = inject(ActivatedRoute);
-  
+
   /** The router used for navigation after authentication. */
   private readonly router = inject(Router);
-  
+
   /** The authentication service used to store the token. */
   private readonly authService = inject(AuthService);
 
@@ -53,7 +58,7 @@ export class AuthCallbackComponent implements OnInit {
   ngOnInit() {
     // The JWT token is expected to be passed as a query parameter from the control plane
     const token = this.route.snapshot.queryParamMap.get('token');
-    
+
     if (token) {
       this.authService.setToken(token);
       void this.router.navigate(['/dashboard']);

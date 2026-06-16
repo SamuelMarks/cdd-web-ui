@@ -1,5 +1,5 @@
 const fs = require('fs');
-const file = '../cdd-ctl/cdd-ctl-wasm-sdk/src/index.ts';
+const file = '../cdd-browser-sdk/src/index.ts';
 let code = fs.readFileSync(file, 'utf8');
 
 code = code.replace(/const rootMap = new Map<string, Inode>\(\[\n      \["spec\.json", specFile\]/g, 

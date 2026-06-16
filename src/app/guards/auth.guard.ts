@@ -4,7 +4,7 @@ import { AuthService } from '../services/auth.service';
 
 /**
  * Authentication guard to protect routes that require user login.
- * 
+ *
  * @param route The activated route snapshot.
  * @param state The router state snapshot.
  * @returns true if the user is authenticated, otherwise a UrlTree redirecting to login.

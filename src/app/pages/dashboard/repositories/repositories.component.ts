@@ -1,14 +1,25 @@
 import { Component, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
+/**
+ * Represents a linked repository for SDK generation.
+ */
 interface Repository {
+  /** The unique identifier of the repository */
   id: string;
+  /** The GitHub path or name of the repository */
   name: string;
+  /** The organization that owns the repository */
   organization: string;
+  /** The URL to the OpenAPI schema, if linked */
   schemaUrl?: string;
+  /** The list of languages configured for SDK generation */
   languages: string[];
 }
 
+/**
+ * Component to display and configure linked repositories, schemas, and SDK languages.
+ */
 @Component({
   selector: 'app-repositories',
   imports: [ReactiveFormsModule],
@@ -27,11 +38,11 @@ interface Repository {
           <form [formGroup]="createRepoForm" (ngSubmit)="onCreateRepo()">
             <div class="form-group">
               <label for="repoName">Repository Name (GitHub path)</label>
-              <input 
-                type="text" 
-                id="repoName" 
-                formControlName="name" 
-                class="form-control" 
+              <input
+                type="text"
+                id="repoName"
+                formControlName="name"
+                class="form-control"
                 placeholder="org/repo-name"
               />
             </div>
@@ -42,7 +53,9 @@ interface Repository {
                 <option value="Demo Team">Demo Team</option>
               </select>
             </div>
-            <button type="submit" class="btn btn-primary" [disabled]="createRepoForm.invalid">Link</button>
+            <button type="submit" class="btn btn-primary" [disabled]="createRepoForm.invalid">
+              Link
+            </button>
           </form>
         </div>
       }
@@ -54,20 +67,22 @@ interface Repository {
               <h3>{{ repo.name }}</h3>
               <span class="badge">{{ repo.organization }}</span>
             </div>
-            
+
             <div class="repo-config">
               <div class="config-section">
                 <h4>OpenAPI Schema</h4>
                 <div class="schema-info">
                   @if (repo.schemaUrl) {
-                    <a [href]="repo.schemaUrl" target="_blank" class="schema-link">{{ repo.schemaUrl }}</a>
+                    <a [href]="repo.schemaUrl" target="_blank" class="schema-link">{{
+                      repo.schemaUrl
+                    }}</a>
                   } @else {
                     <span class="text-muted">No schema linked</span>
                   }
                   <button class="btn btn-link" (click)="openSchemaConfig(repo)">Configure</button>
                 </div>
               </div>
-              
+
               <div class="config-section">
                 <h4>Configured Languages</h4>
                 <div class="languages-list">
@@ -98,16 +113,18 @@ interface Repository {
             <form [formGroup]="schemaForm" (ngSubmit)="onSaveSchema()">
               <div class="form-group">
                 <label for="schemaUrl">OpenAPI Schema URL</label>
-                <input 
-                  type="url" 
-                  id="schemaUrl" 
-                  formControlName="schemaUrl" 
-                  class="form-control" 
+                <input
+                  type="url"
+                  id="schemaUrl"
+                  formControlName="schemaUrl"
+                  class="form-control"
                   placeholder="https://api.example.com/openapi.json"
                 />
               </div>
               <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" (click)="closeSchemaConfig()">Cancel</button>
+                <button type="button" class="btn btn-secondary" (click)="closeSchemaConfig()">
+                  Cancel
+                </button>
                 <button type="submit" class="btn btn-primary">Save Schema</button>
               </div>
             </form>
@@ -122,13 +139,19 @@ interface Repository {
             <div class="lang-options">
               @for (lang of availableLanguages; track lang) {
                 <label class="lang-option">
-                  <input type="checkbox" [checked]="isLangSelected(lang)" (change)="toggleLang(lang)" />
+                  <input
+                    type="checkbox"
+                    [checked]="isLangSelected(lang)"
+                    (change)="toggleLang(lang)"
+                  />
                   {{ lang }}
                 </label>
               }
             </div>
             <div class="modal-actions">
-              <button type="button" class="btn btn-secondary" (click)="closeLangConfig()">Close</button>
+              <button type="button" class="btn btn-secondary" (click)="closeLangConfig()">
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -145,7 +168,10 @@ interface Repository {
       justify-content: space-between;
       align-items: center;
       margin-bottom: 2rem;
-      h1 { margin: 0; color: var(--color-text-default, #24292f); }
+      h1 {
+        margin: 0;
+        color: var(--color-text-default, #24292f);
+      }
     }
     .card {
       background: var(--color-bg-default, #ffffff);
@@ -156,7 +182,10 @@ interface Repository {
     }
     .create-repo-card {
       margin-bottom: 2rem;
-      h2 { margin-top: 0; font-size: 1.25rem; }
+      h2 {
+        margin-top: 0;
+        font-size: 1.25rem;
+      }
     }
     .repo-card {
       display: flex;
@@ -169,7 +198,10 @@ interface Repository {
       gap: 1rem;
       border-bottom: 1px solid var(--color-border-default, #d0d7de);
       padding-bottom: 1rem;
-      h3 { margin: 0; font-size: 1.25rem; }
+      h3 {
+        margin: 0;
+        font-size: 1.25rem;
+      }
     }
     .badge {
       background: var(--color-bg-subtle, #f5f5f5);
@@ -186,9 +218,14 @@ interface Repository {
       gap: 2rem;
     }
     .config-section {
-      h4 { margin: 0 0 0.5rem 0; font-size: 0.875rem; color: var(--color-text-muted, #57606a); }
+      h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.875rem;
+        color: var(--color-text-muted, #57606a);
+      }
     }
-    .schema-info, .languages-list {
+    .schema-info,
+    .languages-list {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
@@ -198,7 +235,9 @@ interface Repository {
       color: #0969da;
       text-decoration: none;
       word-break: break-all;
-      &:hover { text-decoration: underline; }
+      &:hover {
+        text-decoration: underline;
+      }
     }
     .lang-badge {
       background: #eef2ff;
@@ -208,7 +247,11 @@ interface Repository {
       font-size: 0.75rem;
       font-weight: 500;
     }
-    .text-muted { color: var(--color-text-muted, #57606a); font-style: italic; font-size: 0.875rem; }
+    .text-muted {
+      color: var(--color-text-muted, #57606a);
+      font-style: italic;
+      font-size: 0.875rem;
+    }
     .btn {
       padding: 0.5rem 1rem;
       border-radius: 6px;
@@ -221,14 +264,21 @@ interface Repository {
       background-color: #2da44e;
       color: white;
       border-color: rgba(27, 31, 36, 0.15);
-      &:hover { background-color: #2c974b; }
-      &:disabled { opacity: 0.6; cursor: not-allowed; }
+      &:hover {
+        background-color: #2c974b;
+      }
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
     }
     .btn-secondary {
       background-color: #f6f8fa;
       color: #24292f;
       border-color: rgba(27, 31, 36, 0.15);
-      &:hover { background-color: #f3f4f6; }
+      &:hover {
+        background-color: #f3f4f6;
+      }
     }
     .btn-link {
       background: none;
@@ -236,7 +286,9 @@ interface Repository {
       color: #0969da;
       padding: 0;
       font-size: 0.875rem;
-      &:hover { text-decoration: underline; }
+      &:hover {
+        text-decoration: underline;
+      }
     }
     .form-group {
       margin-bottom: 1rem;
@@ -262,8 +314,11 @@ interface Repository {
     }
     .modal-backdrop {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -272,7 +327,9 @@ interface Repository {
     .modal {
       width: 100%;
       max-width: 500px;
-      h2 { margin-top: 0; }
+      h2 {
+        margin-top: 0;
+      }
     }
     .modal-actions {
       display: flex;
@@ -301,26 +358,29 @@ interface Repository {
       border-radius: 6px;
       color: var(--color-text-muted, #57606a);
     }
-  `
+  `,
 })
+/**
+ * Component to display and configure linked repositories, schemas, and SDK languages.
+ */
 export class RepositoriesComponent {
   /**
    * List of linked repositories
    */
   repositories = signal<Repository[]>([
-    { 
-      id: 'repo-1', 
-      name: 'offscale/acme-api', 
+    {
+      id: 'repo-1',
+      name: 'offscale/acme-api',
       organization: 'Offscale',
       schemaUrl: 'https://raw.githubusercontent.com/offscale/acme-api/main/openapi.json',
-      languages: ['TypeScript', 'Rust', 'Python']
+      languages: ['TypeScript', 'Rust', 'Python'],
     },
-    { 
-      id: 'repo-2', 
-      name: 'demo-team/core-services', 
+    {
+      id: 'repo-2',
+      name: 'demo-team/core-services',
       organization: 'Demo Team',
-      languages: ['Go', 'Java']
-    }
+      languages: ['Go', 'Java'],
+    },
   ]);
 
   /**
@@ -346,21 +406,21 @@ export class RepositoriesComponent {
    */
   createRepoForm = new FormGroup({
     name: new FormControl('', Validators.required),
-    organization: new FormControl('Offscale', Validators.required)
+    organization: new FormControl('Offscale', Validators.required),
   });
 
   /**
    * Form group for updating a repository's schema URL
    */
   schemaForm = new FormGroup({
-    schemaUrl: new FormControl('', [Validators.required])
+    schemaUrl: new FormControl('', [Validators.required]),
   });
 
   /**
    * Toggles the visibility of the create form
    */
   toggleCreateForm(): void {
-    this.showCreateForm.update(v => !v);
+    this.showCreateForm.update((v) => !v);
     if (!this.showCreateForm()) {
       this.createRepoForm.reset({ organization: 'Offscale' });
     }
@@ -376,9 +436,9 @@ export class RepositoriesComponent {
         id: `repo-${Date.now()}`,
         name: formValue.name || '',
         organization: formValue.organization || 'Offscale',
-        languages: []
+        languages: [],
       };
-      this.repositories.update(repos => [...repos, newRepo]);
+      this.repositories.update((repos) => [...repos, newRepo]);
       this.toggleCreateForm();
     }
   }
@@ -406,11 +466,11 @@ export class RepositoriesComponent {
     if (this.schemaForm.valid) {
       const repo = this.selectedRepoForSchema();
       const schemaUrl = this.schemaForm.value.schemaUrl || '';
-      
+
       if (repo) {
-        this.repositories.update(repos => repos.map(r => 
-          r.id === repo.id ? { ...r, schemaUrl } : r
-        ));
+        this.repositories.update((repos) =>
+          repos.map((r) => (r.id === repo.id ? { ...r, schemaUrl } : r)),
+        );
       }
       this.closeSchemaConfig();
     }
@@ -449,22 +509,27 @@ export class RepositoriesComponent {
     const repo = this.selectedRepoForLang();
     if (!repo) return;
 
-    this.repositories.update(repos => repos.map(r => {
-      if (r.id === repo.id) {
-        const hasLang = r.languages.includes(lang);
-        const newLangs = hasLang 
-          ? r.languages.filter(l => l !== lang)
-          : [...r.languages, lang];
-        return { ...r, languages: newLangs };
-      }
-      return r;
-    }));
-    
+    this.repositories.update((repos) =>
+      repos.map((r) => {
+        if (r.id === repo.id) {
+          const hasLang = r.languages.includes(lang);
+          const newLangs = hasLang ? r.languages.filter((l) => l !== lang) : [...r.languages, lang];
+          return { ...r, languages: newLangs };
+        }
+        return r;
+      }),
+    );
+
     // Update local selected state to refresh view immediately
-    this.selectedRepoForLang.update(r => {
+    this.selectedRepoForLang.update((r) => {
       /* istanbul ignore if */
       if (!r) return null;
-      return { ...r, languages: r.languages.includes(lang) ? r.languages.filter(l => l !== lang) : [...r.languages, lang] };
+      return {
+        ...r,
+        languages: r.languages.includes(lang)
+          ? r.languages.filter((l) => l !== lang)
+          : [...r.languages, lang],
+      };
     });
   }
 }

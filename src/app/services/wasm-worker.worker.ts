@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import { CddWasmSdk } from 'cdd-ctl-wasm-sdk';
+import { CddWasmSdk } from 'cdd-browser-sdk';
 import * as yaml from 'js-yaml';
 
 // Intercept console.log and other methods to send back to the main thread

@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 
 /**
@@ -6,22 +7,24 @@ import { AuthService } from '../../services/auth.service';
  */
 @Component({
   selector: 'app-login',
-  imports: [],
+  imports: [NgOptimizedImage],
   template: `
     <div class="login-container">
       <div class="login-card">
-        <h1>CDD Control Plane</h1>
-        <p>Sign in to manage your organizations, repositories, and secrets.</p>
-        
+        <h1 i18n="@@loginTitle">CDD Control Plane</h1>
+        <p i18n="@@loginDescription">
+          Sign in to manage your organizations, repositories, and secrets.
+        </p>
+
         <div class="auth-buttons">
           <button class="btn btn-github" (click)="login('github')">
-            <img src="assets/icons/github.svg" alt="GitHub" width="20" height="20" />
-            Continue with GitHub
+            <img ngSrc="assets/icons/github.svg" alt="" aria-hidden="true" width="20" height="20" />
+            <span i18n="@@continueWithGithub">Continue with GitHub</span>
           </button>
-          
+
           <button class="btn btn-google" (click)="login('google')">
-            <img src="assets/icons/google.svg" alt="Google" width="20" height="20" />
-            Continue with Google
+            <img ngSrc="assets/icons/google.svg" alt="" aria-hidden="true" width="20" height="20" />
+            <span i18n="@@continueWithGoogle">Continue with Google</span>
           </button>
         </div>
       </div>
@@ -34,7 +37,10 @@ import { AuthService } from '../../services/auth.service';
       align-items: center;
       min-height: 100vh;
       background-color: var(--color-bg-subtle, #f5f5f5);
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family:
+        system-ui,
+        -apple-system,
+        sans-serif;
     }
     .login-card {
       background-color: var(--color-bg-default, #ffffff);
@@ -70,7 +76,9 @@ import { AuthService } from '../../services/auth.service';
       font-weight: 500;
       cursor: pointer;
       border: 1px solid transparent;
-      transition: background-color 0.2s, box-shadow 0.2s;
+      transition:
+        background-color 0.2s,
+        box-shadow 0.2s;
     }
     .btn-github {
       background-color: #24292f;
@@ -87,7 +95,7 @@ import { AuthService } from '../../services/auth.service';
     .btn-google:hover {
       background-color: #f8f9fa;
     }
-  `
+  `,
 })
 export class LoginComponent {
   /** The authentication service used to initiate login. */

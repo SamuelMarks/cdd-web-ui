@@ -81,7 +81,7 @@ import { environment } from '../environments/environment';
           <nav aria-label="Main Navigation" i18n-aria-label="@@mainNavAria" class="nav-links">
             <a
               mat-icon-button
-              href="https://github.com/SamuelMarks/cdd-ctl#readme"
+              href="https://github.com/SamuelMarks/cdd-engine#readme"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Documentation"
@@ -100,12 +100,12 @@ import { environment } from '../environments/environment';
               <mat-icon>settings</mat-icon>
             </button>
             <a
-              href="https://github.com/SamuelMarks/cdd-ctl"
+              href="https://github.com/SamuelMarks/cdd-engine"
               target="_blank"
               rel="noopener noreferrer"
               class="github-link header-github-link"
-              aria-label="View cdd-ctl on GitHub"
-              matTooltip="View cdd-ctl on GitHub"
+              aria-label="View cdd-engine on GitHub"
+              matTooltip="View cdd-engine on GitHub"
             >
               <img ngSrc="assets/icons/github.svg" alt="" width="24" height="24" />
             </a>

@@ -3,6 +3,11 @@ import { appConfig } from './app/app.config';
 import { App } from './app/app';
 import * as Sentry from '@sentry/angular';
 
+/**
+ * Bootstraps the Angular application and initializes Sentry for error tracking.
+ * @param sentryDsn The Sentry Data Source Name. Defaults to a placeholder.
+ * @returns A promise that resolves when the application is bootstrapped.
+ */
 export function bootstrap(sentryDsn = 'https://placeholder-dsn@o0.ingest.sentry.io/0') {
   if (!sentryDsn.includes('placeholder-dsn')) {
     Sentry.init({

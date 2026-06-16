@@ -8,10 +8,9 @@ describe('RepositoriesComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [RepositoriesComponent, ReactiveFormsModule]
-    })
-    .compileComponents();
-    
+      imports: [RepositoriesComponent, ReactiveFormsModule],
+    }).compileComponents();
+
     fixture = TestBed.createComponent(RepositoriesComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -25,7 +24,7 @@ describe('RepositoriesComponent', () => {
     expect(component.showCreateForm()).toBe(false);
     component.toggleCreateForm();
     expect(component.showCreateForm()).toBe(true);
-    
+
     component.createRepoForm.controls.name.setValue('test');
     component.toggleCreateForm();
     expect(component.showCreateForm()).toBe(false);
@@ -36,9 +35,9 @@ describe('RepositoriesComponent', () => {
     const initialCount = component.repositories().length;
     component.createRepoForm.controls.name.setValue('new/repo');
     component.createRepoForm.controls.organization.setValue('Offscale');
-    
+
     component.onCreateRepo();
-    
+
     expect(component.repositories().length).toBe(initialCount + 1);
     expect(component.repositories()[initialCount].name).toBe('new/repo');
   });
@@ -47,10 +46,10 @@ describe('RepositoriesComponent', () => {
     component.createRepoForm.controls.name.clearValidators();
     component.createRepoForm.controls.organization.clearValidators();
     component.createRepoForm.setValue({ name: null, organization: null });
-    
+
     const initialCount = component.repositories().length;
     component.onCreateRepo();
-    
+
     expect(component.repositories().length).toBe(initialCount + 1);
     expect(component.repositories()[initialCount].name).toBe('');
     expect(component.repositories()[initialCount].organization).toBe('Offscale');
@@ -59,9 +58,9 @@ describe('RepositoriesComponent', () => {
   it('should not create repo when form is invalid', () => {
     const initialCount = component.repositories().length;
     component.createRepoForm.controls.name.setValue('');
-    
+
     component.onCreateRepo();
-    
+
     expect(component.repositories().length).toBe(initialCount);
   });
 
@@ -69,10 +68,10 @@ describe('RepositoriesComponent', () => {
     const repo = component.repositories()[0];
     component.openSchemaConfig(repo);
     expect(component.selectedRepoForSchema()).toEqual(repo);
-    
+
     component.schemaForm.controls.schemaUrl.setValue('http://new-schema');
     component.onSaveSchema();
-    
+
     expect(component.repositories()[0].schemaUrl).toBe('http://new-schema');
     expect(component.selectedRepoForSchema()).toBeNull();
   });
@@ -80,7 +79,7 @@ describe('RepositoriesComponent', () => {
   it('should handle schema config when repo has no schemaUrl and schemaForm has falsy url', () => {
     const repo = component.repositories()[0];
     const repoWithoutSchema = { ...repo, schemaUrl: undefined };
-    
+
     component.openSchemaConfig(repoWithoutSchema);
     expect(component.schemaForm.value.schemaUrl).toBe('');
 
@@ -103,10 +102,10 @@ describe('RepositoriesComponent', () => {
     const repo = component.repositories()[0];
     const origUrl = repo.schemaUrl;
     component.openSchemaConfig(repo);
-    
+
     component.schemaForm.controls.schemaUrl.setValue('');
     component.onSaveSchema();
-    
+
     expect(component.repositories()[0].schemaUrl).toBe(origUrl);
   });
 
@@ -121,7 +120,7 @@ describe('RepositoriesComponent', () => {
     const repo = component.repositories()[0];
     component.openLangConfig(repo);
     expect(component.selectedRepoForLang()).toEqual(repo);
-    
+
     component.closeLangConfig();
     expect(component.selectedRepoForLang()).toBeNull();
   });
@@ -129,14 +128,14 @@ describe('RepositoriesComponent', () => {
   it('should toggle language', () => {
     const repo = component.repositories()[0]; // languages: ['TypeScript', 'Rust', 'Python']
     component.openLangConfig(repo);
-    
+
     expect(component.isLangSelected('TypeScript')).toBe(true);
     expect(component.isLangSelected('Go')).toBe(false);
-    
+
     component.toggleLang('Go'); // add Go
     expect(component.repositories()[0].languages).toContain('Go');
     expect(component.isLangSelected('Go')).toBe(true);
-    
+
     component.toggleLang('TypeScript'); // remove TS
     expect(component.repositories()[0].languages).not.toContain('TypeScript');
     expect(component.isLangSelected('TypeScript')).toBe(false);

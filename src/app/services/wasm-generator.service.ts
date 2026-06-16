@@ -3,7 +3,7 @@ import { Repository } from '../models/types';
 import { LanguageService } from './language.service';
 import { BackendConfigService } from './backend-config.service';
 import { HttpClient } from '@angular/common/http';
-import { CddWasmSdk, Ecosystem } from 'cdd-ctl-wasm-sdk';
+import { CddWasmSdk, Ecosystem } from 'cdd-browser-sdk';
 import { WasmLoaderService } from './wasm-loader.service';
 import * as yaml from 'js-yaml';
 
