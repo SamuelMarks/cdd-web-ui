@@ -101,4 +101,23 @@ describe('AuthService', () => {
 
     expect(mockDocument.location.href).toBe('http://localhost:3000/auth/google');
   });
+
+  it('should authenticate with correct email and password', async () => {
+    service = TestBed.inject(AuthService);
+
+    const promise = service.loginWithEmail('admin@example.com', 'admin');
+    vi.advanceTimersByTime(500);
+    await expect(promise).resolves.toBeUndefined();
+
+    expect(service.token()).toBe('mock-email-jwt-token');
+    expect(service.isAuthenticated()).toBe(true);
+  });
+
+  it('should reject with invalid email and password', async () => {
+    service = TestBed.inject(AuthService);
+
+    const promise = service.loginWithEmail('wrong@example.com', 'wrong');
+    vi.advanceTimersByTime(500);
+    await expect(promise).rejects.toThrow('Invalid email or password');
+  });
 });

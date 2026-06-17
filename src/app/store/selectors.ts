@@ -31,6 +31,12 @@ export const selectExecutionError = createSelector(
   (state: WorkspaceState) => state.executionError,
 );
 
+/** Selects whether the application is in online mode */
+export const selectIsOnlineMode = createSelector(
+  selectWorkspaceFeature,
+  (state: WorkspaceState) => state.isOnlineMode,
+);
+
 /** Selects the currently selected language ID */
 export const selectSelectedLanguageId = createSelector(
   selectWorkspaceFeature,

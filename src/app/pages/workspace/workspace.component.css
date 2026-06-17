@@ -219,3 +219,10 @@
     border-bottom: 1px solid var(--border-color);
   }
 }
+
+.online-mode-fab {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10;
+}

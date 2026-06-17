@@ -23,6 +23,8 @@ export const initialWorkspaceState: WorkspaceState = {
   apiDocsLoadState: 'IDLE',
   /** executionError */
   executionError: null,
+  /** isOnlineMode */
+  isOnlineMode: false,
 };
 
 /** Workspace Reducer */
@@ -42,6 +44,14 @@ export const workspaceReducer = createReducer(
     (state, { orientation }): WorkspaceState => ({
       ...state,
       orientation,
+    }),
+  ),
+  /** on */
+  on(
+    Actions.setOnlineMode,
+    (state, { isOnlineMode }): WorkspaceState => ({
+      ...state,
+      isOnlineMode,
     }),
   ),
   /** on */

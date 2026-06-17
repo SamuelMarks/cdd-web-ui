@@ -6,6 +6,7 @@ import {
   OnDestroy,
   computed,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import { fromEvent, Subject, takeUntil, tap, finalize } from 'rxjs';
 import { DOCUMENT, NgOptimizedImage } from '@angular/common';
 import { CommonModule } from '@angular/common';
@@ -216,6 +217,18 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           <app-bottom-panel></app-bottom-panel>
         </div>
       </div>
+
+      <button
+        mat-fab
+        extended
+        color="primary"
+        class="online-mode-fab"
+        (click)="onGoOnline()"
+        aria-label="Go Online"
+      >
+        <mat-icon>cloud_upload</mat-icon>
+        <span i18n>Go Online</span>
+      </button>
     </div>
 
     <ng-template #openApiTemplate>
@@ -266,6 +279,9 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   /** The injected NgRx store instance. */
   private store = inject(Store<AppState>);
+
+  /** Router for navigation. */
+  private router = inject(Router);
 
   /** Signal for bottom pane height. Using the existing state selector. */
   apiDocsPaneHeight = this.store.selectSignal(Selectors.selectApiDocsPaneHeight);
@@ -488,6 +504,13 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       event.preventDefault();
       this.toggleApiDocs();
     }
+  }
+
+  /**
+   * Navigates the user to the login page to enable online mode features.
+   */
+  onGoOnline(): void {
+    void this.router.navigate(['/login']);
   }
 
   /** cleanup */

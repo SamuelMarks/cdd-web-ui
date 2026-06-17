@@ -106,6 +106,27 @@ export class AuthService {
   }
 
   /**
+   * Authenticate a user with email and password.
+   * @param email The user's email address.
+   * @param password The user's password.
+   * @returns A promise that resolves when the user is authenticated.
+   */
+  async loginWithEmail(email: string, password: string): Promise<void> {
+    // In a real implementation this would perform an HTTP POST to /auth/login
+    // For now we mock it with a delay and a setToken call
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        if (email === 'admin@example.com' && password === 'admin') {
+          this.setToken('mock-email-jwt-token');
+          resolve();
+        } else {
+          reject(new Error('Invalid email or password'));
+        }
+      }, 500);
+    });
+  }
+
+  /**
    * Load user profile based on the current token.
    */
   private loadProfile(): void {

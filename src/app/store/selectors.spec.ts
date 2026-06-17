@@ -14,6 +14,7 @@ describe('Selectors', () => {
       isApiDocsVisible: false,
       apiDocsPaneHeight: 300,
       apiDocsLoadState: 'IDLE',
+      isOnlineMode: true,
     },
     fileTree: {
       files: [
@@ -43,6 +44,10 @@ describe('Selectors', () => {
 
   it('should select selectedLanguageId', () => {
     expect(Selectors.selectSelectedLanguageId(mockState)).toBe('rust');
+  });
+
+  it('should select isOnlineMode', () => {
+    expect(Selectors.selectIsOnlineMode(mockState)).toBe(true);
   });
 
   it('should select generated files', () => {

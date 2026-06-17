@@ -88,6 +88,12 @@ export const executeRunFailure = createAction(
   props<{ error: string }>(),
 );
 
+/** Sets whether the workspace is operating in online mode. */
+export const setOnlineMode = createAction(
+  '[Workspace] Set Online Mode',
+  props<{ isOnlineMode: boolean }>(),
+);
+
 /** Sets the input format. */
 export const setInputFormat = createAction(
   '[OpenAPI] Set Input Format',

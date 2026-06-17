@@ -27,6 +27,14 @@ describe('Reducers', () => {
       expect(state.orientation).toBe('openapi-right');
     });
 
+    it('should set online mode', () => {
+      const state = workspaceReducer(
+        initialWorkspaceState,
+        Actions.setOnlineMode({ isOnlineMode: true }),
+      );
+      expect(state.isOnlineMode).toBe(true);
+    });
+
     it('should set selected language', () => {
       const state = workspaceReducer(
         initialWorkspaceState,

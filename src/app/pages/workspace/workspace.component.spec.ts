@@ -1,6 +1,7 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { WorkspaceComponent } from './workspace.component';
 import { provideMockStore, MockStore } from '@ngrx/store/testing';
+import { Router } from '@angular/router';
 
 import {
   initialWorkspaceState,
@@ -131,6 +132,13 @@ describe('WorkspaceComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should navigate to /login when onGoOnline is called', () => {
+    const router = TestBed.inject(Router);
+    const spy = vi.spyOn(router, 'navigate');
+    component.onGoOnline();
+    expect(spy).toHaveBeenCalledWith(['/login']);
   });
 
   it('should dispatch executeRun on init', () => {

@@ -36,6 +36,8 @@ export interface WorkspaceState {
   apiDocsLoadState: ApiDocsLoadState;
   /** Holds any execution error message, null if none. */
   executionError: string | null;
+  /** Indicates if the application is in online mode, pushing specs to the cloud backend. */
+  isOnlineMode: boolean;
 }
 
 /**
