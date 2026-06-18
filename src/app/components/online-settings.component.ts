@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
+import { AuthService } from '../services/auth.service';
 import { BackendConfigService } from '../services/backend-config.service';
 import { RunMode } from '../models/types';
 import { ApiService } from '../services/api.service';
@@ -225,6 +226,7 @@ import { ApiService } from '../services/api.service';
  * and handle authentication with the remote service.
  */
 export class OnlineSettingsComponent {
+  private readonly authService = inject(AuthService);
   /** Access to backend config state. */
   readonly config = inject(BackendConfigService);
   /** Form builder instance for reactive forms. */
@@ -288,7 +290,7 @@ export class OnlineSettingsComponent {
     if (this.authForm.valid) {
       this.api.login(this.authForm.value as { username: string; password: string }).subscribe({
         next: (res) => {
-          localStorage.setItem('cdd_token', res.token);
+          this.authService.setToken(res.token);
           this.successMsg.set('Logged in successfully!');
           this.errorMsg.set('');
         },
@@ -311,7 +313,7 @@ export class OnlineSettingsComponent {
         .register(payload as { username: string; password: string; email: string })
         .subscribe({
           next: (res) => {
-            localStorage.setItem('cdd_token', res.token);
+            this.authService.setToken(res.token);
             this.successMsg.set('Registered successfully!');
             this.errorMsg.set('');
           },

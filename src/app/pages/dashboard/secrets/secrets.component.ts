@@ -219,7 +219,7 @@ interface ActionState {
       font-size: 0.875rem;
       font-weight: 500;
       &.success {
-        color: #2da44e;
+        color: #1a7f37;
       }
       &.error {
         color: #cf222e;
@@ -234,7 +234,7 @@ interface ActionState {
       font-size: 0.875rem;
     }
     .btn-primary {
-      background-color: #2da44e;
+      background-color: #1a7f37;
       color: white;
       border-color: rgba(27, 31, 36, 0.15);
       &:hover:not(:disabled) {
@@ -287,8 +287,8 @@ interface ActionState {
     }
     .alert-success {
       background: #dcffe4;
-      color: #2da44e;
-      border: 1px solid #2da44e;
+      color: #1a7f37;
+      border: 1px solid #1a7f37;
     }
     .alert-error {
       background: #ffebe9;

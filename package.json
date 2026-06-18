@@ -5,7 +5,7 @@
   "scripts": {
     "ng": "ng",
     "prestart": "npm run build:wasm",
-    "start": "ng serve",
+    "start": "ng serve --port 8083",
     "prebuild": "npm run build:wasm",
     "build": "ng build",
     "prebuild:prod": "npm run build:wasm",
@@ -14,7 +14,7 @@
     "build:dev": "ng build --configuration development",
     "prebuild:c-only": "npm run build:wasm:local",
     "build:c-only": "ng build --configuration c-only",
-    "serve:c-only": "ng serve --configuration c-only",
+    "serve:c-only": "ng serve --configuration c-only --port 8083",
     "watch": "ng build --watch --configuration development",
     "test": "vitest run",
     "e2e": "playwright test",

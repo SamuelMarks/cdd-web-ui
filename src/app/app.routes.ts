@@ -30,6 +30,23 @@ export const routes: Routes = [
     /** loadComponent */
     loadComponent: () =>
       import('./pages/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+    children: [
+      { path: '', redirectTo: 'organizations', pathMatch: 'full' },
+      {
+        path: 'organizations',
+        loadComponent: () =>
+          import('./pages/dashboard/organizations/organizations.component').then(
+            (m) => m.OrganizationsComponent,
+          ),
+      },
+      {
+        path: 'repositories',
+        loadComponent: () =>
+          import('./pages/dashboard/repositories/repositories.component').then(
+            (m) => m.RepositoriesComponent,
+          ),
+      },
+    ],
   },
   { path: '**', redirectTo: '' },
 ];

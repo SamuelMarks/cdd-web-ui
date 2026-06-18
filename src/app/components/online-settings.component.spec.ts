@@ -139,7 +139,7 @@ describe('OnlineSettingsComponent', () => {
     apiSpy.login.mockReturnValue(of({ token: 'test-token' }));
     component.onLogin();
     expect(apiSpy.login).toHaveBeenCalled();
-    expect(localStorage.getItem('cdd_token')).toBe('test-token');
+    expect(localStorage.getItem('cdd_auth_token')).toBe('test-token');
     fixture.detectChanges();
     expect(component.successMsg()).toBe('Logged in successfully!');
   });
@@ -163,7 +163,7 @@ describe('OnlineSettingsComponent', () => {
     apiSpy.register.mockReturnValue(of({ token: 'test-token' }));
     component.onRegister();
     expect(apiSpy.register).toHaveBeenCalled();
-    expect(localStorage.getItem('cdd_token')).toBe('test-token');
+    expect(localStorage.getItem('cdd_auth_token')).toBe('test-token');
     fixture.detectChanges();
     expect(component.successMsg()).toBe('Registered successfully!');
   });

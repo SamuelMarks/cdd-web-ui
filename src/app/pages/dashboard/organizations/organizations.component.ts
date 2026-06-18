@@ -180,11 +180,11 @@ interface Organization {
       font-size: 0.875rem;
     }
     .btn-primary {
-      background-color: #2da44e;
+      background-color: #1a7f37;
       color: white;
       border-color: rgba(27, 31, 36, 0.15);
       &:hover {
-        background-color: #2c974b;
+        background-color: #146228;
       }
       &:disabled {
         opacity: 0.6;
