@@ -3,7 +3,11 @@ import angular from '@analogjs/vite-plugin-angular';
 
 export default defineConfig({
   plugins: [angular()],
-  resolve: {},
+  resolve: {
+    alias: {
+      'cdd-browser-sdk': '/tests/mocks/cdd-browser-sdk.ts',
+    },
+  },
   optimizeDeps: {
     exclude: ['cdd-browser-sdk'],
   },

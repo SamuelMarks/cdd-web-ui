@@ -226,6 +226,7 @@ import { ApiService } from '../services/api.service';
  * and handle authentication with the remote service.
  */
 export class OnlineSettingsComponent {
+  /** Authentication service for user session. */
   private readonly authService = inject(AuthService);
   /** Access to backend config state. */
   readonly config = inject(BackendConfigService);
@@ -254,8 +255,6 @@ export class OnlineSettingsComponent {
     /** password */
     password: ['', Validators.required],
   });
-
-  /** Connects to the provided URL. */
 
   /** Changes the run mode. */
   onRunModeChange(mode: RunMode): void {
