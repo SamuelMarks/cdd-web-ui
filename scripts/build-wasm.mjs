@@ -52,19 +52,34 @@ const supportMap = {};
 function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
     https
-      .get(url, { headers: { 'User-Agent': 'node.js' } }, (response) => {
-        if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-          return downloadFile(response.headers.location, dest).then(resolve).catch(reject);
-        }
-        if (response.statusCode !== 200) {
-          return reject(new Error(`HTTP status ${response.statusCode}`));
-        }
-        const file = fs.createWriteStream(dest);
-        response.pipe(file);
-        file.on('finish', () => {
-          file.close(() => resolve(true));
-        });
-      })
+      .get(
+        url,
+        {
+          headers: {
+            'User-Agent': 'node.js',
+            ...(process.env.GITHUB_TOKEN
+              ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+              : {}),
+          },
+        },
+        (response) => {
+          if (
+            response.statusCode >= 300 &&
+            response.statusCode < 400 &&
+            response.headers.location
+          ) {
+            return downloadFile(response.headers.location, dest).then(resolve).catch(reject);
+          }
+          if (response.statusCode !== 200) {
+            return reject(new Error(`HTTP status ${response.statusCode}`));
+          }
+          const file = fs.createWriteStream(dest);
+          response.pipe(file);
+          file.on('finish', () => {
+            file.close(() => resolve(true));
+          });
+        },
+      )
       .on('error', (err) => {
         fs.unlink(dest, () => {});
         reject(err);
@@ -83,7 +98,14 @@ function getGithubReleaseUrl(repo, tool) {
     https
       .get(
         `https://api.github.com/repos/${repo}/releases/latest`,
-        { headers: { 'User-Agent': 'node.js' } },
+        {
+          headers: {
+            'User-Agent': 'node.js',
+            ...(process.env.GITHUB_TOKEN
+              ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
+              : {}),
+          },
+        },
         (res) => {
           let data = '';
           res.on('data', (chunk) => (data += chunk));

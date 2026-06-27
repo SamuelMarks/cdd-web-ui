@@ -1,6 +1,6 @@
 {
   "/docs-ui": {
-    "target": "http://localhost:4201",
+    "target": "http://localhost:8082",
     "secure": false,
     "pathRewrite": {
       "^/docs-ui": ""
