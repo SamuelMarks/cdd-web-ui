@@ -1,6 +1,5 @@
 import {
   Component,
-  ChangeDetectionStrategy,
   inject,
   input,
   output,
@@ -204,7 +203,7 @@ import { environment } from '../../../environments/environment';
           </mat-form-field>
         }
 
-        @if (selectedLanguageId()) {
+        @if (selectedLanguageId() && target() !== 'to_mcp' && target() !== 'to_openapi_3_2_0') {
           <mat-checkbox
             [checked]="!options().noGithubActions"
             (change)="onOptionsChange('noGithubActions', !$event.checked)"
@@ -213,7 +212,7 @@ import { environment } from '../../../environments/environment';
           </mat-checkbox>
         }
 
-        @if (selectedLanguageId() !== 'sh') {
+        @if (selectedLanguageId() !== 'sh' && target() !== 'to_openapi_3_2_0') {
           <mat-checkbox
             [checked]="!options().noInstallablePackage"
             (change)="onOptionsChange('noInstallablePackage', !$event.checked)"
@@ -222,7 +221,7 @@ import { environment } from '../../../environments/environment';
           </mat-checkbox>
         }
 
-        @if (selectedLanguageId()) {
+        @if (selectedLanguageId() && target() !== 'to_openapi_3_2_0' && !options().noTestGen) {
           <mat-checkbox
             [checked]="options().tests || false"
             (change)="onOptionsChange('tests', $event.checked)"
@@ -231,7 +230,16 @@ import { environment } from '../../../environments/environment';
           </mat-checkbox>
         }
 
-        @if (selectedLanguageId() && target() !== 'to_mcp') {
+        @if (selectedLanguageId() === 'typescript') {
+          <mat-checkbox
+            [checked]="!options().noTestGen"
+            (change)="onOptionsChange('noTestGen', !$event.checked)"
+          >
+            <span i18n>Enable Tests</span>
+          </mat-checkbox>
+        }
+
+        @if (selectedLanguageId() && target() !== 'to_mcp' && target() !== 'to_openapi_3_2_0') {
           <mat-checkbox
             [checked]="options().mcp || false"
             (change)="onOptionsChange('mcp', $event.checked)"
@@ -239,13 +247,36 @@ import { environment } from '../../../environments/environment';
             <span i18n>MCP</span>
           </mat-checkbox>
         }
+
+        @if (target() === 'to_server' && ['ruby', 'php', 'kotlin'].includes(selectedLanguageId())) {
+          <mat-checkbox
+            [checked]="options().withEphemeral || false"
+            (change)="onOptionsChange('withEphemeral', $event.checked)"
+          >
+            <span i18n>Sandbox (Ephemeral)</span>
+          </mat-checkbox>
+          <mat-checkbox
+            [checked]="options().withSeed || false"
+            (change)="onOptionsChange('withSeed', $event.checked)"
+            [disabled]="!options().withEphemeral"
+          >
+            <span i18n>Mock Seed</span>
+          </mat-checkbox>
+        }
+
+        @if (target() === 'to_server' && selectedLanguageId() === 'typescript') {
+          <mat-checkbox
+            [checked]="!options().noGenerateServices"
+            (change)="onOptionsChange('noGenerateServices', !$event.checked)"
+          >
+            <span i18n>Services</span>
+          </mat-checkbox>
+        }
       </div>
     </div>
   `,
   /** styleUrl */
   styleUrl: './language-selector.component.css',
-  /** changeDetection */
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 /** LanguageSelectorComponent */
 export class LanguageSelectorComponent {

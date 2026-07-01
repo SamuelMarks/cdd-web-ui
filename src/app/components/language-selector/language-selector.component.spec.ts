@@ -427,4 +427,24 @@ describe('LanguageSelectorComponent', () => {
       options: { framework: 'vanilla', autoAdmin: true },
     });
   });
+
+  it('should emit optionsChanged for new common checkboxes like noGithubActions', async () => {
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+    component = hostFixture.debugElement.query(
+      By.directive(LanguageSelectorComponent),
+    ).componentInstance;
+
+    const emitSpy = vi.spyOn(component.optionsChanged, 'emit');
+    hostComponent.selectedLanguageId.set('typescript');
+    hostComponent.options.set({});
+    hostFixture.detectChanges();
+    await hostFixture.whenStable();
+
+    component.onOptionsChange('noGithubActions', true);
+    expect(emitSpy).toHaveBeenCalledWith({
+      languageId: 'typescript',
+      options: { noGithubActions: true },
+    });
+  });
 });

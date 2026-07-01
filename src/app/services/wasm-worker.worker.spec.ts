@@ -257,6 +257,10 @@ describe('wasm-worker.worker.ts', () => {
             noInstallablePackage: true,
             tests: true,
             mcp: true,
+            withEphemeral: true,
+            withSeed: true,
+            noGenerateServices: true,
+            noTestGen: true,
             noImports: true,
             noWrapping: true,
             upgradeOpenApi: true,
@@ -279,6 +283,10 @@ describe('wasm-worker.worker.ts', () => {
       expect(args).toContain('--no-installable-package');
       expect(args).toContain('--tests');
       expect(args).toContain('--mcp');
+      expect(args).toContain('--with-ephemeral');
+      expect(args).toContain('--with-seed');
+      expect(args).toContain('--no-generate-services');
+      expect(args).toContain('--no-test-gen');
       expect(args).toContain('--no-imports');
       expect(args).toContain('--no-wrapping');
       expect(args).toContain('--upgrade-openapi-3.2.0');

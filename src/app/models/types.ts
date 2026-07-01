@@ -63,6 +63,14 @@ export interface LanguageOptions {
   tests?: boolean;
   /** Whether to generate Model Context Protocol (MCP) server. */
   mcp?: boolean;
+  /** Whether to generate using an ephemeral database (sandbox mode). */
+  withEphemeral?: boolean;
+  /** Whether to seed the database with mock data. */
+  withSeed?: boolean;
+  /** Whether to skip generating services. */
+  noGenerateServices?: boolean;
+  /** Whether to disable all test generation. */
+  noTestGen?: boolean;
   /** Additional dynamic properties. */
   [key: string]: unknown;
 }

@@ -132,6 +132,18 @@ export const handleMessage = async ({ data }: MessageEvent) => {
         if (languageOptions.mcp) {
           additionalArgs.push('--mcp');
         }
+        if (languageOptions.withEphemeral) {
+          additionalArgs.push('--with-ephemeral');
+        }
+        if (languageOptions.withSeed) {
+          additionalArgs.push('--with-seed');
+        }
+        if (languageOptions.noGenerateServices) {
+          additionalArgs.push('--no-generate-services');
+        }
+        if (languageOptions.noTestGen) {
+          additionalArgs.push('--no-test-gen');
+        }
         if (languageOptions.noImports) {
           additionalArgs.push('--no-imports');
         }
