@@ -1,12 +1,4 @@
-import {
-  Component,
-  inject,
-  effect,
-  ViewChild,
-  ElementRef,
-  OnDestroy,
-  signal,
-} from '@angular/core';
+import { Component, inject, effect, ViewChild, ElementRef, OnDestroy, signal } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';

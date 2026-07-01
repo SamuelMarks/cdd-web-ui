@@ -1,10 +1,4 @@
-import {
-  Component,
-  inject,
-  OnInit,
-  OnDestroy,
-  computed,
-} from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { fromEvent, Subject, takeUntil, tap, finalize } from 'rxjs';
 import { DOCUMENT, NgOptimizedImage } from '@angular/common';
