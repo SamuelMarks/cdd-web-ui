@@ -1,6 +1,5 @@
 import {
   Component,
-  ChangeDetectionStrategy,
   input,
   output,
   signal,
@@ -68,7 +67,7 @@ import { WINDOW } from '../../tokens';
             @if (isExecuting()) {
               <mat-spinner diameter="20" class="run-spinner"></mat-spinner>
             } @else {
-              <mat-icon>play_arrow</mat-icon>
+              <mat-icon aria-hidden="true">play_arrow</mat-icon>
             }
             <span i18n>Generate</span>
           </button>
@@ -102,7 +101,6 @@ import { WINDOW } from '../../tokens';
   /** styleUrl */
   styleUrl: './split-pane.component.css',
   /** changeDetection */
-  changeDetection: ChangeDetectionStrategy.OnPush,
   /** host */
   host: {
     '(document:keydown.control.s)': 'handleKeydown($event)',

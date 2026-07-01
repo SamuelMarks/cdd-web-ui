@@ -1,6 +1,5 @@
 import {
   Component,
-  ChangeDetectionStrategy,
   CUSTOM_ELEMENTS_SCHEMA,
   inject,
   OnInit,
@@ -24,7 +23,6 @@ import 'cdd-docs-ui';
   selector: 'app-api-docs-viewer',
   imports: [CommonModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="api-docs-content">
       <cdd-api-docs

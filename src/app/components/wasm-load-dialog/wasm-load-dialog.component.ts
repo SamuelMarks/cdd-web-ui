@@ -54,6 +54,7 @@ import { environment } from '../../../environments/environment';
           mode="determinate"
           [value]="progress()"
           aria-label="Downloading WASM binaries progress"
+          i18n-aria-label="@@downloadingWasmProgress"
         ></mat-progress-bar>
       }
     </mat-dialog-content>

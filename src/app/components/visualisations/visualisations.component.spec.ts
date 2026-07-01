@@ -69,7 +69,7 @@ describe('VisualisationsComponent', () => {
     store.refreshState();
     fixture.detectChanges();
 
-    expect(component.hasData).toBe(false);
+    expect(component.hasData()).toBe(false);
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.empty-state')?.textContent).toContain('No API Data Available');
   });
@@ -80,7 +80,7 @@ describe('VisualisationsComponent', () => {
     store.refreshState();
     fixture.detectChanges();
 
-    expect(component.hasData).toBe(false);
+    expect(component.hasData()).toBe(false);
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
   });
@@ -103,7 +103,7 @@ components:
     store.refreshState();
     fixture.detectChanges();
 
-    expect(component.hasData).toBe(true);
+    expect(component.hasData()).toBe(true);
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('svg')).toBeTruthy();
   });
@@ -135,7 +135,7 @@ paths:
     });
 
     (resizeCallback as () => void)();
-    expect(component.hasData).toBe(true);
+    expect(component.hasData()).toBe(true);
   });
 
   it('should handle node click to expand and collapse', () => {
@@ -152,7 +152,7 @@ paths:
     store.refreshState();
     fixture.detectChanges();
 
-    expect(component.hasData).toBe(true);
+    expect(component.hasData()).toBe(true);
 
     // Find the first node that can be clicked
     const compiled = fixture.nativeElement as HTMLElement;
@@ -205,7 +205,7 @@ info:
         transform: 'translate(10, 20) scale(2)',
       } as unknown as d3.D3ZoomEvent<SVGSVGElement, unknown>);
     }
-    expect(component.hasData).toBe(false);
+    expect(component.hasData()).toBe(false);
   });
 
   it('should handle handleResize when svgContainer is missing', () => {
@@ -215,13 +215,13 @@ info:
   });
 
   it('should handle handleResize when hasData is false', () => {
-    component.hasData = false;
+    component.hasData.set(false);
     (component as unknown as TestComp).handleResize();
     // returns early
   });
 
   it('should handle handleResize when width or height is 0', () => {
-    component.hasData = true;
+    component.hasData.set(true);
     vi.spyOn(component.svgContainer.nativeElement, 'getBoundingClientRect').mockReturnValue({
       width: 0,
       height: 1000,
@@ -234,7 +234,7 @@ info:
       toJSON: () => {},
     });
     (component as unknown as TestComp).handleResize();
-    expect(component.hasData).toBe(true);
+    expect(component.hasData()).toBe(true);
   });
 
   it('should use default title if info is missing', () => {
@@ -248,21 +248,21 @@ paths:
     store.overrideSelector(Selectors.selectOpenApiSpecContent, specWithoutTitle);
     store.refreshState();
     fixture.detectChanges();
-    expect(component.hasData).toBe(true);
+    expect(component.hasData()).toBe(true);
   });
 
   it('should not update if svg is undefined', () => {
-    component.hasData = true;
+    component.hasData.set(true);
     (component as unknown as TestComp).svg = null;
     (component as unknown as TestComp).update({});
-    expect(component.hasData).toBe(true);
+    expect(component.hasData()).toBe(true);
   });
 
   it('should not clear if svgContainer is missing', () => {
     const originalContainer = component.svgContainer;
     (component as unknown as TestComp).svgContainer = null;
     (component as unknown as TestComp).clearSvg();
-    expect(component.hasData).toBe(false); // Before state
+    expect(component.hasData()).toBe(false); // Before state
     (component as unknown as TestComp).svgContainer = originalContainer;
   });
 
@@ -286,7 +286,7 @@ info:
     store.overrideSelector(Selectors.selectOpenApiSpecContent, spec);
     store.refreshState();
     fixture.detectChanges();
-    expect(component.hasData).toBe(true);
+    expect(component.hasData()).toBe(true);
   });
 
   it('should parse spec with definitions instead of components.schemas and handle resize when width > 0', () => {
@@ -312,11 +312,11 @@ definitions:
     store.overrideSelector(Selectors.selectOpenApiSpecContent, specWithDefinitions);
     store.refreshState();
     fixture.detectChanges();
-    expect(component.hasData).toBe(true);
+    expect(component.hasData()).toBe(true);
   });
 
   it('should handle handleResize when root is null', () => {
-    component.hasData = true;
+    component.hasData.set(true);
     (component as unknown as TestComp).root = null;
     vi.spyOn(component.svgContainer.nativeElement, 'getBoundingClientRect').mockReturnValue({
       width: 1000,
@@ -347,11 +347,11 @@ info:
     if ((component as unknown as TestComp).root) {
       (component as unknown as TestComp).root!.children = null;
     }
-    expect(component.hasData).toBe(true);
+    expect(component.hasData()).toBe(true);
   });
 
   it('should ignore resize if no dimensions', () => {
-    component.hasData = true;
+    component.hasData.set(true);
     (component as unknown as TestComp).svgContainer = {
       nativeElement: { getBoundingClientRect: () => ({ width: 0, height: 0 }) },
     };
@@ -360,7 +360,7 @@ info:
   });
 
   it('should ignore resize if height is 0', () => {
-    component.hasData = true;
+    component.hasData.set(true);
     (component as unknown as TestComp).svgContainer = {
       nativeElement: { getBoundingClientRect: () => ({ width: 100, height: 0 }) },
     };
@@ -369,13 +369,13 @@ info:
 
   it('should render with components schemas', () => {
     (component as unknown as TestComp).parseAndRender('components:\n  schemas:\n    Test: {}');
-    expect(component.hasData).toBe(true);
+    expect(component.hasData()).toBe(true);
   });
 
   it('should ignore empty string', () => {
-    component.hasData = false;
+    component.hasData.set(false);
     (component as unknown as TestComp).parseAndRender(' ');
-    expect(component.hasData).toBe(false);
+    expect(component.hasData()).toBe(false);
   });
 
   it('should handle toggle with children vs _children', () => {
@@ -396,7 +396,7 @@ info:
   });
 
   it('should hit width/height > 0 resize', () => {
-    component.hasData = true;
+    component.hasData.set(true);
     (component as unknown as TestComp).svgContainer = {
       nativeElement: { getBoundingClientRect: () => ({ width: 100, height: 100 }) },
     };
@@ -410,7 +410,7 @@ info:
     (component as unknown as TestComp).parseAndRender(
       'paths:\n  /test:\n    parameters: []\n    $ref: "foo"\n    get: {}',
     );
-    expect(component.hasData).toBe(true);
+    expect(component.hasData()).toBe(true);
   });
 
   it('should run zoomCallback with svg', () => {

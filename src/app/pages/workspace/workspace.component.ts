@@ -1,6 +1,5 @@
 import {
   Component,
-  ChangeDetectionStrategy,
   inject,
   OnInit,
   OnDestroy,
@@ -225,8 +224,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         class="online-mode-fab"
         (click)="onGoOnline()"
         aria-label="Go Online"
+        i18n-aria-label="@@goOnlineAria"
       >
-        <mat-icon>cloud_upload</mat-icon>
+        <mat-icon aria-hidden="true">cloud_upload</mat-icon>
         <span i18n>Go Online</span>
       </button>
     </div>
@@ -266,7 +266,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   /** styleUrl */
   styleUrl: './workspace.component.css',
   /** changeDetection */
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 /** WorkspaceComponent */
 export class WorkspaceComponent implements OnInit, OnDestroy {

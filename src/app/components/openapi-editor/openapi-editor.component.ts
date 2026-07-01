@@ -1,6 +1,5 @@
 import {
   Component,
-  ChangeDetectionStrategy,
   input,
   output,
   signal,
@@ -60,7 +59,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
             aria-label="Format Document"
             i18n-aria-label="@@formatDocAria"
           >
-            <mat-icon>format_align_left</mat-icon>
+            <mat-icon aria-hidden="true">format_align_left</mat-icon>
           </button>
           <button
             mat-icon-button
@@ -70,7 +69,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
             aria-label="Copy to Clipboard"
             i18n-aria-label="@@copyToClipboardAria"
           >
-            <mat-icon>content_copy</mat-icon>
+            <mat-icon aria-hidden="true">content_copy</mat-icon>
           </button>
           <button
             mat-icon-button
@@ -81,7 +80,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
             aria-label="Clear Editor"
             i18n-aria-label="@@clearEditorAria"
           >
-            <mat-icon>delete_outline</mat-icon>
+            <mat-icon aria-hidden="true">delete_outline</mat-icon>
           </button>
         </div>
         <ngx-monaco-editor
@@ -106,7 +105,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   /** styleUrl */
   styleUrl: './openapi-editor.component.css',
   /** changeDetection */
-  changeDetection: ChangeDetectionStrategy.OnPush,
   /** host */
   host: {
     '(document:keydown.control.s)': 'handleKeydown($event)',

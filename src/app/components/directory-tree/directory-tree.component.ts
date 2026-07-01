@@ -1,6 +1,5 @@
 import {
   Component,
-  ChangeDetectionStrategy,
   input,
   output,
   computed,
@@ -41,7 +40,7 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
           i18n-aria-label="@@expandAllAria"
           [disabled]="!hasFiles()"
         >
-          <mat-icon>unfold_more</mat-icon>
+          <mat-icon aria-hidden="true">unfold_more</mat-icon>
         </button>
         <button
           mat-icon-button
@@ -52,7 +51,7 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
           i18n-aria-label="@@collapseAllAria"
           [disabled]="!hasFiles()"
         >
-          <mat-icon>unfold_less</mat-icon>
+          <mat-icon aria-hidden="true">unfold_less</mat-icon>
         </button>
       </div>
 
@@ -72,7 +71,7 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
           ></ng-container>
         } @else {
           <div class="empty-state">
-            <mat-icon>snippet_folder</mat-icon>
+            <mat-icon aria-hidden="true">snippet_folder</mat-icon>
             <p i18n="@@noFilesGenerated">No files generated.</p>
             <p style="font-size: 0.8rem; margin-top: 0.5rem;" i18n="@@generateSdkPrompt">
               Click 'Run' to generate SDK files from the OpenAPI spec.
@@ -100,11 +99,11 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
               (keydown.space)="onNodeClick(node)"
             >
               @if (node.isDirectory) {
-                <mat-icon class="icon folder-icon">
+                <mat-icon class="icon folder-icon" aria-hidden="true">
                   {{ node.isExpanded ? 'folder_open' : 'folder' }}
                 </mat-icon>
               } @else {
-                <mat-icon class="icon file-icon">{{ getFileIcon(node.name) }}</mat-icon>
+                <mat-icon class="icon file-icon" aria-hidden="true">{{ getFileIcon(node.name) }}</mat-icon>
               }
               <span>{{ node.name }}</span>
             </div>
@@ -122,7 +121,6 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
   /** styleUrl */
   styleUrl: './directory-tree.component.css',
   /** changeDetection */
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 /** DirectoryTreeComponent */
 export class DirectoryTreeComponent {

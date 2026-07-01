@@ -85,19 +85,21 @@ import { environment } from '../environments/environment';
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Documentation"
+              i18n-aria-label="@@documentationAria"
               matTooltip="Documentation"
               i18n-matTooltip="@@documentationTooltip"
             >
-              <mat-icon>help_outline</mat-icon>
+              <mat-icon aria-hidden="true">description</mat-icon>
             </a>
             <button
               mat-icon-button
               (click)="openSettings()"
               aria-label="Settings"
+              i18n-aria-label="@@settingsAria"
               matTooltip="Settings"
               i18n-matTooltip="@@onlineSettings"
             >
-              <mat-icon>settings</mat-icon>
+              <mat-icon aria-hidden="true">settings</mat-icon>
             </button>
             <a
               href="https://github.com/SamuelMarks/cdd-engine"
@@ -105,7 +107,9 @@ import { environment } from '../environments/environment';
               rel="noopener noreferrer"
               class="github-link header-github-link"
               aria-label="View cdd-engine on GitHub"
+              i18n-aria-label="@@viewCddEngineGithubAria"
               matTooltip="View cdd-engine on GitHub"
+              i18n-matTooltip="@@viewCddEngineGithubTooltip"
             >
               <img ngSrc="assets/icons/github.svg" alt="" width="24" height="24" />
             </a>

@@ -1,11 +1,11 @@
 import {
   Component,
-  ChangeDetectionStrategy,
   inject,
   effect,
   ViewChild,
   ElementRef,
   OnDestroy,
+  signal,
 } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CommonModule } from '@angular/common';
@@ -53,13 +53,12 @@ interface NodeData {
   imports: [CommonModule],
   template: `
     <div class="vis-container" #svgContainer>
-      @if (!hasData) {
+      @if (!hasData()) {
         <div class="empty-state" i18n="@@noApiData">No API Data Available</div>
       }
     </div>
   `,
   styleUrl: './visualisations.component.css',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class VisualisationsComponent implements OnDestroy {
   /** doc */
@@ -71,7 +70,7 @@ export class VisualisationsComponent implements OnDestroy {
   private specContent = this.store.selectSignal(Selectors.selectOpenApiSpecContent);
 
   /** doc */
-  hasData = false;
+  hasData = signal(false);
   /** doc */
   private svg: d3.Selection<SVGGElement, unknown, null, undefined> | null = null;
   /** doc */
@@ -98,7 +97,7 @@ export class VisualisationsComponent implements OnDestroy {
       if (content) {
         this.parseAndRender(content);
       } else {
-        this /** doc */.hasData = false;
+        this.hasData.set(false);
         this.clearSvg();
       }
     });
@@ -120,7 +119,7 @@ export class VisualisationsComponent implements OnDestroy {
 
   /** doc */
   private handleResize() {
-    if (!this.svgContainer || !this.hasData) return;
+    if (!this.svgContainer || !this.hasData()) return;
     const rect = this.svgContainer.nativeElement.getBoundingClientRect();
     if (rect.width === 0) return;
     if (rect.height === 0) return;
@@ -150,7 +149,7 @@ export class VisualisationsComponent implements OnDestroy {
       const parsed = load(content) as OpenApiRecord;
       if (!parsed) return;
 
-      this.hasData = true;
+      this.hasData.set(true);
       const rootData: NodeData = {
         id: 'root',
         name: parsed.info?.title || 'API',
@@ -216,7 +215,7 @@ export class VisualisationsComponent implements OnDestroy {
       this.update(this.root);
     } catch (e) {
       console.error('Error parsing OpenAPI spec for visualisation', e);
-      this /** doc */.hasData = false;
+      this.hasData.set(false);
       this.clearSvg();
     }
   }

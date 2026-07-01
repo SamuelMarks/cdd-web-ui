@@ -1,6 +1,5 @@
 import {
   Component,
-  ChangeDetectionStrategy,
   input,
   output,
   signal,
@@ -66,7 +65,7 @@ import { WINDOW } from '../../tokens';
                 (keydown.enter)="closeTab(tab, $event)"
                 (keydown.space)="closeTab(tab, $event)"
               >
-                <mat-icon>close</mat-icon>
+                <mat-icon aria-hidden="true">close</mat-icon>
               </div>
             </div>
           }
@@ -82,7 +81,7 @@ import { WINDOW } from '../../tokens';
             aria-label="Copy to Clipboard"
             i18n-aria-label="@@copyToClipboardAria"
           >
-            <mat-icon>content_copy</mat-icon>
+            <mat-icon aria-hidden="true">content_copy</mat-icon>
           </button>
 
           <button
@@ -94,7 +93,7 @@ import { WINDOW } from '../../tokens';
             aria-label="Download File"
             i18n-aria-label="@@downloadFileAria"
           >
-            <mat-icon>download</mat-icon>
+            <mat-icon aria-hidden="true">download</mat-icon>
           </button>
         </div>
       </div>
@@ -108,7 +107,7 @@ import { WINDOW } from '../../tokens';
           ></ngx-monaco-editor>
         } @else {
           <div class="empty-state">
-            <mat-icon>code_off</mat-icon>
+            <mat-icon aria-hidden="true">code_off</mat-icon>
             <p i18n="@@noFileSelected">No file selected</p>
             <p style="font-size: 0.8rem; margin-top: 0.5rem;" i18n="@@selectFilePrompt">
               Select a file from the Explorer to view its contents.
@@ -121,7 +120,6 @@ import { WINDOW } from '../../tokens';
   /** styleUrl */
   styleUrl: './code-viewer.component.css',
   /** changeDetection */
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 /** CodeViewerComponent */
 export class CodeViewerComponent {

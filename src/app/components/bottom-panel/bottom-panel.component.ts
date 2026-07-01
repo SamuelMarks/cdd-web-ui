@@ -35,13 +35,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
             <div class="console-toolbar">
               <button
                 mat-icon-button
-                title="Clear Logs"
+                matTooltip="Clear Logs"
+                i18n-matTooltip="@@clearLogsTooltip"
                 i18n-title="@@clearLogsTitle"
                 aria-label="Clear Logs"
                 i18n-aria-label="@@clearLogsAria"
                 (click)="clearLogs()"
               >
-                <mat-icon>delete</mat-icon>
+                <mat-icon aria-hidden="true">delete</mat-icon>
               </button>
             </div>
             <div class="console-content">
