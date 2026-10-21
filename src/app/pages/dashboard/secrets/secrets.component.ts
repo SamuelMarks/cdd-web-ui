@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../../services/auth.service';
 
 /**
@@ -18,7 +19,7 @@ interface ActionState {
  */
 @Component({
   selector: 'app-secrets',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, MatButtonModule],
   template: `
     <div class="page-container">
       <div class="header-actions">
@@ -71,6 +72,7 @@ interface ActionState {
             <div class="form-actions">
               <button
                 type="submit"
+                mat-flat-button
                 class="btn btn-primary"
                 [disabled]="tokensForm.pristine || tokensState().status === 'loading'"
               >
@@ -78,10 +80,12 @@ interface ActionState {
               </button>
 
               @if (tokensState().status === 'success') {
-                <span class="status-msg success">Tokens saved to vault!</span>
+                <span class="status-msg success" role="status" aria-live="polite"
+                  >Tokens saved to vault!</span
+                >
               }
               @if (tokensState().status === 'error') {
-                <span class="status-msg error">{{ tokensState().message }}</span>
+                <span class="status-msg error" role="alert">{{ tokensState().message }}</span>
               }
             </div>
           </form>
@@ -100,6 +104,8 @@ interface ActionState {
               <p>Re-generates SDK source code based on the latest OpenAPI schemas.</p>
             </div>
             <button
+              type="button"
+              mat-stroked-button
               class="btn btn-secondary"
               (click)="triggerAction('generate')"
               [disabled]="generateState().status === 'loading'"
@@ -110,6 +116,8 @@ interface ActionState {
           @if (generateState().message) {
             <div
               class="alert"
+              role="status"
+              aria-live="polite"
               [class.alert-success]="generateState().status === 'success'"
               [class.alert-error]="generateState().status === 'error'"
             >
@@ -125,6 +133,8 @@ interface ActionState {
               <p>Publishes generated SDKs to configured package registries.</p>
             </div>
             <button
+              type="button"
+              mat-stroked-button
               class="btn btn-secondary"
               (click)="triggerAction('publish')"
               [disabled]="publishState().status === 'loading'"
@@ -135,6 +145,8 @@ interface ActionState {
           @if (publishState().message) {
             <div
               class="alert"
+              role="status"
+              aria-live="polite"
               [class.alert-success]="publishState().status === 'success'"
               [class.alert-error]="publishState().status === 'error'"
             >
@@ -154,11 +166,11 @@ interface ActionState {
       margin-bottom: 2rem;
       h1 {
         margin: 0 0 0.5rem 0;
-        color: var(--color-text-default, #24292f);
+        color: var(--text-primary);
       }
       .subtitle {
         margin: 0;
-        color: var(--color-text-muted, #57606a);
+        color: var(--text-secondary);
         font-size: 1rem;
       }
     }
@@ -171,8 +183,8 @@ interface ActionState {
       }
     }
     .card {
-      background: var(--color-bg-default, #ffffff);
-      border: 1px solid var(--color-border-default, #d0d7de);
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
       border-radius: 6px;
       padding: 1.5rem;
       h2 {
@@ -181,7 +193,7 @@ interface ActionState {
       }
     }
     .section-desc {
-      color: var(--color-text-muted, #57606a);
+      color: var(--text-secondary);
       font-size: 0.875rem;
       margin-bottom: 1.5rem;
     }
@@ -191,21 +203,23 @@ interface ActionState {
         display: block;
         margin-bottom: 0.5rem;
         font-weight: 500;
-        color: var(--color-text-default, #24292f);
+        color: var(--text-primary);
         font-size: 0.875rem;
       }
     }
     .form-control {
       width: 100%;
       padding: 0.5rem 0.75rem;
-      border: 1px solid var(--color-border-default, #d0d7de);
+      border: 1px solid var(--border-color);
       border-radius: 6px;
       font-size: 0.875rem;
       box-sizing: border-box;
       font-family: monospace;
+      background-color: var(--surface-color);
+      color: var(--text-primary);
       &:focus {
         outline: none;
-        border-color: #0969da;
+        border-color: var(--primary-color);
         box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
       }
     }
@@ -219,10 +233,10 @@ interface ActionState {
       font-size: 0.875rem;
       font-weight: 500;
       &.success {
-        color: #1a7f37;
+        color: var(--success-text);
       }
       &.error {
-        color: #cf222e;
+        color: var(--error-text);
       }
     }
     .btn {
@@ -234,24 +248,17 @@ interface ActionState {
       font-size: 0.875rem;
     }
     .btn-primary {
-      background-color: #1a7f37;
-      color: white;
-      border-color: rgba(27, 31, 36, 0.15);
-      &:hover:not(:disabled) {
-        background-color: #2c974b;
-      }
+      background-color: var(--primary-color);
+      color: var(--mat-sys-on-primary, #ffffff);
       &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
       }
     }
     .btn-secondary {
-      background-color: #f6f8fa;
-      color: #24292f;
-      border-color: rgba(27, 31, 36, 0.15);
-      &:hover:not(:disabled) {
-        background-color: #f3f4f6;
-      }
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      border-color: var(--border-color);
       &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
@@ -271,12 +278,12 @@ interface ActionState {
       p {
         margin: 0;
         font-size: 0.875rem;
-        color: var(--color-text-muted, #57606a);
+        color: var(--text-secondary);
       }
     }
     .divider {
       border: 0;
-      border-top: 1px solid var(--color-border-default, #d0d7de);
+      border-top: 1px solid var(--border-color);
       margin: 1.5rem 0;
     }
     .alert {
@@ -291,9 +298,9 @@ interface ActionState {
       border: 1px solid #1a7f37;
     }
     .alert-error {
-      background: #ffebe9;
-      color: #cf222e;
-      border: 1px solid #cf222e;
+      background: var(--error-bg);
+      color: var(--error-text);
+      border: 1px solid var(--error-text);
     }
   `,
 })

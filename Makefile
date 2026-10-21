@@ -1,4 +1,4 @@
-.PHONY: build_docker run_docker test_docker clean_docker build_production_docs docs build_production_c_only deploy_c_only
+.PHONY: build_docker run_docker test_docker clean_docker build_production_docs docs build_production_c_only deploy_c_only build_wasm_local build_local serve_local test_local e2e_local
 
 build_docker:
 	docker build -f alpine.Dockerfile -t cdd-web-alpine .
@@ -46,3 +46,20 @@ deploy_c_only: build_production_c_only
 	@echo "Deploying to offscale.github.io..."
 	d="/Users/samuel/repos/offscale.github.io/cdd-web-ui-c-only" && rm -rf "$$d"/* && cp -r dist/cdd-web-ui/browser/* "$$d/"
 	rm -rf "/Users/samuel/repos/offscale.github.io/cdd-web-ui-c-only/assets/wasm"
+
+build_wasm_local:
+	node scripts/build-wasm.mjs --local --force
+
+build_local: build_wasm_local
+	npx ng build
+
+serve_local: build_wasm_local
+	npx ng serve --port 8083
+
+test_local: build_wasm_local
+	npm test
+
+e2e_local: build_wasm_local
+	npx ng build
+	CI=1 npx playwright test
+

@@ -14,20 +14,3 @@
   color: var(--mat-sys-outline);
   font-style: italic;
 }
-
-::ng-deep .node circle {
-  fill: var(--mat-sys-surface);
-  stroke: var(--mat-sys-primary);
-  stroke-width: 1.5px;
-}
-
-::ng-deep .node text {
-  font: 12px sans-serif;
-  fill: var(--mat-sys-on-surface);
-}
-
-::ng-deep .link {
-  fill: none;
-  stroke: var(--mat-sys-outline-variant);
-  stroke-width: 1.5px;
-}

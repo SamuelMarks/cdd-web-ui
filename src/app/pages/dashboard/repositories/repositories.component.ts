@@ -1,5 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { A11yModule } from '@angular/cdk/a11y';
+import { MatButtonModule } from '@angular/material/button';
+import { GLOBAL_DATE } from '../../../tokens';
 
 /**
  * Represents a linked repository for SDK generation.
@@ -22,12 +25,12 @@ interface Repository {
  */
 @Component({
   selector: 'app-repositories',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, A11yModule, MatButtonModule],
   template: `
     <div class="page-container">
       <div class="header-actions">
         <h1>Repositories</h1>
-        <button class="btn btn-primary" (click)="toggleCreateForm()">
+        <button type="button" mat-flat-button class="btn btn-primary" (click)="toggleCreateForm()">
           {{ showCreateForm() ? 'Cancel' : 'Link Repository' }}
         </button>
       </div>
@@ -53,7 +56,12 @@ interface Repository {
                 <option value="Demo Team">Demo Team</option>
               </select>
             </div>
-            <button type="submit" class="btn btn-primary" [disabled]="createRepoForm.invalid">
+            <button
+              type="submit"
+              mat-flat-button
+              class="btn btn-primary"
+              [disabled]="createRepoForm.invalid"
+            >
               Link
             </button>
           </form>
@@ -73,13 +81,19 @@ interface Repository {
                 <h4>OpenAPI Schema</h4>
                 <div class="schema-info">
                   @if (repo.schemaUrl) {
-                    <a [href]="repo.schemaUrl" target="_blank" class="schema-link">{{
-                      repo.schemaUrl
-                    }}</a>
+                    <a
+                      [href]="repo.schemaUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="schema-link"
+                      >{{ repo.schemaUrl }}</a
+                    >
                   } @else {
                     <span class="text-muted">No schema linked</span>
                   }
-                  <button class="btn btn-link" (click)="openSchemaConfig(repo)">Configure</button>
+                  <button type="button" class="btn btn-link" (click)="openSchemaConfig(repo)">
+                    Configure
+                  </button>
                 </div>
               </div>
 
@@ -93,7 +107,9 @@ interface Repository {
                   } @else {
                     <span class="text-muted">No languages configured</span>
                   }
-                  <button class="btn btn-link" (click)="openLangConfig(repo)">Configure</button>
+                  <button type="button" class="btn btn-link" (click)="openLangConfig(repo)">
+                    Configure
+                  </button>
                 </div>
               </div>
             </div>
@@ -106,10 +122,17 @@ interface Repository {
       </div>
 
       <!-- Config Modals -->
-      @if (selectedRepoForSchema()) {
-        <div class="modal-backdrop">
-          <div class="modal card">
-            <h2>Configure Schema for {{ selectedRepoForSchema()?.name }}</h2>
+      @if (selectedRepoForSchema(); as selectedRepo) {
+        <div class="modal-backdrop" (keydown.escape)="closeSchemaConfig()">
+          <div
+            class="modal card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="schema-dialog-title"
+            cdkTrapFocus
+            [cdkTrapFocusAutoCapture]="true"
+          >
+            <h2 id="schema-dialog-title">Configure Schema for {{ selectedRepo.name }}</h2>
             <form [formGroup]="schemaForm" (ngSubmit)="onSaveSchema()">
               <div class="form-group">
                 <label for="schemaUrl">OpenAPI Schema URL</label>
@@ -122,20 +145,32 @@ interface Repository {
                 />
               </div>
               <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" (click)="closeSchemaConfig()">
+                <button
+                  type="button"
+                  mat-stroked-button
+                  class="btn btn-secondary"
+                  (click)="closeSchemaConfig()"
+                >
                   Cancel
                 </button>
-                <button type="submit" class="btn btn-primary">Save Schema</button>
+                <button type="submit" mat-flat-button class="btn btn-primary">Save Schema</button>
               </div>
             </form>
           </div>
         </div>
       }
 
-      @if (selectedRepoForLang()) {
-        <div class="modal-backdrop">
-          <div class="modal card">
-            <h2>Configure Languages for {{ selectedRepoForLang()?.name }}</h2>
+      @if (selectedRepoForLang(); as selectedLangRepo) {
+        <div class="modal-backdrop" (keydown.escape)="closeLangConfig()">
+          <div
+            class="modal card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lang-dialog-title"
+            cdkTrapFocus
+            [cdkTrapFocusAutoCapture]="true"
+          >
+            <h2 id="lang-dialog-title">Configure Languages for {{ selectedLangRepo.name }}</h2>
             <div class="lang-options">
               @for (lang of availableLanguages; track lang) {
                 <label class="lang-option">
@@ -149,7 +184,12 @@ interface Repository {
               }
             </div>
             <div class="modal-actions">
-              <button type="button" class="btn btn-secondary" (click)="closeLangConfig()">
+              <button
+                type="button"
+                mat-stroked-button
+                class="btn btn-secondary"
+                (click)="closeLangConfig()"
+              >
                 Close
               </button>
             </div>
@@ -170,12 +210,12 @@ interface Repository {
       margin-bottom: 2rem;
       h1 {
         margin: 0;
-        color: var(--color-text-default, #24292f);
+        color: var(--text-primary);
       }
     }
     .card {
-      background: var(--color-bg-default, #ffffff);
-      border: 1px solid var(--color-border-default, #d0d7de);
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
       border-radius: 6px;
       padding: 1.5rem;
       margin-bottom: 1rem;
@@ -196,7 +236,7 @@ interface Repository {
       display: flex;
       align-items: center;
       gap: 1rem;
-      border-bottom: 1px solid var(--color-border-default, #d0d7de);
+      border-bottom: 1px solid var(--border-color);
       padding-bottom: 1rem;
       h3 {
         margin: 0;
@@ -204,9 +244,9 @@ interface Repository {
       }
     }
     .badge {
-      background: var(--color-bg-subtle, #f5f5f5);
-      color: var(--color-text-muted, #57606a);
-      border: 1px solid var(--color-border-default, #d0d7de);
+      background: var(--bg-color);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
       padding: 0.25rem 0.5rem;
       border-radius: 1rem;
       font-size: 0.75rem;
@@ -221,7 +261,7 @@ interface Repository {
       h4 {
         margin: 0 0 0.5rem 0;
         font-size: 0.875rem;
-        color: var(--color-text-muted, #57606a);
+        color: var(--text-secondary);
       }
     }
     .schema-info,
@@ -232,7 +272,7 @@ interface Repository {
       gap: 0.5rem;
     }
     .schema-link {
-      color: #0969da;
+      color: var(--primary-color);
       text-decoration: none;
       word-break: break-all;
       &:hover {
@@ -240,15 +280,15 @@ interface Repository {
       }
     }
     .lang-badge {
-      background: #eef2ff;
-      color: #4f46e5;
+      background: var(--primary-hover);
+      color: var(--primary-color);
       padding: 0.25rem 0.5rem;
       border-radius: 4px;
       font-size: 0.75rem;
       font-weight: 500;
     }
     .text-muted {
-      color: var(--color-text-muted, #57606a);
+      color: var(--text-secondary);
       font-style: italic;
       font-size: 0.875rem;
     }
@@ -261,29 +301,22 @@ interface Repository {
       font-size: 0.875rem;
     }
     .btn-primary {
-      background-color: #1a7f37;
-      color: white;
-      border-color: rgba(27, 31, 36, 0.15);
-      &:hover {
-        background-color: #146228;
-      }
+      background-color: var(--primary-color);
+      color: var(--mat-sys-on-primary, #ffffff);
       &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
       }
     }
     .btn-secondary {
-      background-color: #f6f8fa;
-      color: #24292f;
-      border-color: rgba(27, 31, 36, 0.15);
-      &:hover {
-        background-color: #f3f4f6;
-      }
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      border-color: var(--border-color);
     }
     .btn-link {
       background: none;
       border: none;
-      color: #0969da;
+      color: var(--primary-color);
       padding: 0;
       font-size: 0.875rem;
       &:hover {
@@ -296,19 +329,21 @@ interface Repository {
         display: block;
         margin-bottom: 0.5rem;
         font-weight: 500;
-        color: var(--color-text-default, #24292f);
+        color: var(--text-primary);
       }
     }
     .form-control {
       width: 100%;
       padding: 0.5rem 0.75rem;
-      border: 1px solid var(--color-border-default, #d0d7de);
+      border: 1px solid var(--border-color);
       border-radius: 6px;
       font-size: 0.875rem;
       box-sizing: border-box;
+      background-color: var(--surface-color);
+      color: var(--text-primary);
       &:focus {
         outline: none;
-        border-color: #0969da;
+        border-color: var(--primary-color);
         box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
       }
     }
@@ -353,10 +388,10 @@ interface Repository {
     .empty-state {
       text-align: center;
       padding: 3rem;
-      background: var(--color-bg-default, #ffffff);
-      border: 1px dashed var(--color-border-default, #d0d7de);
+      background: var(--surface-color);
+      border: 1px dashed var(--border-color);
       border-radius: 6px;
-      color: var(--color-text-muted, #57606a);
+      color: var(--text-secondary);
     }
   `,
 })
@@ -364,6 +399,9 @@ interface Repository {
  * Component to display and configure linked repositories, schemas, and SDK languages.
  */
 export class RepositoriesComponent {
+  /** Global Date constructor. */
+  private readonly globalDate = inject(GLOBAL_DATE);
+
   /**
    * List of linked repositories
    */
@@ -433,7 +471,7 @@ export class RepositoriesComponent {
     if (this.createRepoForm.valid) {
       const formValue = this.createRepoForm.value;
       const newRepo: Repository = {
-        id: `repo-${Date.now()}`,
+        id: `repo-${this.globalDate.now()}`,
         name: formValue.name || '',
         organization: formValue.organization || 'Offscale',
         languages: [],
@@ -509,27 +547,19 @@ export class RepositoriesComponent {
     const repo = this.selectedRepoForLang();
     if (!repo) return;
 
+    const hasLang = repo.languages.includes(lang);
+    const updatedLanguages = hasLang
+      ? repo.languages.filter((l) => l !== lang)
+      : [...repo.languages, lang];
+
     this.repositories.update((repos) =>
-      repos.map((r) => {
-        if (r.id === repo.id) {
-          const hasLang = r.languages.includes(lang);
-          const newLangs = hasLang ? r.languages.filter((l) => l !== lang) : [...r.languages, lang];
-          return { ...r, languages: newLangs };
-        }
-        return r;
-      }),
+      repos.map((r) => (r.id === repo.id ? { ...r, languages: updatedLanguages } : r)),
     );
 
     // Update local selected state to refresh view immediately
-    this.selectedRepoForLang.update((r) => {
-      /* istanbul ignore if */
-      if (!r) return null;
-      return {
-        ...r,
-        languages: r.languages.includes(lang)
-          ? r.languages.filter((l) => l !== lang)
-          : [...r.languages, lang],
-      };
+    this.selectedRepoForLang.set({
+      ...repo,
+      languages: updatedLanguages,
     });
   }
 }

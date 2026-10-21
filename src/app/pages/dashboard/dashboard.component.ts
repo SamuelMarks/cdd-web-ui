@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../services/auth.service';
 
 /**
@@ -7,7 +8,7 @@ import { AuthService } from '../../services/auth.service';
  */
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatButtonModule],
   template: `
     <div class="dashboard-layout">
       <!-- Sidebar -->
@@ -16,7 +17,7 @@ import { AuthService } from '../../services/auth.service';
           <h2>CDD Control</h2>
         </div>
 
-        <nav class="sidebar-nav">
+        <nav class="sidebar-nav" aria-label="Dashboard Navigation">
           <a routerLink="/dashboard/organizations" routerLinkActive="active" class="nav-item">
             Organizations
           </a>
@@ -29,7 +30,7 @@ import { AuthService } from '../../services/auth.service';
           <a routerLink="/dashboard/audit-logs" routerLinkActive="active" class="nav-item">
             Audit Logs
           </a>
-          <a routerLink="/workspace" class="nav-item"> Workspace Preview </a>
+          <a routerLink="/" class="nav-item"> Workspace Preview </a>
         </nav>
 
         <div class="sidebar-footer">
@@ -44,19 +45,19 @@ import { AuthService } from '../../services/auth.service';
               </div>
             </div>
           }
-          <button class="btn-logout" (click)="logout()">Log Out</button>
+          <button mat-stroked-button class="btn-logout" (click)="logout()">Log Out</button>
         </div>
       </aside>
 
       <!-- Main Content -->
-      <main class="main-content">
+      <div class="main-content" role="region" aria-label="Dashboard Content">
         <header class="top-bar">
           <!-- Top bar content can go here -->
         </header>
         <div class="content-area">
           <router-outlet></router-outlet>
         </div>
-      </main>
+      </div>
     </div>
   `,
   styles: `
@@ -64,7 +65,7 @@ import { AuthService } from '../../services/auth.service';
       display: flex;
       height: 100vh;
       overflow: hidden;
-      background-color: var(--color-bg-subtle, #f5f5f5);
+      background-color: var(--bg-color);
       font-family:
         system-ui,
         -apple-system,
@@ -74,19 +75,19 @@ import { AuthService } from '../../services/auth.service';
     /* Sidebar Styles */
     .sidebar {
       width: 260px;
-      background-color: var(--color-bg-default, #ffffff);
-      border-right: 1px solid var(--color-border-default, #d0d7de);
+      background-color: var(--surface-color);
+      border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
     }
 
     .sidebar-header {
       padding: 1.5rem;
-      border-bottom: 1px solid var(--color-border-default, #d0d7de);
+      border-bottom: 1px solid var(--border-color);
       h2 {
         margin: 0;
         font-size: 1.25rem;
-        color: var(--color-text-default, #24292f);
+        color: var(--text-primary);
       }
     }
 
@@ -99,7 +100,7 @@ import { AuthService } from '../../services/auth.service';
     .nav-item {
       display: block;
       padding: 0.75rem 1.5rem;
-      color: var(--color-text-default, #24292f);
+      color: var(--text-primary);
       text-decoration: none;
       font-weight: 500;
       transition:
@@ -107,20 +108,20 @@ import { AuthService } from '../../services/auth.service';
         color 0.2s;
 
       &:hover {
-        background-color: var(--color-bg-subtle, #f5f5f5);
+        background-color: var(--bg-color);
       }
 
       &.active {
-        background-color: var(--color-accent-subtle, #ddf4ff);
-        color: var(--color-accent-emphasis, #0969da);
-        border-left: 4px solid var(--color-accent-emphasis, #0969da);
+        background-color: var(--primary-hover);
+        color: var(--primary-color);
+        border-left: 4px solid var(--primary-color);
         padding-left: calc(1.5rem - 4px);
       }
     }
 
     .sidebar-footer {
       padding: 1rem;
-      border-top: 1px solid var(--color-border-default, #d0d7de);
+      border-top: 1px solid var(--border-color);
     }
 
     .user-profile {
@@ -145,7 +146,7 @@ import { AuthService } from '../../services/auth.service';
     .user-name {
       font-size: 0.875rem;
       font-weight: 600;
-      color: var(--color-text-default, #24292f);
+      color: var(--text-primary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -153,7 +154,7 @@ import { AuthService } from '../../services/auth.service';
 
     .user-email {
       font-size: 0.75rem;
-      color: var(--color-text-muted, #57606a);
+      color: var(--text-secondary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -161,18 +162,6 @@ import { AuthService } from '../../services/auth.service';
 
     .btn-logout {
       width: 100%;
-      padding: 0.5rem;
-      background: none;
-      border: 1px solid var(--color-border-default, #d0d7de);
-      border-radius: 6px;
-      color: var(--color-text-default, #24292f);
-      cursor: pointer;
-      font-weight: 500;
-      transition: background-color 0.2s;
-
-      &:hover {
-        background-color: var(--color-bg-subtle, #f5f5f5);
-      }
     }
 
     /* Main Content Styles */
@@ -185,8 +174,8 @@ import { AuthService } from '../../services/auth.service';
 
     .top-bar {
       height: 60px;
-      background-color: var(--color-bg-default, #ffffff);
-      border-bottom: 1px solid var(--color-border-default, #d0d7de);
+      background-color: var(--surface-color);
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       padding: 0 1.5rem;

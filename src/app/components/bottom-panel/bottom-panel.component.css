@@ -8,24 +8,8 @@
   overflow: hidden;
 }
 
-::ng-deep .bottom-panel-tabs {
+.bottom-panel-tabs {
   height: 100%;
-}
-
-::ng-deep .bottom-panel-tabs .mat-mdc-tab-body-wrapper {
-  flex: 1 1 auto;
-  overflow: hidden;
-}
-
-::ng-deep .bottom-panel-tabs .mat-mdc-tab-body {
-  display: flex;
-  flex-direction: column;
-}
-
-::ng-deep .bottom-panel-tabs .mat-mdc-tab-body-content {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 }
 
 .console-tab-content {
@@ -61,7 +45,7 @@
 }
 
 .log-timestamp {
-  color: #888888;
+  color: #a0a0a0;
   white-space: nowrap;
 }
 
@@ -100,7 +84,7 @@
   justify-content: center;
   align-items: center;
   height: 100%;
-  color: #666666;
+  color: #a0a0a0;
   font-style: italic;
 }
 

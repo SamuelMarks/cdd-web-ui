@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { RouterOutlet, RouterLink } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -113,29 +113,22 @@ import { environment } from '../environments/environment';
             >
               <img ngSrc="assets/icons/github.svg" alt="" width="24" height="24" />
             </a>
-            <button mat-icon-button class="theme-toggle" (click)="theme.toggleTheme()">
+            <button
+              mat-icon-button
+              class="theme-toggle"
+              (click)="theme.toggleTheme()"
+              [matTooltip]="theme.isDarkTheme() ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+            >
               @if (theme.isDarkTheme()) {
                 <span class="cdk-visually-hidden" i18n="@@switchToLightModeAria"
                   >Switch to Light Mode</span
                 >
-                <span
-                  aria-hidden="true"
-                  class="theme-icon"
-                  matTooltip="Switch to Light Mode"
-                  i18n-matTooltip="@@switchToLightMode"
-                  >☀</span
-                >
+                <span aria-hidden="true" class="theme-icon">☀</span>
               } @else {
                 <span class="cdk-visually-hidden" i18n="@@switchToDarkModeAria"
                   >Switch to Dark Mode</span
                 >
-                <span
-                  aria-hidden="true"
-                  class="theme-icon"
-                  matTooltip="Switch to Dark Mode"
-                  i18n-matTooltip="@@switchToDarkMode"
-                  >☾</span
-                >
+                <span aria-hidden="true" class="theme-icon">☾</span>
               }
             </button>
           </nav>
@@ -179,8 +172,6 @@ import { environment } from '../environments/environment';
   `,
   /** styleUrl */
   styleUrl: './app.css',
-  /** changeDetection */
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 /** App */
 export class App implements OnInit {

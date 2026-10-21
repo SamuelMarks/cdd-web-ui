@@ -100,14 +100,14 @@ import { AuthService } from '../../services/auth.service';
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      background-color: var(--color-bg-subtle, #f5f5f5);
+      background-color: var(--bg-color);
       font-family:
         system-ui,
         -apple-system,
         sans-serif;
     }
     .login-card {
-      background-color: var(--color-bg-default, #ffffff);
+      background-color: var(--surface-color);
       padding: 2.5rem;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -117,20 +117,20 @@ import { AuthService } from '../../services/auth.service';
     }
     h1 {
       margin-top: 0;
-      color: var(--color-text-default, #24292f);
+      color: var(--text-primary);
       font-size: 1.5rem;
     }
     p {
-      color: var(--color-text-muted, #57606a);
+      color: var(--text-secondary);
       margin-bottom: 1.5rem;
     }
     .error-message {
-      background-color: #ffebe9;
-      color: #cf222e;
+      background-color: var(--error-bg);
+      color: var(--error-text);
       padding: 0.75rem;
       border-radius: 6px;
       margin-bottom: 1.5rem;
-      border: 1px solid #ff818266;
+      border: 1px solid var(--error-text);
       font-size: 0.875rem;
     }
     .login-form {
@@ -152,14 +152,14 @@ import { AuthService } from '../../services/auth.service';
       display: flex;
       align-items: center;
       text-align: center;
-      color: var(--color-text-muted, #57606a);
+      color: var(--text-secondary);
       margin: 1rem 0;
     }
     .divider::before,
     .divider::after {
       content: '';
       flex: 1;
-      border-bottom: 1px solid var(--border-color, #e0e0e0);
+      border-bottom: 1px solid var(--border-color);
     }
     .divider span {
       padding: 0 10px;

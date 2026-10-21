@@ -188,7 +188,7 @@ describe('OnlineSettingsComponent', () => {
     fixture.detectChanges();
     fixture.debugElement.nativeElement.querySelector('button.github-btn').click();
     expect(apiSpy.loginGithub).toHaveBeenCalled();
-    expect(localStorage.getItem('cdd_token')).toBe('gh-token');
+    expect(localStorage.getItem('cdd_auth_token')).toBe('gh-token');
     fixture.detectChanges();
     expect(component.successMsg()).toBe('GitHub Login successful!');
   });

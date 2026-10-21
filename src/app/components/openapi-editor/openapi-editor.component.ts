@@ -8,7 +8,6 @@ import {
   inject,
   CUSTOM_ELEMENTS_SCHEMA,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 import { MatButtonModule } from '@angular/material/button';
@@ -28,7 +27,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   selector: 'app-openapi-editor',
   /** imports */
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MonacoEditorModule,
     MatButtonModule,
@@ -104,12 +102,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   `,
   /** styleUrl */
   styleUrl: './openapi-editor.component.css',
-  /** changeDetection */
-  /** host */
-  host: {
-    '(document:keydown.control.s)': 'handleKeydown($event)',
-    '(document:keydown.meta.s)': 'handleKeydown($event)',
-  },
 })
 /** OpenApiEditorComponent */
 export class OpenApiEditorComponent {
@@ -158,7 +150,7 @@ export class OpenApiEditorComponent {
     /** scrollBeyondLastLine */
     scrollBeyondLastLine: false,
     /** wordWrap */
-    wordWrap: 'on',
+    wordWrap: 'on' as const,
     /** formatOnType */
     formatOnType: true,
     /** formatOnPaste */

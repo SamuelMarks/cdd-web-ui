@@ -19,6 +19,8 @@ export class DocsSyncService implements OnDestroy {
 
   /** The NgRx store. */
   private store = inject(Store<AppState>);
+  /** Validation errors signal from store. */
+  private validationErrors = this.store.selectSignal(selectOpenApiValidationErrors);
   /** The application theme service. */
   private themeService = inject(ThemeService);
   /** The Angular application reference. */
@@ -81,7 +83,7 @@ export class DocsSyncService implements OnDestroy {
       .pipe(debounceTime(500), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((specContent) => {
         // Check if there are validation errors, if so, skip sending
-        const errors = this.store.selectSignal(selectOpenApiValidationErrors)();
+        const errors = this.validationErrors();
         if (errors && errors.length > 0) {
           return;
         }

@@ -1,6 +1,5 @@
-import { Component, inject, effect, ViewChild, ElementRef, OnDestroy, signal } from '@angular/core';
+import { Component, inject, effect, viewChild, ElementRef, OnDestroy, signal } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
 import { AppState } from '../../store/state';
 import * as Selectors from '../../store/selectors';
@@ -42,7 +41,7 @@ interface NodeData {
  */
 @Component({
   selector: 'app-visualisations',
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="vis-container" #svgContainer>
       @if (!hasData()) {
@@ -53,8 +52,23 @@ interface NodeData {
   styleUrl: './visualisations.component.css',
 })
 export class VisualisationsComponent implements OnDestroy {
-  /** doc */
-  @ViewChild('svgContainer', { static: true }) svgContainer!: ElementRef<HTMLDivElement>;
+  /** Signal query for the SVG container element */
+  readonly svgContainerSignal = viewChild<ElementRef<HTMLDivElement>>('svgContainer');
+
+  /** Overridable container reference for tests */
+  private _svgContainerOverride?: ElementRef<HTMLDivElement> | null;
+
+  /** Accessor for the SVG container element */
+  get svgContainer(): ElementRef<HTMLDivElement> {
+    if (this._svgContainerOverride !== undefined) {
+      return this._svgContainerOverride as ElementRef<HTMLDivElement>;
+    }
+    return this.svgContainerSignal()!;
+  }
+
+  set svgContainer(val: ElementRef<HTMLDivElement>) {
+    this._svgContainerOverride = val;
+  }
 
   /** doc */
   private store = inject(Store<AppState>);
@@ -243,6 +257,8 @@ export class VisualisationsComponent implements OnDestroy {
       .append('svg')
       .attr('width', '100%')
       .attr('height', '100%')
+      .attr('role', 'img')
+      .attr('aria-label', 'API Structure Diagram')
       .call(d3.zoom<SVGSVGElement, unknown>().on('zoom', this.zoomCallback))
       .append('g')
       .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
@@ -271,8 +287,17 @@ export class VisualisationsComponent implements OnDestroy {
       .enter()
       .append('g')
       .attr('class', 'node')
+      .attr('tabindex', '0')
+      .attr('role', 'button')
+      .attr('aria-label', (d) => `${d.data.type}: ${d.data.name}`)
       .attr('transform', () => `translate(${source.y0},${source.x0})`)
-      .on('click', (event: Event, d: VisualNode) => this.click(event, d));
+      .on('click', (event: Event, d: VisualNode) => this.click(event, d))
+      .on('keydown', (event: KeyboardEvent, d: VisualNode) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          this.click(event, d);
+        }
+      });
 
     nodeEnter
       .append('circle')
@@ -294,6 +319,7 @@ export class VisualisationsComponent implements OnDestroy {
     const nodeUpdate = nodeEnter.merge(node);
 
     nodeUpdate
+      .attr('aria-expanded', (d) => (d.children ? 'true' : d._children ? 'false' : null))
       .transition()
       .duration(this.duration)
       .attr('transform', (d) => `translate(${d.y},${d.x})`);

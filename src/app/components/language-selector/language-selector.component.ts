@@ -1,5 +1,5 @@
 import { Component, inject, input, output, computed, effect } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
+import { NgOptimizedImage } from '@angular/common';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -21,7 +21,6 @@ import { environment } from '../../../environments/environment';
   selector: 'app-language-selector',
   /** imports */
   imports: [
-    CommonModule,
     MatSelectModule,
     MatFormFieldModule,
     MatTooltipModule,
@@ -53,18 +52,20 @@ import { environment } from '../../../environments/environment';
             >
               <mat-select-trigger>
                 <div class="language-option-trigger">
-                  @if (selectedLanguage()?.iconUrl) {
-                    <img
-                      [ngSrc]="selectedLanguage()?.iconUrl!"
-                      width="20"
-                      height="20"
-                      alt=""
-                      class="language-icon"
-                    />
+                  @if (selectedLanguage(); as selLang) {
+                    @if (selLang.iconUrl) {
+                      <img
+                        [ngSrc]="selLang.iconUrl"
+                        width="20"
+                        height="20"
+                        alt=""
+                        class="language-icon"
+                      />
+                    }
+                    <span class="language-name" [class.error-text]="hasError()">{{
+                      selLang.name
+                    }}</span>
                   }
-                  <span class="language-name" [class.error-text]="hasError()">{{
-                    selectedLanguage()?.name
-                  }}</span>
                 </div>
               </mat-select-trigger>
               @for (lang of processedLanguages(); track lang.id) {
@@ -97,7 +98,9 @@ import { environment } from '../../../environments/environment';
           </mat-form-field>
           <mat-icon
             class="offline-info-icon"
-            aria-hidden="true"
+            tabindex="0"
+            role="img"
+            aria-label="Languages shown as disabled are not available in the current offline-only environment. Configure Online Mode to enable all languages."
             matTooltip="Languages shown as disabled are not available in the current offline-only environment. To enable generation for all supported languages, configure the application for 'Online Mode' by following the backend setup instructions on our GitHub repository."
             i18n-matTooltip
           >
@@ -299,10 +302,10 @@ export class LanguageSelectorComponent {
   /** Storage service dependency */
   private storageService = inject(StorageService);
 
-  /** Computed error state based on executionError in the store */
-  hasError = computed(() => !!this.store.selectSignal(selectExecutionError)());
   /** The actual execution error message */
   errorMessage = this.store.selectSignal(selectExecutionError);
+  /** Computed error state based on executionError in the store */
+  hasError = computed(() => !!this.errorMessage());
 
   /** Computed currently selected language object. */
   selectedLanguage = computed(() => {

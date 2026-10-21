@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -218,8 +218,6 @@ import { ApiService } from '../services/api.service';
       }
     `,
   ],
-  /** changeDetection */
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 /**
  * Component providing an interactive dialog to configure online backend URLs
@@ -336,7 +334,7 @@ export class OnlineSettingsComponent {
 
     this.api.loginGithub({ code: mockCode }).subscribe({
       next: (res) => {
-        localStorage.setItem('cdd_token', res.token);
+        this.authService.setToken(res.token);
         this.successMsg.set('GitHub Login successful!');
         this.errorMsg.set('');
       },

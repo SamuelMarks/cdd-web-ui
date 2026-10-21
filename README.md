@@ -118,12 +118,34 @@ graph TD
    npm start
    ```
 
-   Navigate to `http://localhost:4200/`.
+   Navigate to `http://localhost:8083/`.
 
 3. **Run tests:**
+
    ```bash
    npm test
    npx playwright test
+   ```
+
+4. **Build and test with local sibling `../cdd-${LANGUAGE}` repositories:**
+
+   Using `make` (or `make.bat` on Windows):
+
+   ```bash
+   # Force-rebuild WASMs from ../cdd-browser-sdk and all ../cdd-${LANGUAGE} directories
+   make build_wasm_local
+
+   # Build WASMs locally and build the Angular app
+   make build_local
+
+   # Build WASMs locally and serve on http://localhost:8083
+   make serve_local
+
+   # Build WASMs locally and run unit tests
+   make test_local
+
+   # Build WASMs locally, build the app, and run Playwright E2E tests
+   make e2e_local
    ```
 
 ### Execution Modes
@@ -132,7 +154,7 @@ The CDD Web UI supports four flexible ways to execute code generation, configura
 
 1. **Locally (relative paths to wasm)**
    - **How it works:** Loads the compiled WASM binaries directly from your local assets folder (`/assets/wasm/`).
-   - **Setup:** Run `npm run build:wasm:local` (requires `cdd-engine` cloned adjacently) or just use the pre-packaged assets if available, then run `npm start`.
+   - **Setup:** Run `make serve_local` (or `npm run build:wasm:local` followed by `npm start`, with `cdd-${LANGUAGE}` repositories cloned adjacently) or use the pre-packaged assets if available.
 
 2. **Locally (cdd-engine wasm)**
    - **How it works:** Offloads generation entirely to a local `cdd-engine` JSON-RPC daemon running WASM under the hood (via `wasmtime`).

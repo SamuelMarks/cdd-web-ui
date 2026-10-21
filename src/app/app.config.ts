@@ -6,13 +6,14 @@ import {
   ApplicationConfig,
   provideBrowserGlobalErrorListeners,
   importProvidersFrom,
-  APP_INITIALIZER,
+  provideAppInitializer,
+  inject,
   provideZoneChangeDetection,
   ErrorHandler,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
@@ -60,7 +61,7 @@ export const appConfig: ApplicationConfig = {
     /** provideAnimationsAsync */
     provideAnimationsAsync(),
     /** provideHttpClient */
-    provideHttpClient(),
+    provideHttpClient(withXhr()),
     /** importProvidersFrom */
     importProvidersFrom(MonacoEditorModule.forRoot(monacoConfig)),
     /** provideStore */
@@ -74,11 +75,6 @@ export const appConfig: ApplicationConfig = {
     provideEffects(WorkspaceEffects),
     /** provideStoreDevtools */
     provideStoreDevtools({ maxAge: 25, logOnly: false }),
-    {
-      provide: APP_INITIALIZER,
-      useFactory: initWasmSupport,
-      deps: [LanguageService],
-      multi: true,
-    },
+    provideAppInitializer(() => initWasmSupport(inject(LanguageService))()),
   ],
 };

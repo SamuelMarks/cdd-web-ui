@@ -31,8 +31,8 @@
 }
 
 /* Make monaco take full space */
-:host ::ng-deep ngx-monaco-editor,
-:host ::ng-deep .monaco-editor {
+ngx-monaco-editor {
+  display: block;
   width: 100%;
   height: 100%;
 }

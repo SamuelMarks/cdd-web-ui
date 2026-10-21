@@ -148,4 +148,94 @@ describe('DirectoryTreeComponent', () => {
     expect(component.getFileIcon('test.go')).toBe('code');
     expect(component.getFileIcon('test.txt')).toBe('insert_drive_file');
   });
+
+  it('should support WAI-ARIA keyboard navigation on treeitems', () => {
+    hostComponent.files.set([
+      { path: 'src/sub/index.ts', content: new Uint8Array() },
+      { path: 'package.json', content: new Uint8Array() },
+    ]);
+    hostFixture.detectChanges();
+
+    const treeItems = hostFixture.debugElement.queryAll(By.css('li[role="treeitem"]'));
+    expect(treeItems.length).toBeGreaterThan(0);
+
+    // ArrowLeft collapses expanded directory
+    treeItems[0].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }),
+    );
+    hostFixture.detectChanges();
+    expect(component.treeNodes()[0].isExpanded).toBe(false);
+
+    // ArrowLeft when already collapsed does nothing
+    treeItems[0].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }),
+    );
+    hostFixture.detectChanges();
+    expect(component.treeNodes()[0].isExpanded).toBe(false);
+
+    // ArrowRight expands collapsed directory
+    treeItems[0].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+    );
+    hostFixture.detectChanges();
+    expect(component.treeNodes()[0].isExpanded).toBe(true);
+
+    // ArrowRight when already expanded does nothing
+    treeItems[0].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+    );
+    hostFixture.detectChanges();
+    expect(component.treeNodes()[0].isExpanded).toBe(true);
+
+    // Enter toggles directory
+    treeItems[0].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
+    );
+    hostFixture.detectChanges();
+    expect(component.treeNodes()[0].isExpanded).toBe(false);
+
+    // Space toggles directory back
+    treeItems[0].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: ' ', bubbles: true }),
+    );
+    hostFixture.detectChanges();
+    expect(component.treeNodes()[0].isExpanded).toBe(true);
+
+    // Nested directory toggle to cover recursive children branch
+    const updatedItems = hostFixture.debugElement.queryAll(By.css('li[role="treeitem"]'));
+    // index 1 is 'sub' folder
+    updatedItems[1].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
+    );
+    hostFixture.detectChanges();
+    expect(component.treeNodes()[0].children?.[0].isExpanded).toBe(false);
+
+    // ArrowDown moves focus to next item
+    const focusSpy = vi.spyOn(updatedItems[1].nativeElement, 'focus');
+    updatedItems[0].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }),
+    );
+    expect(focusSpy).toHaveBeenCalled();
+
+    // ArrowUp moves focus to previous item
+    const focusPrevSpy = vi.spyOn(updatedItems[0].nativeElement, 'focus');
+    updatedItems[1].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }),
+    );
+    expect(focusPrevSpy).toHaveBeenCalled();
+
+    // ArrowUp at index 0 does not throw
+    updatedItems[0].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }),
+    );
+
+    // Unhandled key
+    updatedItems[0].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }),
+    );
+
+    // Detached element without treeRoot
+    const detachedEvent = new KeyboardEvent('keydown', { key: 'ArrowDown' });
+    component.onTreeItemKeydown(detachedEvent, component.treeNodes()[0]);
+  });
 });

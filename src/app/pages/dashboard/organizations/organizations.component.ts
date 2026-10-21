@@ -1,5 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { A11yModule } from '@angular/cdk/a11y';
+import { MatButtonModule } from '@angular/material/button';
+import { GLOBAL_DATE } from '../../../tokens';
 
 /**
  * Represents an organization containing members and roles.
@@ -20,12 +23,12 @@ interface Organization {
  */
 @Component({
   selector: 'app-organizations',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, A11yModule, MatButtonModule],
   template: `
     <div class="page-container">
       <div class="header-actions">
         <h1>Organizations</h1>
-        <button class="btn btn-primary" (click)="toggleCreateForm()">
+        <button type="button" mat-flat-button class="btn btn-primary" (click)="toggleCreateForm()">
           {{ showCreateForm() ? 'Cancel' : 'Create Organization' }}
         </button>
       </div>
@@ -42,12 +45,20 @@ interface Organization {
                 formControlName="name"
                 class="form-control"
                 placeholder="e.g. Acme Corp"
+                aria-describedby="orgNameError"
               />
               @if (createOrgForm.get('name')?.invalid && createOrgForm.get('name')?.touched) {
-                <span class="error-text">Organization name is required.</span>
+                <span id="orgNameError" class="error-text" role="alert">
+                  Organization name is required.
+                </span>
               }
             </div>
-            <button type="submit" class="btn btn-primary" [disabled]="createOrgForm.invalid">
+            <button
+              type="submit"
+              mat-flat-button
+              class="btn btn-primary"
+              [disabled]="createOrgForm.invalid"
+            >
               Create
             </button>
           </form>
@@ -65,8 +76,15 @@ interface Organization {
               <span>{{ org.members }} Members</span>
             </div>
             <div class="org-actions">
-              <button class="btn btn-secondary" (click)="openInvite(org)">Invite Users</button>
-              <button class="btn btn-secondary">Settings</button>
+              <button
+                type="button"
+                mat-stroked-button
+                class="btn btn-secondary"
+                (click)="openInvite(org)"
+              >
+                Invite Users
+              </button>
+              <button type="button" mat-stroked-button class="btn btn-secondary">Settings</button>
             </div>
           </div>
         } @empty {
@@ -76,10 +94,17 @@ interface Organization {
         }
       </div>
 
-      @if (selectedOrgForInvite()) {
-        <div class="modal-backdrop">
-          <div class="modal card">
-            <h2>Invite to {{ selectedOrgForInvite()?.name }}</h2>
+      @if (selectedOrgForInvite(); as selectedOrg) {
+        <div class="modal-backdrop" (keydown.escape)="closeInvite()">
+          <div
+            class="modal card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="invite-dialog-title"
+            cdkTrapFocus
+            [cdkTrapFocusAutoCapture]="true"
+          >
+            <h2 id="invite-dialog-title">Invite to {{ selectedOrg.name }}</h2>
             <form [formGroup]="inviteForm" (ngSubmit)="onInvite()">
               <div class="form-group">
                 <label for="email">User Email</label>
@@ -99,10 +124,20 @@ interface Organization {
                 </select>
               </div>
               <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" (click)="closeInvite()">
+                <button
+                  type="button"
+                  mat-stroked-button
+                  class="btn btn-secondary"
+                  (click)="closeInvite()"
+                >
                   Cancel
                 </button>
-                <button type="submit" class="btn btn-primary" [disabled]="inviteForm.invalid">
+                <button
+                  type="submit"
+                  mat-flat-button
+                  class="btn btn-primary"
+                  [disabled]="inviteForm.invalid"
+                >
                   Send Invite
                 </button>
               </div>
@@ -124,12 +159,12 @@ interface Organization {
       margin-bottom: 2rem;
       h1 {
         margin: 0;
-        color: var(--color-text-default, #24292f);
+        color: var(--text-primary);
       }
     }
     .card {
-      background: var(--color-bg-default, #ffffff);
-      border: 1px solid var(--color-border-default, #d0d7de);
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
       border-radius: 6px;
       padding: 1.5rem;
       margin-bottom: 1rem;
@@ -156,15 +191,15 @@ interface Organization {
       }
     }
     .badge {
-      background: var(--color-accent-subtle, #ddf4ff);
-      color: var(--color-accent-emphasis, #0969da);
+      background: var(--primary-hover);
+      color: var(--primary-color);
       padding: 0.25rem 0.5rem;
       border-radius: 1rem;
       font-size: 0.75rem;
       font-weight: 600;
     }
     .org-stats {
-      color: var(--color-text-muted, #57606a);
+      color: var(--text-secondary);
       font-size: 0.875rem;
     }
     .org-actions {
@@ -180,24 +215,17 @@ interface Organization {
       font-size: 0.875rem;
     }
     .btn-primary {
-      background-color: #1a7f37;
-      color: white;
-      border-color: rgba(27, 31, 36, 0.15);
-      &:hover {
-        background-color: #146228;
-      }
+      background-color: var(--primary-color);
+      color: var(--mat-sys-on-primary, #ffffff);
       &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
       }
     }
     .btn-secondary {
-      background-color: #f6f8fa;
-      color: #24292f;
-      border-color: rgba(27, 31, 36, 0.15);
-      &:hover {
-        background-color: #f3f4f6;
-      }
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      border-color: var(--border-color);
     }
     .form-group {
       margin-bottom: 1rem;
@@ -205,24 +233,26 @@ interface Organization {
         display: block;
         margin-bottom: 0.5rem;
         font-weight: 500;
-        color: var(--color-text-default, #24292f);
+        color: var(--text-primary);
       }
     }
     .form-control {
       width: 100%;
       padding: 0.5rem 0.75rem;
-      border: 1px solid var(--color-border-default, #d0d7de);
+      border: 1px solid var(--border-color);
       border-radius: 6px;
       font-size: 0.875rem;
       box-sizing: border-box;
+      background-color: var(--surface-color);
+      color: var(--text-primary);
       &:focus {
         outline: none;
-        border-color: #0969da;
+        border-color: var(--primary-color);
         box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
       }
     }
     .error-text {
-      color: #cf222e;
+      color: var(--error-text);
       font-size: 0.75rem;
       display: block;
       margin-top: 0.25rem;
@@ -255,10 +285,10 @@ interface Organization {
     .empty-state {
       text-align: center;
       padding: 3rem;
-      background: var(--color-bg-default, #ffffff);
-      border: 1px dashed var(--color-border-default, #d0d7de);
+      background: var(--surface-color);
+      border: 1px dashed var(--border-color);
       border-radius: 6px;
-      color: var(--color-text-muted, #57606a);
+      color: var(--text-secondary);
     }
   `,
 })
@@ -266,6 +296,9 @@ interface Organization {
  * Component to manage user organizations, including creation and inviting members.
  */
 export class OrganizationsComponent {
+  /** Global Date constructor. */
+  private readonly globalDate = inject(GLOBAL_DATE);
+
   /**
    * List of organizations
    */
@@ -315,7 +348,7 @@ export class OrganizationsComponent {
   onCreateOrg(): void {
     if (this.createOrgForm.valid) {
       const newOrg: Organization = {
-        id: `org-${Date.now()}`,
+        id: `org-${this.globalDate.now()}`,
         name: this.createOrgForm.value.name || '',
         role: 'Owner',
         members: 1,

@@ -1,5 +1,4 @@
 import { Component, input, output, signal, computed, effect, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
@@ -18,7 +17,6 @@ import { WINDOW } from '../../tokens';
   selector: 'app-code-viewer',
   /** imports */
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MonacoEditorModule,
     MatButtonModule,
@@ -34,23 +32,24 @@ import { WINDOW } from '../../tokens';
         aria-label="Code Viewer Actions"
         i18n-aria-label="@@codeViewerActionsAria"
       >
-        <div class="tabs-container" role="tablist">
+        <div class="tabs-container" role="tablist" aria-label="Open Files">
           @for (tab of openTabs(); track tab) {
-            <div
-              class="tab"
-              role="tab"
-              tabindex="0"
-              [class.active]="tab === activeFilePath()"
-              [attr.aria-selected]="tab === activeFilePath()"
-              (click)="selectTab(tab)"
-              (keydown.enter)="selectTab(tab, $event)"
-              (keydown.space)="selectTab(tab, $event)"
-            >
-              <span [title]="tab">{{ getFilename(tab) }}</span>
+            <div class="tab-item" [class.active]="tab === activeFilePath()">
               <div
-                class="tab-close"
-                role="button"
+                class="tab"
+                role="tab"
                 tabindex="0"
+                [class.active]="tab === activeFilePath()"
+                [attr.aria-selected]="tab === activeFilePath()"
+                (click)="selectTab(tab)"
+                (keydown.enter)="selectTab(tab, $event)"
+                (keydown.space)="selectTab(tab, $event)"
+              >
+                <span [title]="tab">{{ getFilename(tab) }}</span>
+              </div>
+              <button
+                type="button"
+                class="tab-close"
                 aria-label="Close Tab"
                 i18n-aria-label="@@closeTabAria"
                 (click)="closeTab(tab, $event)"
@@ -58,7 +57,7 @@ import { WINDOW } from '../../tokens';
                 (keydown.space)="closeTab(tab, $event)"
               >
                 <mat-icon aria-hidden="true">close</mat-icon>
-              </div>
+              </button>
             </div>
           }
         </div>
@@ -111,7 +110,6 @@ import { WINDOW } from '../../tokens';
   `,
   /** styleUrl */
   styleUrl: './code-viewer.component.css',
-  /** changeDetection */
 })
 /** CodeViewerComponent */
 export class CodeViewerComponent {
@@ -157,9 +155,9 @@ export class CodeViewerComponent {
     /** scrollBeyondLastLine */
     scrollBeyondLastLine: false,
     /** wordWrap */
-    wordWrap: 'on',
+    wordWrap: 'on' as const,
     /** renderLineHighlight */
-    renderLineHighlight: 'none',
+    renderLineHighlight: 'none' as const,
   }));
 
   /**

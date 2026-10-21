@@ -10,6 +10,11 @@ IF "%1"=="clean_docker_prod" GOTO clean_docker_prod
 IF "%1"=="build_production_docs" GOTO build_production_docs
 IF "%1"=="build_production_c_only" GOTO build_production_c_only
 IF "%1"=="deploy_c_only" GOTO deploy_c_only
+IF "%1"=="build_wasm_local" GOTO build_wasm_local
+IF "%1"=="build_local" GOTO build_local
+IF "%1"=="serve_local" GOTO serve_local
+IF "%1"=="test_local" GOTO test_local
+IF "%1"=="e2e_local" GOTO e2e_local
 IF "%1"=="docs" GOTO docs
 GOTO :EOF
 
@@ -109,3 +114,30 @@ mkdir "%TARGET_DIR%"
 xcopy /E /I /Y dist\cdd-web-ui\browser "%TARGET_DIR%"
 if exist "%TARGET_DIR%\assets\wasm" rmdir /s /q "%TARGET_DIR%\assets\wasm"
 GOTO :EOF
+
+:build_wasm_local
+call node scripts/build-wasm.mjs --local --force
+GOTO :EOF
+
+:build_local
+CALL make.bat build_wasm_local
+call npx ng build
+GOTO :EOF
+
+:serve_local
+CALL make.bat build_wasm_local
+call npx ng serve --port 8083
+GOTO :EOF
+
+:test_local
+CALL make.bat build_wasm_local
+call npm test
+GOTO :EOF
+
+:e2e_local
+CALL make.bat build_wasm_local
+call npx ng build
+set CI=1
+call npx playwright test
+GOTO :EOF
+

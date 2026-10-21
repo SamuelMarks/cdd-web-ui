@@ -1,8 +1,9 @@
-import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { LoggingService } from '../../services/logging.service';
 import { VisualisationsComponent } from '../visualisations/visualisations.component';
 import { ApiDocsViewerComponent } from '../api-docs-viewer/api-docs-viewer.component';
@@ -16,10 +17,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 @Component({
   selector: 'app-bottom-panel',
   imports: [
-    CommonModule,
+    DatePipe,
     MatTabsModule,
     MatIconModule,
     MatButtonModule,
+    MatTooltipModule,
     VisualisationsComponent,
     ApiDocsViewerComponent,
   ],
@@ -68,7 +70,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     </div>
   `,
   styleUrl: './bottom-panel.component.css',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BottomPanelComponent {
   /** Service for accessing logs */

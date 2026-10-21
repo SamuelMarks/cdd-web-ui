@@ -2,7 +2,6 @@ import { Component, inject, OnInit, OnDestroy, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { fromEvent, Subject, takeUntil, tap, finalize } from 'rxjs';
 import { DOCUMENT, NgOptimizedImage } from '@angular/common';
-import { CommonModule } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { AppState } from '../../store/state';
 import * as Actions from '../../store/actions';
@@ -31,7 +30,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   /** imports */
   imports: [
     NgOptimizedImage,
-    CommonModule,
     SplitPaneComponent,
     OpenApiEditorComponent,
     DirectoryTreeComponent,
@@ -200,6 +198,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           tabindex="0"
           role="separator"
           aria-orientation="horizontal"
+          aria-controls="bottom-pane"
+          [attr.aria-valuenow]="apiDocsPaneHeight()"
+          aria-valuemin="150"
+          aria-valuemax="800"
           aria-label="Resize API Docs Pane"
           i18n-aria-label="@@resizeApiDocsPaneAria"
           (mousedown)="onResizerMouseDown($event)"
@@ -259,7 +261,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   `,
   /** styleUrl */
   styleUrl: './workspace.component.css',
-  /** changeDetection */
+  /** host */
+  host: {
+    '(document:keydown)': 'handleKeyboardEvent($event)',
+  },
 })
 /** WorkspaceComponent */
 export class WorkspaceComponent implements OnInit, OnDestroy {

@@ -168,6 +168,14 @@ paths:
       // Click again to revert
       firstNode.dispatchEvent(new Event('click'));
       fixture.detectChanges();
+
+      // Keyboard Enter and Space to expand/collapse
+      firstNode.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      fixture.detectChanges();
+      firstNode.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+      fixture.detectChanges();
+      firstNode.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
+      fixture.detectChanges();
     }
   });
 

@@ -60,5 +60,19 @@ describe('AppRoutes', () => {
       const component = await (repRoute.loadComponent as () => Promise<unknown>)();
       expect(component).toBeTruthy();
     }
+
+    const secretsRoute = children.find((r) => r.path === 'secrets');
+    expect(secretsRoute).toBeDefined();
+    if (secretsRoute && secretsRoute.loadComponent) {
+      const component = await (secretsRoute.loadComponent as () => Promise<unknown>)();
+      expect(component).toBeTruthy();
+    }
+
+    const auditLogsRoute = children.find((r) => r.path === 'audit-logs');
+    expect(auditLogsRoute).toBeDefined();
+    if (auditLogsRoute && auditLogsRoute.loadComponent) {
+      const component = await (auditLogsRoute.loadComponent as () => Promise<unknown>)();
+      expect(component).toBeTruthy();
+    }
   });
 });

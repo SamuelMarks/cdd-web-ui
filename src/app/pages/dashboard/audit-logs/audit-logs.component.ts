@@ -1,5 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
+import { MatButtonModule } from '@angular/material/button';
+import { GLOBAL_DATE } from '../../../tokens';
 
 /**
  * Interface representing an audit event.
@@ -28,7 +31,7 @@ export interface AuditEvent {
  */
 @Component({
   selector: 'app-audit-logs',
-  imports: [DatePipe],
+  imports: [DatePipe, A11yModule, MatButtonModule],
   template: `
     <div class="page-container">
       <div class="header-actions">
@@ -38,16 +41,16 @@ export interface AuditEvent {
 
       <div class="card">
         <div class="table-responsive">
-          <table class="table">
+          <table class="table" aria-label="Audit Logs">
             <thead>
               <tr>
-                <th>Timestamp</th>
-                <th>Action</th>
-                <th>Repository</th>
-                <th>Language</th>
-                <th>Status</th>
-                <th>Duration</th>
-                <th>Details</th>
+                <th scope="col">Timestamp</th>
+                <th scope="col">Action</th>
+                <th scope="col">Repository</th>
+                <th scope="col">Language</th>
+                <th scope="col">Status</th>
+                <th scope="col">Duration</th>
+                <th scope="col">Details</th>
               </tr>
             </thead>
             <tbody>
@@ -78,7 +81,7 @@ export interface AuditEvent {
                   <td>{{ (event.durationMs / 1000).toFixed(1) }}s</td>
                   <td>
                     @if (event.status === 'Failed' && event.errorMessage) {
-                      <button class="btn btn-sm btn-error" (click)="viewError(event)">
+                      <button type="button" class="btn btn-sm btn-error" (click)="viewError(event)">
                         View Error
                       </button>
                     } @else {
@@ -97,24 +100,41 @@ export interface AuditEvent {
       </div>
 
       <!-- Error Modal -->
-      @if (selectedEventError()) {
-        <div class="modal-backdrop">
-          <div class="modal card">
-            <h2>Error Details</h2>
+      @if (selectedEventError(); as selectedError) {
+        <div class="modal-backdrop" (keydown.escape)="closeError()">
+          <div
+            class="modal card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="audit-error-dialog-title"
+            cdkTrapFocus
+            [cdkTrapFocusAutoCapture]="true"
+          >
+            <h2 id="audit-error-dialog-title">Error Details</h2>
             <div class="error-details">
               <p>
-                <strong>Event:</strong> {{ selectedEventError()?.action }} for
-                {{ selectedEventError()?.repository }} ({{ selectedEventError()?.language }})
+                <strong>Event:</strong> {{ selectedError.action }} for
+                {{ selectedError.repository }} ({{ selectedError.language }})
               </p>
-              <p><strong>Time:</strong> {{ selectedEventError()?.timestamp | date: 'medium' }}</p>
+              <p>
+                <strong>Time:</strong>
+                {{ selectedError.timestamp | date: 'medium' }}
+              </p>
 
               <div class="error-box">
-                <pre><code>{{ selectedEventError()?.errorMessage }}</code></pre>
+                <pre><code>{{ selectedError.errorMessage }}</code></pre>
               </div>
             </div>
 
             <div class="modal-actions">
-              <button class="btn btn-secondary" (click)="closeError()">Close</button>
+              <button
+                type="button"
+                mat-stroked-button
+                class="btn btn-secondary"
+                (click)="closeError()"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -130,17 +150,17 @@ export interface AuditEvent {
       margin-bottom: 2rem;
       h1 {
         margin: 0 0 0.5rem 0;
-        color: var(--color-text-default, #24292f);
+        color: var(--text-primary);
       }
       .subtitle {
         margin: 0;
-        color: var(--color-text-muted, #57606a);
+        color: var(--text-secondary);
         font-size: 1rem;
       }
     }
     .card {
-      background: var(--color-bg-default, #ffffff);
-      border: 1px solid var(--color-border-default, #d0d7de);
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
       border-radius: 6px;
       overflow: hidden;
     }
@@ -156,13 +176,13 @@ export interface AuditEvent {
       td {
         padding: 0.75rem 1rem;
         text-align: left;
-        border-bottom: 1px solid var(--color-border-default, #d0d7de);
+        border-bottom: 1px solid var(--border-color);
       }
 
       th {
-        background-color: var(--color-bg-subtle, #f6f8fa);
+        background-color: var(--bg-color);
         font-weight: 600;
-        color: var(--color-text-muted, #57606a);
+        color: var(--text-secondary);
       }
 
       tbody tr:last-child td {
@@ -170,15 +190,15 @@ export interface AuditEvent {
       }
 
       tbody tr:hover {
-        background-color: var(--color-bg-subtle, #f6f8fa);
+        background-color: var(--bg-color);
       }
 
       .row-failed {
-        background-color: #fff8c51a; /* slight yellow/red tint if desired */
+        background-color: #fff8c51a;
       }
     }
     .col-time {
-      color: var(--color-text-muted, #57606a);
+      color: var(--text-secondary);
       white-space: nowrap;
     }
     .col-repo {
@@ -225,7 +245,7 @@ export interface AuditEvent {
       }
     }
     .text-muted {
-      color: var(--color-text-muted, #57606a);
+      color: var(--text-secondary);
     }
 
     .btn {
@@ -241,27 +261,27 @@ export interface AuditEvent {
       font-size: 0.75rem;
     }
     .btn-error {
-      background-color: #ffffff;
-      color: #cf222e;
-      border-color: #d0d7de;
+      background-color: var(--surface-color);
+      color: var(--error-text);
+      border-color: var(--border-color);
       &:hover {
-        background-color: #ffebe9;
-        border-color: #cf222e;
+        background-color: var(--error-bg);
+        border-color: var(--error-text);
       }
     }
     .btn-secondary {
-      background-color: #f6f8fa;
-      color: #24292f;
-      border-color: rgba(27, 31, 36, 0.15);
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      border-color: var(--border-color);
       &:hover {
-        background-color: #f3f4f6;
+        background-color: var(--surface-color);
       }
     }
 
     .empty-state {
       text-align: center;
-      padding: 3rem !important;
-      color: var(--color-text-muted, #57606a);
+      padding: 3rem;
+      color: var(--text-secondary);
     }
 
     /* Modal Styles */
@@ -283,7 +303,7 @@ export interface AuditEvent {
       padding: 1.5rem;
       h2 {
         margin-top: 0;
-        color: #cf222e;
+        color: var(--error-text);
       }
     }
     .error-details {
@@ -295,8 +315,8 @@ export interface AuditEvent {
     }
     .error-box {
       margin-top: 1rem;
-      background-color: #f6f8fa;
-      border: 1px solid #d0d7de;
+      background-color: var(--bg-color);
+      border: 1px solid var(--border-color);
       border-radius: 6px;
       padding: 1rem;
       overflow-x: auto;
@@ -306,7 +326,7 @@ export interface AuditEvent {
       code {
         font-family: monospace;
         font-size: 0.8125rem;
-        color: #cf222e;
+        color: var(--error-text);
         white-space: pre-wrap;
       }
     }
@@ -318,13 +338,16 @@ export interface AuditEvent {
   `,
 })
 export class AuditLogsComponent {
+  /** Global Date constructor. */
+  private readonly globalDate = inject(GLOBAL_DATE);
+
   /**
    * Mock data for audit logs
    */
   logs = signal<AuditEvent[]>([
     {
       id: 'log-1',
-      timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 mins ago
+      timestamp: new this.globalDate(this.globalDate.now() - 1000 * 60 * 5), // 5 mins ago
       action: 'Publishing',
       repository: 'offscale/acme-api',
       language: 'TypeScript',
@@ -333,7 +356,7 @@ export class AuditLogsComponent {
     },
     {
       id: 'log-2',
-      timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 mins ago
+      timestamp: new this.globalDate(this.globalDate.now() - 1000 * 60 * 15), // 15 mins ago
       action: 'Generation',
       repository: 'offscale/acme-api',
       language: 'Rust',
@@ -344,7 +367,7 @@ export class AuditLogsComponent {
     },
     {
       id: 'log-3',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
+      timestamp: new this.globalDate(this.globalDate.now() - 1000 * 60 * 60), // 1 hour ago
       action: 'Publishing',
       repository: 'demo-team/core-services',
       language: 'Go',
@@ -355,7 +378,7 @@ export class AuditLogsComponent {
     },
     {
       id: 'log-4',
-      timestamp: new Date(Date.now() - 1000 * 60 * 120), // 2 hours ago
+      timestamp: new this.globalDate(this.globalDate.now() - 1000 * 60 * 120), // 2 hours ago
       action: 'Generation',
       repository: 'demo-team/core-services',
       language: 'Go',

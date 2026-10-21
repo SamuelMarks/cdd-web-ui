@@ -8,7 +8,7 @@ import {
   inject,
   TemplateRef,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -23,7 +23,7 @@ import { WINDOW } from '../../tokens';
   selector: 'app-split-pane',
   /** imports */
   imports: [
-    CommonModule,
+    NgTemplateOutlet,
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
@@ -49,10 +49,19 @@ import { WINDOW } from '../../tokens';
       <!-- Resizer -->
       <div
         class="resizer"
+        role="separator"
+        tabindex="0"
+        aria-label="Resize Split Panes"
+        i18n-aria-label="@@resizeSplitPanesAria"
+        [attr.aria-orientation]="isMobile() ? 'horizontal' : 'vertical'"
+        [attr.aria-valuenow]="splitPos()"
+        aria-valuemin="20"
+        aria-valuemax="80"
         [class.resizing]="isDragging()"
         [style.left]="isMobile() ? '0' : 'calc(' + splitPos() + '% - 6px)'"
         [style.top]="isMobile() ? 'calc(' + splitPos() + '% - 6px)' : '0'"
         (mousedown)="onDragStart($event)"
+        (keydown)="onResizerKeydown($event)"
       >
         <div class="resizer-action-top" (mousedown)="$event.stopPropagation()">
           <button
@@ -100,7 +109,6 @@ import { WINDOW } from '../../tokens';
   `,
   /** styleUrl */
   styleUrl: './split-pane.component.css',
-  /** changeDetection */
   /** host */
   host: {
     '(document:keydown.control.s)': 'handleKeydown($event)',
@@ -197,6 +205,21 @@ export class SplitPaneComponent {
    */
   onDragEnd(): void {
     this.isDragging.set(false);
+  }
+
+  /**
+   * Handles keyboard arrow navigation on the split-pane separator.
+   * @param event Keyboard event.
+   */
+  onResizerKeydown(event: KeyboardEvent): void {
+    const step = 5;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.splitPos.update((pos) => Math.max(20, pos - step));
+    } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.splitPos.update((pos) => Math.min(80, pos + step));
+    }
   }
 
   /**

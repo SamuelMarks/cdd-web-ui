@@ -26,19 +26,6 @@
   gap: 0.5rem;
 }
 
-/* Material Select overrides for cleaner toolbar appearance */
-::ng-deep .language-selector-field .mat-mdc-form-field-wrapper {
-  padding-bottom: 0;
-}
-
-::ng-deep .language-selector-field .mat-mdc-text-field-wrapper {
-  background-color: transparent;
-}
-
-::ng-deep .language-selector-field .mat-mdc-form-field-subscript-wrapper {
-  display: none; /* Hide hint/error wrapper to save vertical space in toolbar */
-}
-
 .language-option {
   display: flex;
   align-items: center;
@@ -67,20 +54,16 @@
   align-items: center;
 }
 
-/* Error state styles */
-::ng-deep .language-selector-field.has-error .mdc-notched-outline__leading,
-::ng-deep .language-selector-field.has-error .mdc-notched-outline__notch,
-::ng-deep .language-selector-field.has-error .mdc-notched-outline__trailing {
-  border-color: var(--mat-sys-error) !important;
-  border-width: 2px !important;
-}
-
-::ng-deep .language-selector-field.has-error .mat-mdc-select-value-text,
-::ng-deep .language-selector-field.has-error .mat-mdc-select-arrow,
-::ng-deep .language-selector-field.has-error .mdc-floating-label {
-  color: var(--mat-sys-error) !important;
+/* Error state styles using M3 custom properties */
+.language-selector-field.has-error {
+  --mdc-outlined-text-field-outline-color: var(--mat-sys-error);
+  --mdc-outlined-text-field-hover-outline-color: var(--mat-sys-error);
+  --mdc-outlined-text-field-focus-outline-color: var(--mat-sys-error);
+  --mdc-outlined-text-field-label-text-color: var(--mat-sys-error);
+  --mat-select-enabled-trigger-text-color: var(--mat-sys-error);
+  --mat-select-enabled-arrow-color: var(--mat-sys-error);
 }
 
 .error-text {
-  color: var(--mat-sys-error) !important;
+  color: var(--mat-sys-error);
 }

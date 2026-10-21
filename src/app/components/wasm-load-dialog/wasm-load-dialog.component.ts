@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -23,9 +23,12 @@ import { environment } from '../../../environments/environment';
           <p>
             Rather than a monolithic unidirectional generator, CDD is a suite of standalone
             compilers, each written in their target language. This demo showcases the
-            <a href="https://github.com/SamuelMarks/cdd-c" target="_blank">cdd-c</a> compiler
-            (written in C). It supports: Swagger 2.0 &amp; OpenAPI 3.2.0; can generate &lbrace;SDKs,
-            CLIs, server stubs&rbrace;, and is bidirectional (OpenAPI &#8644; language)
+            <a href="https://github.com/SamuelMarks/cdd-c" target="_blank" rel="noopener noreferrer"
+              >cdd-c</a
+            >
+            compiler (written in C). It supports: Swagger 2.0 &amp; OpenAPI 3.2.0; can generate
+            &lbrace;SDKs, CLIs, server stubs&rbrace;, and is bidirectional (OpenAPI &#8644;
+            language)
           </p>
         } @else {
           <p>
@@ -33,11 +36,19 @@ import { environment } from '../../../environments/environment';
             written in their target language (<a
               href="https://github.com/SamuelMarks/cdd-c"
               target="_blank"
+              rel="noopener noreferrer"
               >cdd-c</a
             >
-            in C; <a href="https://github.com/SamuelMarks/cdd-ruby" target="_blank">cdd-ruby</a> in
-            Ruby; etc.). Each supports: Swagger 2.0 &amp; OpenAPI 3.2.0; can generate &lbrace;SDKs,
-            CLIs, server stubs&rbrace;, and is bidirectional (OpenAPI &#8644; language)
+            in C;
+            <a
+              href="https://github.com/SamuelMarks/cdd-ruby"
+              target="_blank"
+              rel="noopener noreferrer"
+              >cdd-ruby</a
+            >
+            in Ruby; etc.). Each supports: Swagger 2.0 &amp; OpenAPI 3.2.0; can generate
+            &lbrace;SDKs, CLIs, server stubs&rbrace;, and is bidirectional (OpenAPI &#8644;
+            language)
           </p>
         }
         <p>
@@ -49,7 +60,9 @@ import { environment } from '../../../environments/environment';
           server).
         </p>
       } @else {
-        <p>Downloading WASM binaries ({{ loadedCount() }} / {{ totalCount() }})...</p>
+        <p role="status" aria-live="polite">
+          Downloading WASM binaries ({{ loadedCount() }} / {{ totalCount() }})...
+        </p>
         <mat-progress-bar
           mode="determinate"
           [value]="progress()"
@@ -66,7 +79,6 @@ import { environment } from '../../../environments/environment';
       }
     </mat-dialog-actions>
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WasmLoadDialogComponent {
   /** Application environment config */

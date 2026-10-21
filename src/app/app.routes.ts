@@ -12,6 +12,12 @@ export const routes: Routes = [
   },
   {
     /** path */
+    path: 'workspace',
+    redirectTo: '',
+    pathMatch: 'full',
+  },
+  {
+    /** path */
     path: 'login',
     /** loadComponent */
     loadComponent: () => import('./pages/login/login.component').then((m) => m.LoginComponent),
@@ -44,6 +50,18 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/dashboard/repositories/repositories.component').then(
             (m) => m.RepositoriesComponent,
+          ),
+      },
+      {
+        path: 'secrets',
+        loadComponent: () =>
+          import('./pages/dashboard/secrets/secrets.component').then((m) => m.SecretsComponent),
+      },
+      {
+        path: 'audit-logs',
+        loadComponent: () =>
+          import('./pages/dashboard/audit-logs/audit-logs.component').then(
+            (m) => m.AuditLogsComponent,
           ),
       },
     ],

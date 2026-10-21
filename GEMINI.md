@@ -26,6 +26,16 @@ When instructed to build and deploy the CDD Web UI to the `offscale.github.io` r
    rm -rf /Users/samuel/repos/offscale.github.io/cdd-web-ui/assets/wasm
    ```
 
+## Local WASM Building & Testing (`../cdd-${LANGUAGE}`)
+
+To build and test `cdd-web-ui` locally against the sibling `../cdd-${LANGUAGE}` (and `../cdd-browser-sdk`) repositories, use the `Makefile` (or `make.bat` on Windows) targets:
+
+- `make build_wasm_local`: Runs `node scripts/build-wasm.mjs --local --force` to rebuild `../cdd-browser-sdk` and all 13 `../cdd-${LANGUAGE}` WASM binaries into `public/assets/wasm/`.
+- `make build_local`: Runs `build_wasm_local` and builds the Angular application (`npx ng build`).
+- `make serve_local`: Runs `build_wasm_local` and serves the app locally on `http://localhost:8083`.
+- `make test_local`: Runs `build_wasm_local` and runs the unit test suite (`npm test`).
+- `make e2e_local`: Runs `build_wasm_local`, builds the app, and executes Playwright E2E tests (`CI=1 npx playwright test`).
+
 ## Angular & TypeScript Best Practices
 
 You MUST follow these rules when writing or modifying code in this project:

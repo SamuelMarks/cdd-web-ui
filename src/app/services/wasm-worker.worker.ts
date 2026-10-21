@@ -248,7 +248,6 @@ export const handleMessage = async ({ data }: MessageEvent) => {
         wasmBinary,
         printStdout: true, // Let it print, we've intercepted console
         additionalArgs,
-        // @ts-expect-error - expected by SDK fork but missing in types
         cddJavaJsUrl: data.payload.cddJavaJsUrl,
         cddJavaWasmUrl: data.payload.cddJavaWasmUrl,
       });

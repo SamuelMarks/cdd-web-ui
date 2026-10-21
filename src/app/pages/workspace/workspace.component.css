@@ -157,7 +157,11 @@
 .vertical-resizer:hover,
 .vertical-resizer:focus {
   background-color: var(--primary-color, #1976d2);
-  outline: none;
+}
+
+.vertical-resizer:focus-visible {
+  outline: 2px solid var(--primary-color, #1976d2);
+  outline-offset: -2px;
 }
 
 @media (max-width: 768px) {

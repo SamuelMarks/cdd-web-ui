@@ -9,8 +9,8 @@ import { AuthService } from '../../services/auth.service';
   selector: 'app-auth-callback',
   imports: [],
   template: `
-    <div class="callback-container">
-      <div class="spinner"></div>
+    <div class="callback-container" role="status" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
       <p>Completing sign in...</p>
     </div>
   `,
@@ -29,8 +29,8 @@ import { AuthService } from '../../services/auth.service';
     .spinner {
       width: 40px;
       height: 40px;
-      border: 4px solid var(--color-border-default, #d0d7de);
-      border-top-color: var(--color-accent-emphasis, #0969da);
+      border: 4px solid var(--border-color);
+      border-top-color: var(--primary-color);
       border-radius: 50%;
       animation: spin 1s linear infinite;
       margin-bottom: 1rem;

@@ -1,10 +1,12 @@
 import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { Repository } from '../models/types';
 import { LanguageService } from './language.service';
 import { BackendConfigService } from './backend-config.service';
 import { HttpClient } from '@angular/common/http';
 import { CddWasmSdk, Ecosystem } from 'cdd-browser-sdk';
 import { WasmLoaderService } from './wasm-loader.service';
+import { GLOBAL_DATE } from '../tokens';
 import * as yaml from 'js-yaml';
 
 /**
@@ -23,6 +25,8 @@ export class WasmGeneratorService {
   private http = inject(HttpClient);
   /** WasmLoaderService. */
   private wasmLoaderService = inject(WasmLoaderService);
+  /** Global Date constructor. */
+  private globalDate = inject(GLOBAL_DATE);
 
   /**
    * Generates SDK from OpenAPI spec.
@@ -67,7 +71,7 @@ export class WasmGeneratorService {
           params: { target_language: ecosystemName, input: finalSpecContent },
           id: 1,
         };
-        const response: unknown = await this.http.post(baseUrl, payload).toPromise();
+        const response: unknown = await firstValueFrom(this.http.post(baseUrl, payload));
         const res = response as { error?: { message?: string }; result?: { code?: string } };
         if (res?.error) {
           throw new Error(res.error.message || 'RPC Error');
@@ -202,7 +206,7 @@ export class WasmGeneratorService {
         env: { memory: new WebAssembly.Memory({ initial: 256 }) },
         interop: {
           genBacktrace: () => {},
-          'Date.now': () => Date.now(),
+          'Date.now': () => this.globalDate.now(),
           'performance.now': () => performance.now(),
           'stderrWriter.flush': () => {},
           'stdoutWriter.flush': () => {},

@@ -6,7 +6,6 @@ import {
   OnDestroy,
   computed,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { AppState } from '../../store/state';
 import {
@@ -21,7 +20,7 @@ import 'cdd-docs-ui';
 /** Component for viewing API documentation dynamically via Web Component. */
 @Component({
   selector: 'app-api-docs-viewer',
-  imports: [CommonModule],
+  imports: [],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <div class="api-docs-content">

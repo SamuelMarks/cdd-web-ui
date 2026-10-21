@@ -147,13 +147,35 @@ describe('SplitPaneComponent', () => {
     expect(emitted).toBe(false);
   });
 
-  it('should not emit swapClicked if shiftKey is not pressed', () => {
-    let emitted = false;
-    component.swapClicked.subscribe(() => (emitted = true));
+  it('should not emit swapClicked if shiftKey is not pressed, and should emit runClicked', () => {
+    let swapEmitted = false;
+    let runEmitted = false;
+    component.swapClicked.subscribe(() => (swapEmitted = true));
+    component.runClicked.subscribe(() => (runEmitted = true));
 
     const event = new KeyboardEvent('keydown', { key: 's', shiftKey: false });
     component.handleKeydown(event);
-    expect(emitted).toBe(false);
+    expect(swapEmitted).toBe(false);
+    expect(runEmitted).toBe(true);
+  });
+
+  it('should resize splitPos via keyboard arrow keys on resizer', () => {
+    expect(component.splitPos()).toBe(50);
+
+    component.onResizerKeydown(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+    expect(component.splitPos()).toBe(45);
+
+    component.onResizerKeydown(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    expect(component.splitPos()).toBe(50);
+
+    component.onResizerKeydown(new KeyboardEvent('keydown', { key: 'ArrowUp' }));
+    expect(component.splitPos()).toBe(45);
+
+    component.onResizerKeydown(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+    expect(component.splitPos()).toBe(50);
+
+    component.onResizerKeydown(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(component.splitPos()).toBe(50);
   });
 
   it('should ignore other keys', () => {

@@ -1,5 +1,5 @@
 import { Component, input, output, computed, signal, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -12,7 +12,7 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
 @Component({
   selector: 'app-directory-tree',
   /** imports */
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [NgTemplateOutlet, MatButtonModule, MatIconModule, MatTooltipModule],
   /** template */
   template: `
     <div class="directory-tree-container">
@@ -48,7 +48,7 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
         </button>
       </div>
 
-      <div class="tree-wrapper" role="tree">
+      <div class="tree-wrapper" role="tree" aria-label="Generated Files">
         @if (isExecuting()) {
           <div class="loading-skeleton">
             <div class="skeleton-line" style="width: 80%"></div>
@@ -60,7 +60,10 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
         } @else if (hasFiles()) {
           <!-- Use recursive template for the tree -->
           <ng-container
-            *ngTemplateOutlet="treeNodeTemplate; context: { $implicit: treeNodes() }"
+            *ngTemplateOutlet="
+              treeNodeTemplate;
+              context: { $implicit: treeNodes(), isGroup: false }
+            "
           ></ng-container>
         } @else {
           <div class="empty-state">
@@ -75,17 +78,18 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
     </div>
 
     <!-- Recursive template definition -->
-    <ng-template #treeNodeTemplate let-nodes>
-      <ul>
+    <ng-template #treeNodeTemplate let-nodes let-isGroup="isGroup">
+      <ul [attr.role]="isGroup ? 'group' : 'presentation'">
         @for (node of nodes; track node.path) {
           <li
             role="treeitem"
+            tabindex="0"
             [attr.aria-expanded]="node.isDirectory ? node.isExpanded : null"
             [attr.aria-selected]="node.path === activeFilePath()"
+            (keydown)="onTreeItemKeydown($event, node)"
           >
             <div
               class="node"
-              tabindex="0"
               [class.active]="!node.isDirectory && node.path === activeFilePath()"
               (click)="onNodeClick(node)"
               (keydown.enter)="onNodeClick(node)"
@@ -105,7 +109,10 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
 
             @if (node.isDirectory && node.isExpanded && node.children) {
               <ng-container
-                *ngTemplateOutlet="treeNodeTemplate; context: { $implicit: node.children }"
+                *ngTemplateOutlet="
+                  treeNodeTemplate;
+                  context: { $implicit: node.children, isGroup: true }
+                "
               ></ng-container>
             }
           </li>
@@ -115,7 +122,6 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
   `,
   /** styleUrl */
   styleUrl: './directory-tree.component.css',
-  /** changeDetection */
 })
 /** DirectoryTreeComponent */
 export class DirectoryTreeComponent {
@@ -144,8 +150,6 @@ export class DirectoryTreeComponent {
       const currentFiles = this.files();
       if (currentFiles.length > 0) {
         const paths = currentFiles.map((f) => f.path);
-        // We capture existing expansion state if we wanted to be perfectly stateful across regenerations
-        // For simplicity and speed, rebuilding tree sets everything to expanded by default in the util
         this.treeNodes.set(FileTreeUtil.buildTree(paths));
       } else {
         this.treeNodes.set([]);
@@ -154,18 +158,87 @@ export class DirectoryTreeComponent {
   }
 
   /**
+   * Immutably updates a folder node's expanded state within a tree of FileNodes.
+   * @param nodes The current list of nodes.
+   * @param targetPath The path of the directory node to update.
+   * @param isExpanded The new expanded state (or undefined to toggle).
+   * @returns A new array of FileNodes with the updated directory node.
+   */
+  private updateNodeExpansion(
+    nodes: FileNode[],
+    targetPath: string,
+    isExpanded?: boolean,
+  ): FileNode[] {
+    return nodes.map((n) => {
+      if (n.path === targetPath && n.isDirectory) {
+        return {
+          ...n,
+          isExpanded: isExpanded !== undefined ? isExpanded : !n.isExpanded,
+        };
+      }
+      if (n.children) {
+        return {
+          ...n,
+          children: this.updateNodeExpansion(n.children, targetPath, isExpanded),
+        };
+      }
+      return n;
+    });
+  }
+
+  /**
    * Handles click events on tree nodes.
    * If it's a file, emits the fileSelected event.
-   * If it's a directory, toggles its expanded state.
+   * If it's a directory, toggles its expanded state immutably.
    */
   onNodeClick(node: FileNode): void {
     if (node.isDirectory) {
-      // Toggle expansion natively by modifying the reference
-      // and forcing a signal update to trigger change detection
-      node.isExpanded = !node.isExpanded;
-      this.treeNodes.update((nodes) => [...nodes]);
+      this.treeNodes.update((nodes) => this.updateNodeExpansion(nodes, node.path));
     } else {
       this.fileSelected.emit(node.path);
+    }
+  }
+
+  /**
+   * Handles WAI-ARIA keyboard navigation on treeitem elements.
+   * @param event The keyboard event.
+   * @param node The corresponding FileNode.
+   */
+  onTreeItemKeydown(event: KeyboardEvent, node: FileNode): void {
+    event.stopPropagation();
+    const currentItem = event.currentTarget as HTMLElement | null;
+    const treeRoot = currentItem?.closest('[role="tree"]');
+
+    switch (event.key) {
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        this.onNodeClick(node);
+        break;
+      case 'ArrowRight':
+        if (node.isDirectory && !node.isExpanded) {
+          event.preventDefault();
+          this.treeNodes.update((nodes) => this.updateNodeExpansion(nodes, node.path, true));
+        }
+        break;
+      case 'ArrowLeft':
+        if (node.isDirectory && node.isExpanded) {
+          event.preventDefault();
+          this.treeNodes.update((nodes) => this.updateNodeExpansion(nodes, node.path, false));
+        }
+        break;
+      case 'ArrowDown':
+      case 'ArrowUp':
+        if (treeRoot && currentItem) {
+          event.preventDefault();
+          const items = Array.from(treeRoot.querySelectorAll<HTMLElement>('li[role="treeitem"]'));
+          const idx = items.indexOf(currentItem);
+          const nextIdx = event.key === 'ArrowDown' ? idx + 1 : idx - 1;
+          if (nextIdx >= 0 && nextIdx < items.length) {
+            items[nextIdx].focus();
+          }
+        }
+        break;
     }
   }
 
