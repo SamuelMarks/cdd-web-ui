@@ -1,3 +1,7 @@
+/**
+ * OAuth authentication callback handler page component.
+ * @module app/pages/auth-callback/auth-callback.component
+ */
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -55,7 +59,7 @@ export class AuthCallbackComponent implements OnInit {
   /**
    * Initializes the component and attempts to read the token from the query parameters.
    */
-  ngOnInit() {
+  ngOnInit(): void {
     // The JWT token is expected to be passed as a query parameter from the control plane
     const token = this.route.snapshot.queryParamMap.get('token');
 

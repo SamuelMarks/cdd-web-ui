@@ -382,7 +382,7 @@ info:
 
   it('should ignore empty string', () => {
     component.hasData.set(false);
-    (component as unknown as TestComp).parseAndRender(' ');
+    (component as unknown as TestComp).parseAndRender('null');
     expect(component.hasData()).toBe(false);
   });
 

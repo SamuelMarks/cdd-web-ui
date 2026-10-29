@@ -28,13 +28,14 @@ When instructed to build and deploy the CDD Web UI to the `offscale.github.io` r
 
 ## Local WASM Building & Testing (`../cdd-${LANGUAGE}`)
 
-To build and test `cdd-web-ui` locally against the sibling `../cdd-${LANGUAGE}` (and `../cdd-browser-sdk`) repositories, use the `Makefile` (or `make.bat` on Windows) targets:
+To build and test `cdd-web-ui` locally against the sibling `../cdd-${LANGUAGE}` (as well as `../cdd-docs-ui` and `../cdd-browser-sdk`) repositories, use the `Makefile` (or `make.bat` on Windows) targets:
 
-- `make build_wasm_local`: Runs `node scripts/build-wasm.mjs --local --force` to rebuild `../cdd-browser-sdk` and all 13 `../cdd-${LANGUAGE}` WASM binaries into `public/assets/wasm/`.
+- `make build_wasm_local`: Runs `node scripts/build-wasm.mjs --local` to strictly build `../cdd-docs-ui`, `../cdd-browser-sdk`, and all 13 `../cdd-${LANGUAGE}` WASM binaries locally into `public/assets/wasm/` (reusing the cached local build if the repository's git hash is unchanged and it has no tracked or untracked edits to non-markdown files, and never falling back to GitHub releases or reusing release artifacts). Set `REBUILD_CDD_C=1` (or `REBUILD_CDD_<LANG>=1`) to force rebuilding `cdd-c` (or a specific language) even if cached, or `REBUILD_ALL=1` to force rebuilding all repositories.
 - `make build_local`: Runs `build_wasm_local` and builds the Angular application (`npx ng build`).
 - `make serve_local`: Runs `build_wasm_local` and serves the app locally on `http://localhost:8083`.
 - `make test_local`: Runs `build_wasm_local` and runs the unit test suite (`npm test`).
 - `make e2e_local`: Runs `build_wasm_local`, builds the app, and executes Playwright E2E tests (`CI=1 npx playwright test`).
+- Production builds (`npm run build:prod`, `npm run build`, `make build_production_docs`, `make build_production_c_only`, i.e., `node scripts/build-wasm.mjs` without `--local`) strictly download WASM binaries from tagged latest GitHub releases (`/releases/latest`) only, never building from local sibling directories or falling back to untagged/hardcoded tags.
 
 ## Angular & TypeScript Best Practices
 

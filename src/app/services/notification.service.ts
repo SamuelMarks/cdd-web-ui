@@ -1,3 +1,7 @@
+/**
+ * Toast notification service backed by Angular Material SnackBar.
+ * @module app/services/notification.service
+ */
 import { Injectable, inject } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 

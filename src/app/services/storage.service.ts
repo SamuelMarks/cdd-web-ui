@@ -1,3 +1,7 @@
+/**
+ * Local storage persistence and cloud synchronization service.
+ * @module app/services/storage.service
+ */
 import { Injectable, signal, inject } from '@angular/core';
 import { User, Organization, Repository } from '../models/types';
 import { ApiService } from './api.service';

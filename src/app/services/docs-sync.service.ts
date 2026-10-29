@@ -1,3 +1,7 @@
+/**
+ * Synchronization service between the workspace state and the API Docs iframe.
+ * @module app/services/docs-sync.service
+ */
 import { Injectable, inject, OnDestroy, ApplicationRef } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { AppState } from '../store/state';
@@ -43,19 +47,19 @@ export class DocsSyncService implements OnDestroy {
   }
 
   /** Cleans up subscriptions and event listeners. */
-  ngOnDestroy() {
+  ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
     this.window?.removeEventListener('message', this.handleMessage);
   }
 
   /** Subscribes to window message events from the iframe. */
-  private setupMessageListener() {
+  private setupMessageListener(): void {
     this.window?.addEventListener('message', this.handleMessage);
   }
 
   /** Handles incoming `postMessage` events from the iframe. */
-  private handleMessage = (event: MessageEvent) => {
+  private handleMessage = (event: MessageEvent): void => {
     // Basic origin check could go here if both are not localhost/same domain
     if (event.data?.type === 'DOCS_UI_READY') {
       this.isIframeReady = true;
@@ -64,7 +68,7 @@ export class DocsSyncService implements OnDestroy {
   };
 
   /** Flushes any pending spec or theme updates that were queued before the iframe was ready. */
-  private flushPendingUpdates() {
+  private flushPendingUpdates(): void {
     if (this.pendingThemeUpdate) {
       this.sendThemeUpdate(this.pendingThemeUpdate);
       this.pendingThemeUpdate = null;
@@ -76,7 +80,7 @@ export class DocsSyncService implements OnDestroy {
   }
 
   /** Subscribes to NgRx store for spec updates and ThemeService for theme changes. */
-  private setupStateSync() {
+  private setupStateSync(): void {
     // Spec sync
     this.store
       .select(selectOpenApiSpecContent)
@@ -108,24 +112,38 @@ export class DocsSyncService implements OnDestroy {
       });
   }
 
-  /** Sends an OpenAPI spec update payload to the iframe. */
-  private sendSpecUpdate(specContent: string) {
+  /**
+   * Sends an OpenAPI spec update payload to the iframe.
+   * @param specContent The OpenAPI specification string to send.
+   */
+  private sendSpecUpdate(specContent: string): void {
     this.postToIframe({
       type: 'UPDATE_SPEC',
       payload: specContent,
     });
   }
 
-  /** Sends a theme update payload to the iframe. */
-  private sendThemeUpdate(theme: 'light' | 'dark') {
+  /**
+   * Sends a theme update payload to the iframe.
+   * @param theme The active theme ('light' or 'dark').
+   */
+  private sendThemeUpdate(theme: 'light' | 'dark'): void {
     this.postToIframe({
       type: 'SET_THEME',
       payload: theme,
     });
   }
 
-  /** Posts a given message to the API Docs iframe window. */
-  private postToIframe(message: { type: string; payload: string }) {
+  /**
+   * Posts a given message to the API Docs iframe window.
+   * @param message Message object containing type and payload.
+   */
+  private postToIframe(message: {
+    /** Message action type. */
+    type: string;
+    /** Serialized payload string. */
+    payload: string;
+  }): void {
     // Find the iframe and post
     const iframe = document.querySelector(
       'iframe[title="API Documentation Preview"]',

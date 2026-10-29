@@ -1,3 +1,7 @@
+/**
+ * Backend configuration service for online/offline mode and execution targets.
+ * @module app/services/backend-config.service
+ */
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { RunMode } from '../models/types';
 import { WINDOW } from '../tokens';

@@ -1,3 +1,7 @@
+/**
+ * Dashboard repositories configuration page component.
+ * @module app/pages/dashboard/repositories/repositories.component
+ */
 import { Component, signal, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';

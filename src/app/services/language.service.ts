@@ -1,3 +1,7 @@
+/**
+ * Language configuration and WebAssembly availability service.
+ * @module app/services/language.service
+ */
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -33,7 +37,12 @@ export class LanguageService {
             let supportKey = l.id;
             if (l.id === 'typescript') supportKey = 'ts';
             if (l.id === 'openapi') supportKey = 'cpp';
-            if (l.id === 'python') supportKey = 'python-all';
+            if (l.id === 'python') {
+              return {
+                ...l,
+                availableInWasm: supportMap['python-all'] ?? supportMap['python'] ?? false,
+              };
+            }
 
             return {
               ...l,

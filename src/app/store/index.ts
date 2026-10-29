@@ -1,3 +1,7 @@
+/**
+ * Root NgRx store reducer map.
+ * @module app/store/index
+ */
 import { ActionReducerMap } from '@ngrx/store';
 import { AppState } from './state';
 import { workspaceReducer, fileTreeReducer, openApiReducer } from './reducers';

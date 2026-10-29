@@ -1,3 +1,7 @@
+/**
+ * Login page component supporting email/password and OAuth authentication.
+ * @module app/pages/login/login.component
+ */
 import { Component, inject, signal } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -252,7 +256,7 @@ export class LoginComponent {
    * Initiates the login flow for the specified provider.
    * @param provider The OAuth provider to authenticate with ('github' or 'google').
    */
-  login(provider: 'github' | 'google') {
+  login(provider: 'github' | 'google'): void {
     this.authService.loginWithProvider(provider);
   }
 }

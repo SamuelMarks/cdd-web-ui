@@ -1,3 +1,7 @@
+/**
+ * Tabbed Monaco code viewer component for inspecting and editing generated files.
+ * @module app/components/code-viewer/code-viewer.component
+ */
 import { Component, input, output, signal, computed, effect, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
@@ -186,6 +190,7 @@ export class CodeViewerComponent {
 
   /**
    * Ensures a file path is in the openTabs array.
+   * @param path The file path to open in a tab.
    */
   private ensureTabIsOpen(path: string): void {
     if (!this.openTabs().includes(path)) {
@@ -262,7 +267,10 @@ export class CodeViewerComponent {
     const filename = this.getFilename(path);
     const blob = new Blob([content], { type: 'text/plain' });
     if (!this.window) return;
-    const windowWithUrl = this.window as unknown as { URL: typeof URL };
+    const windowWithUrl = this.window as unknown as {
+      /** Browser URL constructor with object URL helpers. */
+      URL: typeof URL;
+    };
     const url = windowWithUrl.URL.createObjectURL(blob);
 
     const a = this.window.document.createElement('a');
@@ -276,6 +284,8 @@ export class CodeViewerComponent {
 
   /**
    * Extracts just the filename from a full path.
+   * @param path The full or relative file path.
+   * @returns The basename of the file path.
    */
   getFilename(path: string): string {
     return path.split('/').pop() || path;
@@ -284,6 +294,8 @@ export class CodeViewerComponent {
   /**
    * Determines the appropriate Monaco language string based on file extension.
    * Covers the 13 required languages.
+   * @param path The file path whose extension determines syntax highlighting.
+   * @returns Monaco editor language identifier.
    */
   determineLanguage(path: string): string {
     const ext = path.split('.').pop()?.toLowerCase();

@@ -1,3 +1,7 @@
+/**
+ * Dashboard organizations management page component.
+ * @module app/pages/dashboard/organizations/organizations.component
+ */
 import { Component, signal, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';

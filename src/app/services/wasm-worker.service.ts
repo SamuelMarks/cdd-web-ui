@@ -1,3 +1,7 @@
+/**
+ * Web Worker orchestration service for executing WASM compilers off the main thread.
+ * @module app/services/wasm-worker.service
+ */
 import { Injectable, inject } from '@angular/core';
 import { WasmLoaderService } from './wasm-loader.service';
 import { LoggingService } from './logging.service';
@@ -26,6 +30,10 @@ export class WasmWorkerService {
   private loggingService = inject(LoggingService);
   /** The worker instance. */
   private worker: Worker | null = null;
+  /** Error captured if the Web Worker fails during initial script/module loading. */
+  private workerLoadError: Error | null = null;
+  /** Set of active in-flight job IDs used to deduplicate worker log broadcasts. */
+  private activeJobIds = new Set<string>();
 
   /**
    * Initializes the Web Worker if supported by the browser.
@@ -34,6 +42,9 @@ export class WasmWorkerService {
     if (typeof Worker !== 'undefined') {
       this.worker = new Worker(new URL('./wasm-worker.worker', import.meta.url), {
         type: 'module',
+      });
+      this.worker.addEventListener('error', (event: ErrorEvent): void => {
+        this.workerLoadError = new Error(event.message || 'Web Worker failed to load.');
       });
     } else {
       console.warn(
@@ -63,6 +74,9 @@ export class WasmWorkerService {
     if (!this.worker) {
       throw new Error('Web Worker not initialized.');
     }
+    if (this.workerLoadError) {
+      throw this.workerLoadError;
+    }
 
     let wasmBinary: ArrayBuffer | undefined;
     if (ecosystem !== 'cdd-csharp') {
@@ -71,17 +85,31 @@ export class WasmWorkerService {
 
     return new Promise((resolve, reject) => {
       const jobId = Math.random().toString(36).substring(7);
+      this.activeJobIds.add(jobId);
+
+      const cleanup = (): void => {
+        this.activeJobIds.delete(jobId);
+        this.worker?.removeEventListener('message', handleMessage);
+        this.worker?.removeEventListener('error', handleError);
+      };
+
+      const handleError = (event: ErrorEvent): void => {
+        cleanup();
+        reject(new Error(event.message || 'Web Worker error'));
+      };
 
       // One-off message handler for this request
-      const handleMessage = (event: MessageEvent) => {
+      const handleMessage = (event: MessageEvent): void => {
         const { status, data, error, level, message, jobId: responseJobId } = event.data;
         if (status === 'log') {
-          if (level === 'INFO') {
-            this.loggingService.info(message);
-          } else if (level === 'WARN') {
-            this.loggingService.warn(message);
-          } else if (level === 'ERROR') {
-            this.loggingService.error(message);
+          if (this.activeJobIds.values().next().value === jobId) {
+            if (level === 'INFO') {
+              this.loggingService.info(message);
+            } else if (level === 'WARN') {
+              this.loggingService.warn(message);
+            } else if (level === 'ERROR') {
+              this.loggingService.error(message);
+            }
           }
           return; // Do not resolve or reject, keep listening
         }
@@ -90,15 +118,16 @@ export class WasmWorkerService {
           return; // Ignore messages from other jobs
         }
 
+        cleanup();
         if (status === 'success') {
           resolve(data as GeneratedFile[]);
         } else {
           reject(new Error(error || 'Unknown worker error'));
         }
-        this.worker?.removeEventListener('message', handleMessage);
       };
 
       this.worker!.addEventListener('message', handleMessage);
+      this.worker!.addEventListener('error', handleError);
 
       // We clone the ArrayBuffer so we can transfer it to the worker
       // Actually passing it by reference is fine for small WASMs unless we transfer list
@@ -123,6 +152,7 @@ export class WasmWorkerService {
    * Terminates the worker. Useful for cleanup.
    */
   terminate(): void {
+    this.activeJobIds.clear();
     if (this.worker) {
       this.worker.terminate();
       this.worker = null;

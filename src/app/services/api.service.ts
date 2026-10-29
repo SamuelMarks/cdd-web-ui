@@ -1,3 +1,7 @@
+/**
+ * HTTP API service for communicating with the CDD backend control plane.
+ * @module app/services/api.service
+ */
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -117,7 +121,10 @@ export class ApiService {
    * @param token JWT token.
    * @returns HttpHeaders with Bearer auth.
    */
-  private headers(token: string): { headers: HttpHeaders } {
+  private headers(token: string): {
+    /** HTTP request headers containing the Authorization Bearer token. */
+    headers: HttpHeaders;
+  } {
     return { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) };
   }
 
@@ -126,43 +133,94 @@ export class ApiService {
     return this.http.get<VersionResponse>(this.url('/version'));
   }
 
-  /** Registers a new user. */
+  /**
+   * Registers a new user.
+   * @param payload Registration details.
+   * @returns Observable emitting the authentication response.
+   */
   register(payload: RegisterPayload): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(this.url('/auth/register'), payload);
   }
 
-  /** Logs in an existing user. */
+  /**
+   * Logs in an existing user.
+   * @param payload Login credentials.
+   * @returns Observable emitting the authentication response.
+   */
   login(payload: LoginPayload): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(this.url('/auth/login'), payload);
   }
 
-  /** Logs in via GitHub OAuth. */
+  /**
+   * Logs in via GitHub OAuth.
+   * @param payload OAuth code payload.
+   * @returns Observable emitting the authentication response.
+   */
   loginGithub(payload: OAuthPayload): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(this.url('/auth/github'), payload);
   }
 
-  /** Creates a new organization. */
+  /**
+   * Creates a new organization.
+   * @param payload Organization creation payload.
+   * @param token Bearer authentication token.
+   * @returns Observable emitting the created organization.
+   */
   createOrg(payload: OrgPayload, token: string): Observable<Organization> {
     return this.http.post<Organization>(this.url('/orgs'), payload, this.headers(token));
   }
 
-  /** Creates a new repository. */
+  /**
+   * Creates a new repository.
+   * @param payload Repository creation payload.
+   * @param token Bearer authentication token.
+   * @returns Observable emitting the created repository.
+   */
   createRepo(payload: RepoPayload, token: string): Observable<Repository> {
     return this.http.post<Repository>(this.url('/repos'), payload, this.headers(token));
   }
 
-  /** Triggers GitHub sync. */
-  syncGithub(token: string): Observable<{ message?: string }> {
+  /**
+   * Triggers GitHub sync.
+   * @param token Bearer authentication token.
+   * @returns Observable emitting an optional status message.
+   */
+  syncGithub(token: string): Observable<{
+    /** Optional status message returned by the server. */
+    message?: string;
+  }> {
     return this.http.post(this.url('/github/sync'), {}, this.headers(token));
   }
 
-  /** Creates a GitHub release. */
-  createRelease(payload: ReleasePayload, token: string): Observable<{ message?: string }> {
+  /**
+   * Creates a GitHub release.
+   * @param payload Release creation payload.
+   * @param token Bearer authentication token.
+   * @returns Observable emitting an optional status message.
+   */
+  createRelease(
+    payload: ReleasePayload,
+    token: string,
+  ): Observable<{
+    /** Optional status message returned by the server. */
+    message?: string;
+  }> {
     return this.http.post(this.url('/github/releases'), payload, this.headers(token));
   }
 
-  /** Triggers a GitHub action. */
-  triggerAction(payload: TriggerPayload, token: string): Observable<{ message?: string }> {
+  /**
+   * Triggers a GitHub action.
+   * @param payload Workflow trigger payload.
+   * @param token Bearer authentication token.
+   * @returns Observable emitting an optional status message.
+   */
+  triggerAction(
+    payload: TriggerPayload,
+    token: string,
+  ): Observable<{
+    /** Optional status message returned by the server. */
+    message?: string;
+  }> {
     return this.http.post(
       this.url('/github/actions/workflows/trigger'),
       payload,
@@ -170,8 +228,19 @@ export class ApiService {
     );
   }
 
-  /** Creates a GitHub secret. */
-  createSecret(payload: SecretPayload, token: string): Observable<{ message?: string }> {
+  /**
+   * Creates a GitHub secret.
+   * @param payload Secret creation payload.
+   * @param token Bearer authentication token.
+   * @returns Observable emitting an optional status message.
+   */
+  createSecret(
+    payload: SecretPayload,
+    token: string,
+  ): Observable<{
+    /** Optional status message returned by the server. */
+    message?: string;
+  }> {
     return this.http.post(this.url('/github/actions/secrets'), payload, this.headers(token));
   }
 }

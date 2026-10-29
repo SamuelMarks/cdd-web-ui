@@ -1,7 +1,31 @@
+/**
+ * NgRx reducers for workspace, file tree, and OpenAPI state slices.
+ * @module app/store/reducers
+ */
 import { createReducer, on } from '@ngrx/store';
 import { WorkspaceState, FileTreeState, OpenApiState } from './state';
 import * as Actions from './actions';
 import { PETSTORE_SPEC } from '../models/examples';
+import { OpenApiUrlEntry } from '../models/types';
+
+/** Counter used to generate unique OpenAPI URL entry IDs. */
+let nextUrlEntryCounter = 1;
+
+/**
+ * Creates a new OpenAPI URL entry with a unique identifier.
+ * @param url Initial URL string.
+ * @param id Optional explicit ID for deterministic testing.
+ * @returns A newly initialized OpenApiUrlEntry.
+ */
+export function createOpenApiUrlEntry(url: string, id?: string): OpenApiUrlEntry {
+  const entryId = id ?? `url-${nextUrlEntryCounter++}`;
+  return {
+    id: entryId,
+    url,
+    status: 'idle',
+    error: null,
+  };
+}
 
 /** Initial state for the Workspace. */
 export const initialWorkspaceState: WorkspaceState = {
@@ -31,29 +55,20 @@ export const initialWorkspaceState: WorkspaceState = {
 export const workspaceReducer = createReducer(
   initialWorkspaceState,
   /** on */
-  on(
-    Actions.toggleOrientation,
-    (state): WorkspaceState => ({
-      ...state,
-      orientation: state.orientation === 'openapi-left' ? 'openapi-right' : 'openapi-left',
-    }),
-  ),
+  on(Actions.toggleOrientation, (state): WorkspaceState => ({
+    ...state,
+    orientation: state.orientation === 'openapi-left' ? 'openapi-right' : 'openapi-left',
+  })),
   /** on */
-  on(
-    Actions.setOrientation,
-    (state, { orientation }): WorkspaceState => ({
-      ...state,
-      orientation,
-    }),
-  ),
+  on(Actions.setOrientation, (state, { orientation }): WorkspaceState => ({
+    ...state,
+    orientation,
+  })),
   /** on */
-  on(
-    Actions.setOnlineMode,
-    (state, { isOnlineMode }): WorkspaceState => ({
-      ...state,
-      isOnlineMode,
-    }),
-  ),
+  on(Actions.setOnlineMode, (state, { isOnlineMode }): WorkspaceState => ({
+    ...state,
+    isOnlineMode,
+  })),
   /** on */
   on(Actions.setSelectedLanguage, (state, { languageId }): WorkspaceState => {
     const currentLanguageId = state.selectedLanguageId;
@@ -78,56 +93,47 @@ export const workspaceReducer = createReducer(
     };
   }),
   /** on */
-  on(
-    Actions.setTarget,
-    (state, { target }): WorkspaceState => ({
-      ...state,
-      target,
-      executionError: null,
-    }),
-  ),
+  on(Actions.setTarget, (state, { target }): WorkspaceState => ({
+    ...state,
+    target,
+    executionError: null,
+  })),
   /** on */
-  on(
-    Actions.setLanguageOptions,
-    (state, { languageId, options }): WorkspaceState => ({
-      ...state,
-      languageOptions: {
-        ...state.languageOptions,
-        [languageId]: options,
-      },
-      executionError: null,
-    }),
-  ),
+  on(Actions.setLanguageOptions, (state, { languageId, options }): WorkspaceState => ({
+    ...state,
+    languageOptions: {
+      ...state.languageOptions,
+      [languageId]: options,
+    },
+    executionError: null,
+  })),
   /** on */
-  on(
-    Actions.executeRunStart,
-    (state): WorkspaceState => ({
-      ...state,
-      isExecuting: true,
-      executionError: null,
-    }),
-  ),
+  on(Actions.executeRunStart, (state): WorkspaceState => ({
+    ...state,
+    isExecuting: true,
+    executionError: null,
+  })),
   /** on */
-  on(
-    Actions.executeRunSuccess,
-    (state): WorkspaceState => ({
-      ...state,
-      isExecuting: false,
-      executionError: null,
-    }),
-  ),
+  on(Actions.executeRunSuccess, (state): WorkspaceState => ({
+    ...state,
+    isExecuting: false,
+    executionError: null,
+  })),
   /** on */
-  on(
-    Actions.executeRunFailure,
-    (state, { error }): WorkspaceState => ({
-      ...state,
-      isExecuting: false,
-      executionError: error,
-    }),
-  ),
+  on(Actions.executeRunFailure, (state, { error }): WorkspaceState => ({
+    ...state,
+    isExecuting: false,
+    executionError: error,
+  })),
   /** on */
   on(
     Actions.updateOpenApiSpec,
+    Actions.setOpenApiInputMode,
+    Actions.addOpenApiUrl,
+    Actions.updateOpenApiUrl,
+    Actions.removeOpenApiUrl,
+    Actions.clearOpenApiUrls,
+    Actions.applyFetchedUrlsToSpec,
     (state): WorkspaceState => ({
       ...state,
       executionError: null,
@@ -135,47 +141,32 @@ export const workspaceReducer = createReducer(
   ),
 
   /** on */
-  on(
-    Actions.toggleApiDocsPane,
-    (state): WorkspaceState => ({
-      ...state,
-      isApiDocsVisible: !state.isApiDocsVisible,
-    }),
-  ),
+  on(Actions.toggleApiDocsPane, (state): WorkspaceState => ({
+    ...state,
+    isApiDocsVisible: !state.isApiDocsVisible,
+  })),
   /** on */
-  on(
-    Actions.setApiDocsVisibility,
-    (state, { visible }): WorkspaceState => ({
-      ...state,
-      isApiDocsVisible: visible,
-      apiDocsLoadState:
-        visible && state.apiDocsLoadState === 'IDLE' ? 'LOADING' : state.apiDocsLoadState,
-    }),
-  ),
+  on(Actions.setApiDocsVisibility, (state, { visible }): WorkspaceState => ({
+    ...state,
+    isApiDocsVisible: visible,
+    apiDocsLoadState:
+      visible && state.apiDocsLoadState === 'IDLE' ? 'LOADING' : state.apiDocsLoadState,
+  })),
   /** on */
-  on(
-    Actions.resizeApiDocsPane,
-    (state, { height }): WorkspaceState => ({
-      ...state,
-      apiDocsPaneHeight: height,
-    }),
-  ),
+  on(Actions.resizeApiDocsPane, (state, { height }): WorkspaceState => ({
+    ...state,
+    apiDocsPaneHeight: height,
+  })),
   /** on */
-  on(
-    Actions.apiDocsIframeLoaded,
-    (state): WorkspaceState => ({
-      ...state,
-      apiDocsLoadState: 'LOADED',
-    }),
-  ),
+  on(Actions.apiDocsIframeLoaded, (state): WorkspaceState => ({
+    ...state,
+    apiDocsLoadState: 'LOADED',
+  })),
   /** on */
-  on(
-    Actions.apiDocsIframeLoadFailed,
-    (state): WorkspaceState => ({
-      ...state,
-      apiDocsLoadState: 'ERROR',
-    }),
-  ),
+  on(Actions.apiDocsIframeLoadFailed, (state): WorkspaceState => ({
+    ...state,
+    apiDocsLoadState: 'ERROR',
+  })),
 );
 
 /** Initial state for the File Tree. */
@@ -190,14 +181,11 @@ export const initialFileTreeState: FileTreeState = {
 export const fileTreeReducer = createReducer(
   initialFileTreeState,
   /** on */
-  on(
-    Actions.setSelectedLanguage,
-    (state): FileTreeState => ({
-      ...state,
-      files: [],
-      activeFilePath: null,
-    }),
-  ),
+  on(Actions.setSelectedLanguage, (state): FileTreeState => ({
+    ...state,
+    files: [],
+    activeFilePath: null,
+  })),
   /** on */
   on(Actions.setGeneratedFiles, (state, { files, modelNames }): FileTreeState => {
     let activeFilePath: string | null = null;
@@ -219,6 +207,7 @@ export const fileTreeReducer = createReducer(
         /pom\.xml$/i,
         /build\.gradle$/i,
         /tsconfig\.json$/i,
+        /docs\.json$/i,
       ];
 
       const candidateFiles = files.filter((f) => !ignorePatterns.some((p) => p.test(f.path)));
@@ -318,13 +307,10 @@ export const fileTreeReducer = createReducer(
     };
   }),
   /** on */
-  on(
-    Actions.selectFile,
-    (state, { filePath }): FileTreeState => ({
-      ...state,
-      activeFilePath: filePath,
-    }),
-  ),
+  on(Actions.selectFile, (state, { filePath }): FileTreeState => ({
+    ...state,
+    activeFilePath: filePath,
+  })),
   /** on */
   on(Actions.updateActiveFileContent, (state, { content }): FileTreeState => {
     if (!state.activeFilePath) return state;
@@ -346,33 +332,147 @@ export const initialOpenApiState: OpenApiState = {
   validationErrors: [],
   /** inputFormat */
   inputFormat: 'openapi_3_2_0',
+  /** activeInputMode */
+  activeInputMode: 'editor',
+  /** specUrls */
+  specUrls: [createOpenApiUrlEntry('', 'url-initial')],
+  /** isFetchingUrls */
+  isFetchingUrls: false,
 };
 
 /** OpenAPI Reducer */
 export const openApiReducer = createReducer(
   initialOpenApiState,
   /** on */
-  on(
-    Actions.updateOpenApiSpec,
-    (state, { content }): OpenApiState => ({
-      ...state,
-      specContent: content,
-    }),
-  ),
+  on(Actions.updateOpenApiSpec, (state, { content }): OpenApiState => ({
+    ...state,
+    specContent: content,
+  })),
   /** on */
-  on(
-    Actions.setOpenApiValidationErrors,
-    (state, { errors }): OpenApiState => ({
-      ...state,
-      validationErrors: errors,
-    }),
-  ),
+  on(Actions.setOpenApiValidationErrors, (state, { errors }): OpenApiState => ({
+    ...state,
+    validationErrors: errors,
+  })),
   /** on */
-  on(
-    Actions.setInputFormat,
-    (state, { format }): OpenApiState => ({
+  on(Actions.setInputFormat, (state, { format }): OpenApiState => ({
+    ...state,
+    inputFormat: format,
+  })),
+  /** on */
+  on(Actions.setOpenApiInputMode, (state, { mode }): OpenApiState => ({
+    ...state,
+    activeInputMode: mode,
+  })),
+  /** on */
+  on(Actions.addOpenApiUrl, (state, { url, id }): OpenApiState => ({
+    ...state,
+    specUrls: [...state.specUrls, createOpenApiUrlEntry(url ?? '', id)],
+  })),
+  /** on */
+  on(Actions.updateOpenApiUrl, (state, { id, url }): OpenApiState => {
+    const updatedUrls = state.specUrls.map((entry): OpenApiUrlEntry => {
+      if (entry.id !== id) return entry;
+      return {
+        ...entry,
+        url,
+        status: 'idle',
+        content: undefined,
+        error: null,
+      };
+    });
+    return {
       ...state,
-      inputFormat: format,
-    }),
-  ),
+      specUrls: updatedUrls,
+      isFetchingUrls: updatedUrls.some((e) => e.status === 'loading'),
+    };
+  }),
+  /** on */
+  on(Actions.removeOpenApiUrl, (state, { id }): OpenApiState => {
+    const remaining = state.specUrls.filter((entry) => entry.id !== id);
+    return {
+      ...state,
+      specUrls: remaining,
+      isFetchingUrls: remaining.some((e) => e.status === 'loading'),
+    };
+  }),
+  /** on */
+  on(Actions.reorderOpenApiUrls, (state, { previousIndex, currentIndex }): OpenApiState => {
+    if (
+      previousIndex < 0 ||
+      previousIndex >= state.specUrls.length ||
+      currentIndex < 0 ||
+      currentIndex >= state.specUrls.length ||
+      previousIndex === currentIndex
+    ) {
+      return state;
+    }
+    const nextUrls = [...state.specUrls];
+    const [moved] = nextUrls.splice(previousIndex, 1);
+    nextUrls.splice(currentIndex, 0, moved);
+    return {
+      ...state,
+      specUrls: nextUrls,
+    };
+  }),
+  /** on */
+  on(Actions.clearOpenApiUrls, (state): OpenApiState => ({
+    ...state,
+    specUrls: [],
+    isFetchingUrls: false,
+  })),
+  /** on */
+  on(Actions.fetchOpenApiUrlStart, (state, { id }): OpenApiState => {
+    const updatedUrls = state.specUrls.map((entry): OpenApiUrlEntry => {
+      if (entry.id !== id) return entry;
+      return {
+        ...entry,
+        status: 'loading',
+        error: null,
+      };
+    });
+    return {
+      ...state,
+      specUrls: updatedUrls,
+      isFetchingUrls: updatedUrls.some((e) => e.status === 'loading'),
+    };
+  }),
+  /** on */
+  on(Actions.fetchOpenApiUrlSuccess, (state, { id, content, timestamp }): OpenApiState => {
+    const updatedUrls = state.specUrls.map((entry): OpenApiUrlEntry => {
+      if (entry.id !== id) return entry;
+      return {
+        ...entry,
+        status: 'loaded',
+        content,
+        error: null,
+        lastFetched: timestamp,
+      };
+    });
+    return {
+      ...state,
+      specUrls: updatedUrls,
+      isFetchingUrls: updatedUrls.some((e) => e.status === 'loading'),
+    };
+  }),
+  /** on */
+  on(Actions.fetchOpenApiUrlFailure, (state, { id, error }): OpenApiState => {
+    const updatedUrls = state.specUrls.map((entry): OpenApiUrlEntry => {
+      if (entry.id !== id) return entry;
+      return {
+        ...entry,
+        status: 'error',
+        error,
+      };
+    });
+    return {
+      ...state,
+      specUrls: updatedUrls,
+      isFetchingUrls: updatedUrls.some((e) => e.status === 'loading'),
+    };
+  }),
+  /** on */
+  on(Actions.applyFetchedUrlsToSpec, (state, { mergedContent }): OpenApiState => ({
+    ...state,
+    specContent: mergedContent,
+  })),
 );

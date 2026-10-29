@@ -1,3 +1,7 @@
+/**
+ * Resizable dual-pane layout component with orientation swap and execution triggers.
+ * @module app/components/split-pane/split-pane.component
+ */
 import {
   Component,
   input,

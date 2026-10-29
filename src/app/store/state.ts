@@ -1,6 +1,16 @@
+/**
+ * NgRx state interfaces for the workspace, file tree, and OpenAPI store slices.
+ * @module app/store/state
+ */
 import { GeneratedFile } from '../services/wasm-worker.service';
 
-import { Target, LanguageOptions } from '../models/types';
+import {
+  Target,
+  LanguageOptions,
+  InputFormat,
+  OpenApiInputMode,
+  OpenApiUrlEntry,
+} from '../models/types';
 
 /**
  * Defines the orientation of the split pane.
@@ -55,11 +65,17 @@ export interface FileTreeState {
  */
 export interface OpenApiState {
   /** The selected input format. */
-  inputFormat: import('../models/types').InputFormat;
+  inputFormat: InputFormat;
   /** The current content of the OpenAPI specification. */
   specContent: string;
   /** Any validation errors present in the current specification. */
   validationErrors: string[];
+  /** The active tab mode in the OpenAPI pane ('editor' or 'urls'). */
+  activeInputMode: OpenApiInputMode;
+  /** The list of remote OpenAPI specification URL entries configured in the URLs tab. */
+  specUrls: OpenApiUrlEntry[];
+  /** Whether one or more remote OpenAPI URLs are currently being fetched. */
+  isFetchingUrls: boolean;
 }
 
 /**

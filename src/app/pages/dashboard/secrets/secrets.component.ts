@@ -1,3 +1,7 @@
+/**
+ * Dashboard secrets and manual release trigger page component.
+ * @module app/pages/dashboard/secrets/secrets.component
+ */
 import { Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';

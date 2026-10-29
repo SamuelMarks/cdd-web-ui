@@ -1,3 +1,7 @@
+/**
+ * Recursive directory tree component for browsing generated SDK and server files.
+ * @module app/components/directory-tree/directory-tree.component
+ */
 import { Component, input, output, computed, signal, effect } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -190,6 +194,7 @@ export class DirectoryTreeComponent {
    * Handles click events on tree nodes.
    * If it's a file, emits the fileSelected event.
    * If it's a directory, toggles its expanded state immutably.
+   * @param node The clicked FileNode item.
    */
   onNodeClick(node: FileNode): void {
     if (node.isDirectory) {

@@ -26,6 +26,12 @@ describe('Selectors', () => {
       specContent: 'openapi: 3.0.0',
       inputFormat: 'openapi_older',
       validationErrors: ['error1'],
+      activeInputMode: 'urls',
+      specUrls: [
+        { id: 'u1', url: 'https://example.com/spec.yaml', status: 'loaded', error: null },
+        { id: 'u2', url: '   ', status: 'idle', error: 'Bad URL' },
+      ],
+      isFetchingUrls: true,
     },
   };
 
@@ -81,6 +87,30 @@ describe('Selectors', () => {
 
   it('should select open api validation errors', () => {
     expect(Selectors.selectOpenApiValidationErrors(mockState)).toEqual(['error1']);
+  });
+
+  it('should select open api input format', () => {
+    expect(Selectors.selectOpenApiInputFormat(mockState)).toBe('openapi_older');
+  });
+
+  it('should select open api input mode', () => {
+    expect(Selectors.selectOpenApiInputMode(mockState)).toBe('urls');
+  });
+
+  it('should select open api spec urls', () => {
+    expect(Selectors.selectOpenApiSpecUrls(mockState)).toEqual(mockState.openApi.specUrls);
+  });
+
+  it('should select isFetchingOpenApiUrls', () => {
+    expect(Selectors.selectIsFetchingOpenApiUrls(mockState)).toBe(true);
+  });
+
+  it('should select valid open api url count', () => {
+    expect(Selectors.selectValidOpenApiUrlCount(mockState)).toBe(1);
+  });
+
+  it('should select open api url errors', () => {
+    expect(Selectors.selectOpenApiUrlErrors(mockState)).toEqual(['Bad URL']);
   });
 
   describe('API Docs Selectors', () => {

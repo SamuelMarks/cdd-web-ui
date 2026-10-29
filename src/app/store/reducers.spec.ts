@@ -268,6 +268,125 @@ describe('Reducers', () => {
       );
       expect(state.inputFormat).toBe('google_discovery');
     });
+
+    it('should set open api input mode', () => {
+      const state = openApiReducer(
+        initialOpenApiState,
+        Actions.setOpenApiInputMode({ mode: 'urls' }),
+      );
+      expect(state.activeInputMode).toBe('urls');
+    });
+
+    it('should add open api url with explicit id, default url, or auto-generated id', () => {
+      let state = openApiReducer(
+        initialOpenApiState,
+        Actions.addOpenApiUrl({ url: 'https://example.com/1.yaml', id: 'url-1' }),
+      );
+      expect(state.specUrls[state.specUrls.length - 1]).toEqual({
+        id: 'url-1',
+        url: 'https://example.com/1.yaml',
+        status: 'idle',
+        error: null,
+      });
+
+      state = openApiReducer(state, Actions.addOpenApiUrl({}));
+      expect(state.specUrls[state.specUrls.length - 1].url).toBe('');
+      expect(state.specUrls[state.specUrls.length - 1].id).toMatch(/^url-\d+$/);
+    });
+
+    it('should update open api url and reset status/error', () => {
+      let state = openApiReducer(
+        initialOpenApiState,
+        Actions.addOpenApiUrl({ url: 'https://old.com', id: 'url-test' }),
+      );
+      state = openApiReducer(
+        state,
+        Actions.fetchOpenApiUrlFailure({ id: 'url-test', error: 'bad' }),
+      );
+      state = openApiReducer(
+        state,
+        Actions.updateOpenApiUrl({ id: 'url-test', url: 'https://new.com' }),
+      );
+      const updated = state.specUrls.find((u) => u.id === 'url-test');
+      expect(updated?.url).toBe('https://new.com');
+      expect(updated?.status).toBe('idle');
+      expect(updated?.error).toBeNull();
+    });
+
+    it('should remove open api url', () => {
+      let state = openApiReducer(
+        initialOpenApiState,
+        Actions.addOpenApiUrl({ url: 'https://remove.me', id: 'url-rem' }),
+      );
+      state = openApiReducer(state, Actions.removeOpenApiUrl({ id: 'url-rem' }));
+      expect(state.specUrls.find((u) => u.id === 'url-rem')).toBeUndefined();
+    });
+
+    it('should reorder open api urls and ignore out-of-bounds indices', () => {
+      let state = openApiReducer(initialOpenApiState, Actions.clearOpenApiUrls());
+      state = openApiReducer(state, Actions.addOpenApiUrl({ url: 'https://a.com', id: 'a' }));
+      state = openApiReducer(state, Actions.addOpenApiUrl({ url: 'https://b.com', id: 'b' }));
+
+      const reordered = openApiReducer(
+        state,
+        Actions.reorderOpenApiUrls({ previousIndex: 0, currentIndex: 1 }),
+      );
+      expect(reordered.specUrls.map((u) => u.id)).toEqual(['b', 'a']);
+
+      const unchangedSame = openApiReducer(
+        reordered,
+        Actions.reorderOpenApiUrls({ previousIndex: 0, currentIndex: 0 }),
+      );
+      expect(unchangedSame).toBe(reordered);
+
+      const unchangedNegative = openApiReducer(
+        reordered,
+        Actions.reorderOpenApiUrls({ previousIndex: -1, currentIndex: 0 }),
+      );
+      expect(unchangedNegative).toBe(reordered);
+
+      const unchangedOverflow = openApiReducer(
+        reordered,
+        Actions.reorderOpenApiUrls({ previousIndex: 0, currentIndex: 99 }),
+      );
+      expect(unchangedOverflow).toBe(reordered);
+    });
+
+    it('should clear open api urls', () => {
+      const state = openApiReducer(initialOpenApiState, Actions.clearOpenApiUrls());
+      expect(state.specUrls).toEqual([]);
+      expect(state.isFetchingUrls).toBe(false);
+    });
+
+    it('should handle fetchOpenApiUrlStart, Success, Failure, and applyFetchedUrlsToSpec', () => {
+      let state = openApiReducer(initialOpenApiState, Actions.clearOpenApiUrls());
+      state = openApiReducer(state, Actions.addOpenApiUrl({ url: 'https://1.com', id: 'u1' }));
+      state = openApiReducer(state, Actions.addOpenApiUrl({ url: 'https://2.com', id: 'u2' }));
+
+      state = openApiReducer(state, Actions.fetchOpenApiUrlStart({ id: 'u1' }));
+      expect(state.isFetchingUrls).toBe(true);
+      expect(state.specUrls.find((u) => u.id === 'u1')?.status).toBe('loading');
+
+      state = openApiReducer(
+        state,
+        Actions.fetchOpenApiUrlSuccess({ id: 'u1', content: 'spec1', timestamp: 12345 }),
+      );
+      expect(state.isFetchingUrls).toBe(false);
+      expect(state.specUrls.find((u) => u.id === 'u1')?.status).toBe('loaded');
+      expect(state.specUrls.find((u) => u.id === 'u1')?.content).toBe('spec1');
+      expect(state.specUrls.find((u) => u.id === 'u1')?.lastFetched).toBe(12345);
+
+      state = openApiReducer(state, Actions.fetchOpenApiUrlStart({ id: 'u2' }));
+      expect(state.isFetchingUrls).toBe(true);
+
+      state = openApiReducer(state, Actions.fetchOpenApiUrlFailure({ id: 'u2', error: '404' }));
+      expect(state.isFetchingUrls).toBe(false);
+      expect(state.specUrls.find((u) => u.id === 'u2')?.status).toBe('error');
+      expect(state.specUrls.find((u) => u.id === 'u2')?.error).toBe('404');
+
+      state = openApiReducer(state, Actions.applyFetchedUrlsToSpec({ mergedContent: 'merged' }));
+      expect(state.specContent).toBe('merged');
+    });
   });
 });
 

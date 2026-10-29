@@ -1,3 +1,8 @@
+/**
+ * Application entry point.
+ * @module main
+ */
+import { ApplicationRef } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { App } from './app/app';
@@ -8,7 +13,9 @@ import * as Sentry from '@sentry/angular';
  * @param sentryDsn The Sentry Data Source Name. Defaults to a placeholder.
  * @returns A promise that resolves when the application is bootstrapped.
  */
-export function bootstrap(sentryDsn = 'https://placeholder-dsn@o0.ingest.sentry.io/0') {
+export function bootstrap(
+  sentryDsn: string = 'https://placeholder-dsn@o0.ingest.sentry.io/0',
+): Promise<void | ApplicationRef> {
   if (!sentryDsn.includes('placeholder-dsn')) {
     Sentry.init({
       dsn: sentryDsn,
@@ -20,7 +27,7 @@ export function bootstrap(sentryDsn = 'https://placeholder-dsn@o0.ingest.sentry.
     });
   }
 
-  return bootstrapApplication(App, appConfig).catch((err) => console.error(err));
+  return bootstrapApplication(App, appConfig).catch((err: unknown) => console.error(err));
 }
 
 // Bootstrap the application

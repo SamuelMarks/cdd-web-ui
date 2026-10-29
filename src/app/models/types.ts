@@ -21,22 +21,38 @@ export type Ecosystem =
 
 /** The target output format for the code generator. */
 export type Target =
-  | 'to_sdk'
-  | 'to_sdk_cli'
-  | 'to_server'
-  | 'to_openapi_3_2_0'
-  | 'to_orm'
-  | 'to_mcp';
+  'to_sdk' | 'to_sdk_cli' | 'to_server' | 'to_openapi_3_2_0' | 'to_orm' | 'to_mcp';
 
 /** The supported input formats for the API specification. */
 export type InputFormat = 'openapi_3_2_0' | 'openapi_older' | 'google_discovery' | 'c_source';
 
+/** The active input mode tab in the OpenAPI specification pane. */
+export type OpenApiInputMode = 'editor' | 'urls';
+
+/** The fetch lifecycle status for an individual remote OpenAPI URL entry. */
+export type OpenApiUrlStatus = 'idle' | 'loading' | 'loaded' | 'error';
+
+/**
+ * Represents a single remote OpenAPI specification URL entry in the URLs tab.
+ */
+export interface OpenApiUrlEntry {
+  /** Unique identifier for tracking the entry in templates and state updates. */
+  id: string;
+  /** The remote HTTP/HTTPS URL pointing to the OpenAPI specification. */
+  url: string;
+  /** Current fetch lifecycle status for this URL. */
+  status: OpenApiUrlStatus;
+  /** Fetched raw specification content (JSON or YAML) if loaded. */
+  content?: string;
+  /** Error message if fetching or validation failed, or null if none. */
+  error?: string | null;
+  /** Epoch timestamp (milliseconds) when the URL was last successfully fetched. */
+  lastFetched?: number;
+}
+
 /** The execution mode for WASM or Native runtimes. */
 export type RunMode =
-  | 'local_relative'
-  | 'local_cdd_ctl_wasm'
-  | 'local_cdd_ctl_native'
-  | 'served_github';
+  'local_relative' | 'local_cdd_ctl_wasm' | 'local_cdd_ctl_native' | 'served_github';
 
 /** Configuration options for the target language. */
 export interface LanguageOptions {

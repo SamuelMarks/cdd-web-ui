@@ -1,3 +1,7 @@
+/**
+ * Application-wide logging service for capturing INFO, WARN, and ERROR events.
+ * @module app/services/logging.service
+ */
 import { Injectable, signal, inject } from '@angular/core';
 import { GLOBAL_DATE } from '../tokens';
 
@@ -58,12 +62,17 @@ export class LoggingService {
     this.addLog('ERROR', message, optionalParams);
   }
 
-  /** doc */
+  /** Clears all recorded log entries. */
   clear(): void {
     this.logsSignal.set([]);
   }
 
-  /** doc */
+  /**
+   * Appends a new log entry to the internal signal.
+   * @param level Severity level of the log entry.
+   * @param message Log message text.
+   * @param params Additional parameters associated with the log.
+   */
   private addLog(level: 'INFO' | 'WARN' | 'ERROR', message: string, params: unknown[]): void {
     this.logsSignal.update((logs) => [
       ...logs,

@@ -1,3 +1,7 @@
+/**
+ * Language, target, framework, ORM, and compiler option selector toolbar component.
+ * @module app/components/language-selector/language-selector.component
+ */
 import { Component, inject, input, output, computed, effect } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { MatSelectModule } from '@angular/material/select';
@@ -291,7 +295,12 @@ export class LanguageSelectorComponent {
   /** Emits when the target selection changes. */
   targetChanged = output<Target>();
   /** Emits when the language options change. */
-  optionsChanged = output<{ languageId: string; options: LanguageOptions }>();
+  optionsChanged = output<{
+    /** ID of the language whose options changed. */
+    languageId: string;
+    /** Updated language options object. */
+    options: LanguageOptions;
+  }>();
 
   /** Store dependency */
   private store = inject(Store<AppState>);

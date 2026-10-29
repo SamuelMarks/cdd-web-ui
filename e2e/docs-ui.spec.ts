@@ -1,10 +1,24 @@
 import { test, expect } from '@playwright/test';
 import { LANGUAGES } from '../src/app/models/constants';
 
-const SUPPORTED_E2E_LANGUAGES = ['c', 'cpp', 'go', 'php', 'rust', 'ruby', 'swift', 'typescript']; // Excluded python, csharp, java, kotlin for now
+const SUPPORTED_E2E_LANGUAGES = [
+  'c',
+  'cpp',
+  'csharp',
+  'go',
+  'java',
+  'kotlin',
+  'php',
+  'python',
+  'ruby',
+  'rust',
+  'sh',
+  'swift',
+  'typescript',
+];
 
 test.describe('SDK Examples UI Integration Tests', () => {
-  test.setTimeout(120000);
+  test.setTimeout(180000);
 
   test.beforeEach(async ({ page }) => {
     await page.route('**/*google-analytics*', (route) => route.abort());
@@ -34,6 +48,7 @@ test.describe('SDK Examples UI Integration Tests', () => {
       const generateBtn = page.locator('button', { hasText: /Generate/i });
       await generateBtn.click();
       await expect(generateBtn).toBeEnabled({ timeout: 120000 });
+      await expect(page.locator('mat-form-field.has-error')).toHaveCount(0);
 
       const tabGroup = page.locator('mat-tab-group');
       const docsUiTab = tabGroup.locator('div[role="tab"]', { hasText: /Docs UI/i });

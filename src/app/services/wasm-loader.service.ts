@@ -1,3 +1,7 @@
+/**
+ * WebAssembly binary loader and cache management service.
+ * @module app/services/wasm-loader.service
+ */
 import { Injectable, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
@@ -20,13 +24,12 @@ export const WASM_GITHUB_URLS: Record<string, string> = {
   'cdd-kotlin': 'https://github.com/offscale/cdd-kotlin/releases/latest/download/cdd-kotlin.wasm',
   'cdd-php': 'https://github.com/SamuelMarks/cdd-php/releases/latest/download/cdd-php.wasm',
   'cdd-python-all':
-    'https://github.com/offscale/cdd-python-all/releases/latest/download/openapi_python_client-0.0.1-py3-none-any.whl',
+    'https://github.com/offscale/cdd-python-all/releases/latest/download/cdd-python-all.wasm',
   'cdd-ruby': 'https://github.com/SamuelMarks/cdd-ruby/releases/latest/download/cdd-ruby.wasm',
   'cdd-rust': 'https://github.com/offscale/cdd-rust/releases/latest/download/cdd-rust.wasm',
   'cdd-sh': 'https://github.com/SamuelMarks/cdd-sh/releases/latest/download/cdd-sh.wasm',
   'cdd-swift': 'https://github.com/SamuelMarks/cdd-swift/releases/latest/download/cdd-swift.wasm',
   'cdd-ts': 'https://github.com/offscale/cdd-ts/releases/latest/download/cdd-ts-javy.wasm',
-  'cdd-ts.js': 'https://github.com/offscale/cdd-ts/releases/latest/download/cdd-ts.js',
 };
 
 /** List of all supported WASM ecosystems. */
@@ -53,6 +56,8 @@ export class WasmLoaderService {
 
   /**
    * Gets the remote GitHub URL for a WASM binary.
+   * @param ecosystem The target ecosystem identifier.
+   * @returns The remote GitHub release URL string, or empty string if unknown.
    */
   getGithubWasmUrl(ecosystem: string): string {
     return WASM_GITHUB_URLS[ecosystem] || '';
@@ -60,6 +65,8 @@ export class WasmLoaderService {
 
   /**
    * Parses the GitHub URL to determine the local path.
+   * @param githubUrl The remote GitHub release URL.
+   * @returns Relative local path under `./assets/wasm/`.
    */
   getLocalWasmPath(githubUrl: string): string {
     const filename = githubUrl.split('/').pop() || '';
@@ -68,6 +75,8 @@ export class WasmLoaderService {
 
   /**
    * Gets the correct URL for a WASM binary or JS file.
+   * @param ecosystem The target ecosystem identifier.
+   * @returns Local URL path to the WASM binary or JS asset.
    */
   getEnvUrl(ecosystem: string): string {
     const githubUrl = this.getGithubWasmUrl(ecosystem);
@@ -77,6 +86,8 @@ export class WasmLoaderService {
 
   /**
    * Fetches the WASM binary or JS file from the correct environment URL.
+   * @param ecosystem The target ecosystem identifier.
+   * @returns Promise resolving to the HTTP fetch Response.
    */
   private async fetchWasmResponse(ecosystem: string): Promise<Response> {
     const url = this.getEnvUrl(ecosystem);
@@ -88,6 +99,8 @@ export class WasmLoaderService {
 
   /**
    * Preloads all WASM binaries.
+   * @param onProgress Optional progress callback receiving loaded count and total count.
+   * @returns Promise resolving once preloading finishes.
    */
   async preloadAllWasm(onProgress?: (loaded: number, total: number) => void): Promise<void> {
     let loadedCount = 0;
@@ -97,7 +110,11 @@ export class WasmLoaderService {
     // For simplicity, we fire them all.
     await Promise.all(
       WASM_ECOSYSTEMS.map(async (ecosystem) => {
-        if (ecosystem === 'cdd-csharp' || ecosystem === 'cdd-csharp-wasm.zip') {
+        if (
+          ecosystem === 'cdd-csharp' ||
+          ecosystem === 'cdd-csharp-wasm.zip' ||
+          ecosystem === 'cdd-java.js'
+        ) {
           loadedCount++;
           if (onProgress) {
             onProgress(loadedCount, totalCount);
@@ -111,7 +128,14 @@ export class WasmLoaderService {
             return;
           }
           const buffer = await response.arrayBuffer();
-          this.binaryCache.set(ecosystem, buffer);
+          const view = new Uint8Array(buffer);
+          const magic =
+            view.length >= 4 ? (view[0] << 24) | (view[1] << 16) | (view[2] << 8) | view[3] : 0;
+          if (magic === 0x0061736d || magic === 0x504b0304) {
+            this.binaryCache.set(ecosystem, buffer);
+          } else {
+            console.warn(`Failed to preload ${ecosystem}: Invalid magic number`);
+          }
         } catch (err) {
           console.error(`Failed to preload ${ecosystem}:`, err);
         } finally {

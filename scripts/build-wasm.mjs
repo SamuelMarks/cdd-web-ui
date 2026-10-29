@@ -8,25 +8,158 @@ const SUPPORT_FILE_DEST = path.resolve(process.cwd(), 'public/assets', 'wasm-sup
 
 const args = process.argv.slice(2);
 const buildLocally = args.includes('--local');
+
+function isEnvEnabled(val) {
+  if (val === undefined || val === null) return false;
+  const normalized = String(val).trim().toLowerCase();
+  return normalized !== '' && normalized !== '0' && normalized !== 'false' && normalized !== 'no';
+}
+
 const forceRebuild =
   args.includes('--force') ||
-  process.env.FORCE_REBUILD_WASM === 'true' ||
-  process.env.FORCE_REBUILD_WASM === '1';
+  isEnvEnabled(process.env.FORCE_REBUILD_WASM) ||
+  isEnvEnabled(process.env.REBUILD_ALL);
+
+function shouldForceRebuildTool(tool, lang) {
+  if (forceRebuild) return true;
+  const toolEnvKey = `REBUILD_${tool.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
+  const langEnvKey = lang ? `REBUILD_CDD_${lang.toUpperCase().replace(/[^A-Z0-9]/g, '_')}` : '';
+  return (
+    isEnvEnabled(process.env[toolEnvKey]) ||
+    (langEnvKey ? isEnvEnabled(process.env[langEnvKey]) : false)
+  );
+}
+
+function hasNonMarkdownEdits(porcelainOutput) {
+  const entries = porcelainOutput.split('\0');
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    if (!entry) continue;
+    const status = entry.slice(0, 2);
+    const filePath = entry.slice(3);
+    if (!filePath.toLowerCase().endsWith('.md')) {
+      return true;
+    }
+    if (status[0] === 'R' || status[0] === 'C') {
+      const origPath = entries[++i] || '';
+      if (origPath && !origPath.toLowerCase().endsWith('.md')) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function getRepoGitState(repoDir) {
+  try {
+    const hash = execSync('git rev-parse HEAD', {
+      cwd: repoDir,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    const statusOutput = execSync('git status --porcelain -z --untracked-files=all', {
+      cwd: repoDir,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    const dirtyNonMarkdown = hasNonMarkdownEdits(statusOutput);
+    return { hash, canReuseCache: Boolean(hash) && !dirtyNonMarkdown, dirtyNonMarkdown };
+  } catch (e) {
+    return { hash: '', canReuseCache: false, dirtyNonMarkdown: true };
+  }
+}
+
+function isValidWasmOrZipBinary(filePath) {
+  if (!fs.existsSync(filePath)) return false;
+  const stat = fs.statSync(filePath);
+  if (stat.size < 1024) return false;
+  const fd = fs.openSync(filePath, 'r');
+  const buf = Buffer.alloc(4);
+  fs.readSync(fd, buf, 0, 4, 0);
+  fs.closeSync(fd);
+  const magic = buf.readUInt32BE(0);
+  return magic === 0x0061736d || magic === 0x504b0304;
+}
+
+function isValidJsWrapper(filePath) {
+  if (!fs.existsSync(filePath)) return false;
+  const stat = fs.statSync(filePath);
+  return stat.size >= 1024;
+}
+
+function hasValidLocalArtifact(tool, wasmDest) {
+  if (tool === 'cdd-csharp') {
+    const appBundleDest = path.join(DEST_DIR, 'cdd-csharp');
+    return fs.existsSync(appBundleDest) && fs.readdirSync(appBundleDest).length > 0;
+  }
+  if (tool === 'cdd-java') {
+    return (
+      isValidWasmOrZipBinary(wasmDest) &&
+      isValidWasmOrZipBinary(path.join(DEST_DIR, 'cdd-java.js.wasm')) &&
+      isValidJsWrapper(path.join(DEST_DIR, 'cdd-java.js'))
+    );
+  }
+  return isValidWasmOrZipBinary(wasmDest);
+}
 
 if (!fs.existsSync(DEST_DIR)) {
   fs.mkdirSync(DEST_DIR, { recursive: true });
 }
 
-if (buildLocally) {
-  console.log('Building cdd-browser-sdk locally...');
+function buildLocalSiblingPackage(pkgName, clearAngularCacheOnBuild = false) {
+  const pkgDir = path.resolve(process.cwd(), `../${pkgName}`);
+  if (!fs.existsSync(pkgDir)) {
+    throw new Error(
+      `Local directory not found for ${pkgName} at ${pkgDir}. --local requires all sibling packages to be built locally.`,
+    );
+  }
+  const pkgHashFile = path.join(DEST_DIR, `${pkgName}.hash`);
+  const pkgDistDir = path.join(pkgDir, 'dist');
+  const pkgGitState = getRepoGitState(pkgDir);
+  const hasPkgDist = fs.existsSync(pkgDistDir) && fs.readdirSync(pkgDistDir).length > 0;
+  const savedPkgHash = fs.existsSync(pkgHashFile)
+    ? fs.readFileSync(pkgHashFile, 'utf-8').trim()
+    : '';
+  const forceRebuildPkg = shouldForceRebuildTool(pkgName);
+
+  if (
+    !forceRebuildPkg &&
+    pkgGitState.canReuseCache &&
+    hasPkgDist &&
+    savedPkgHash === pkgGitState.hash
+  ) {
+    console.log(
+      `⏭️  Skipping ${pkgName} local build (git hash unchanged and no non-markdown edits).`,
+    );
+    return;
+  }
+
+  console.log(`Building ${pkgName} locally...`);
   try {
     execSync('npm run build', {
-      cwd: path.resolve(process.cwd(), '../cdd-browser-sdk'),
+      cwd: pkgDir,
       stdio: 'inherit',
     });
+    const postBuildGitState = getRepoGitState(pkgDir);
+    if (postBuildGitState.canReuseCache) {
+      fs.writeFileSync(pkgHashFile, postBuildGitState.hash);
+    } else if (fs.existsSync(pkgHashFile)) {
+      fs.unlinkSync(pkgHashFile);
+    }
+    if (clearAngularCacheOnBuild) {
+      const angularCacheDir = path.resolve(process.cwd(), '.angular/cache');
+      if (fs.existsSync(angularCacheDir)) {
+        fs.rmSync(angularCacheDir, { recursive: true, force: true });
+      }
+    }
   } catch (e) {
-    console.warn('Failed to build cdd-browser-sdk locally, continuing...');
+    throw new Error(`Failed to build ${pkgName} locally: ${e.message}`);
   }
+}
+
+if (buildLocally) {
+  buildLocalSiblingPackage('cdd-docs-ui', true);
+  buildLocalSiblingPackage('cdd-browser-sdk', true);
 }
 
 const REPOS = {
@@ -46,8 +179,6 @@ const REPOS = {
 };
 
 const supportMap = {};
-
-// ... (skipping some unchanged lines, but I need to do a full replace or just two replaces)
 
 function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
@@ -93,7 +224,7 @@ function getReleaseFileName(tool) {
   return `${tool}.wasm`;
 }
 
-function getGithubReleaseUrl(repo, tool) {
+function getGithubLatestRelease(repo, tool) {
   return new Promise((resolve, reject) => {
     https
       .get(
@@ -110,9 +241,27 @@ function getGithubReleaseUrl(repo, tool) {
           let data = '';
           res.on('data', (chunk) => (data += chunk));
           res.on('end', () => {
+            if (res.statusCode === 404) {
+              return reject(new Error(`No tagged latest release found for ${repo} (HTTP 404)`));
+            }
+            if (res.statusCode === 403 || res.statusCode === 429) {
+              return resolve({
+                tagName: 'latest',
+                url: `https://github.com/${repo}/releases/latest/download/${getReleaseFileName(tool)}`,
+              });
+            }
+            if (res.statusCode !== 200) {
+              return reject(
+                new Error(
+                  `GitHub API /releases/latest failed for ${repo} with HTTP ${res.statusCode}`,
+                ),
+              );
+            }
             try {
               const json = JSON.parse(data);
-              // Look for an asset matching tool.wasm, tool-wasm.zip, or tool.js.wasm
+              if (!json || !json.tag_name || json.draft || json.prerelease) {
+                return reject(new Error(`No valid tagged latest release found for ${repo}`));
+              }
               let asset;
               if (tool === 'cdd-csharp') {
                 asset = json.assets?.find((a) => a.name === `${tool}-wasm.zip`);
@@ -130,33 +279,66 @@ function getGithubReleaseUrl(repo, tool) {
               if (!asset) {
                 asset = json.assets?.find((a) => a.name === `${tool}.js.wasm`);
               }
-              if (asset) {
-                resolve(asset.browser_download_url);
-              } else {
-                // Check for tags fallback since some releases are tagged without a "latest" release concept
-                resolve(
-                  `https://github.com/${repo}/releases/latest/download/${getReleaseFileName(tool)}`,
-                );
+              if (asset && asset.browser_download_url) {
+                const jsAsset =
+                  tool === 'cdd-java' ? json.assets?.find((a) => a.name === 'cdd-java.js') : null;
+                const jsWasmAsset =
+                  tool === 'cdd-java'
+                    ? json.assets?.find((a) => a.name === 'cdd-java.js.wasm')
+                    : null;
+                return resolve({
+                  tagName: json.tag_name,
+                  url: asset.browser_download_url,
+                  jsUrl: jsAsset?.browser_download_url || null,
+                  jsWasmUrl: jsWasmAsset?.browser_download_url || null,
+                });
               }
+              return reject(
+                new Error(
+                  `Tagged latest release ${json.tag_name} for ${repo} does not contain a WASM asset for ${tool}`,
+                ),
+              );
             } catch (e) {
-              resolve(
-                `https://github.com/${repo}/releases/latest/download/${getReleaseFileName(tool)}`,
+              return reject(
+                new Error(`Failed to parse /releases/latest response for ${repo}: ${e.message}`),
               );
             }
           });
         },
       )
       .on('error', () => {
-        resolve(`https://github.com/${repo}/releases/latest/download/${getReleaseFileName(tool)}`);
+        resolve({
+          tagName: 'latest',
+          url: `https://github.com/${repo}/releases/latest/download/${getReleaseFileName(tool)}`,
+        });
       });
   });
 }
 
-async function run() {
-  console.log('\nGathering WASM files...');
-
-  if (buildLocally) {
+function removeToolArtifacts(tool, wasmDest) {
+  if (fs.existsSync(wasmDest)) {
+    fs.unlinkSync(wasmDest);
   }
+  if (tool === 'cdd-csharp') {
+    const appBundleDest = path.join(DEST_DIR, 'cdd-csharp');
+    if (fs.existsSync(appBundleDest)) {
+      fs.rmSync(appBundleDest, { recursive: true, force: true });
+    }
+  }
+  if (tool === 'cdd-java') {
+    const jsWasm = path.join(DEST_DIR, 'cdd-java.js.wasm');
+    const jsWrapper = path.join(DEST_DIR, 'cdd-java.js');
+    if (fs.existsSync(jsWasm)) fs.unlinkSync(jsWasm);
+    if (fs.existsSync(jsWrapper)) fs.unlinkSync(jsWrapper);
+  }
+}
+
+async function run() {
+  console.log(
+    buildLocally
+      ? '\nGathering WASM files from local builds ONLY (--local)...'
+      : '\nGathering WASM files from tagged latest GitHub releases ONLY...',
+  );
 
   for (const [lang, repo] of Object.entries(REPOS)) {
     const tool = repo.split('/')[1];
@@ -166,38 +348,47 @@ async function run() {
 
     console.log(`Processing ${tool} (${lang})...`);
 
-    let builtLocally = false;
-    let localToolDir = path.resolve(process.cwd(), `../${tool}`);
+    const hashFile = path.join(DEST_DIR, `${tool}.wasm.hash`);
+    const releaseFile = path.join(DEST_DIR, `${tool}.wasm.release`);
+    const forceRebuildTool = shouldForceRebuildTool(tool, lang);
 
-    if (fs.existsSync(localToolDir)) {
-      let currentHash = '';
-      try {
-        currentHash = execSync('git rev-parse HEAD', {
-          cwd: localToolDir,
-          encoding: 'utf-8',
-        }).trim();
-      } catch (e) {
-        // Ignore if not a git repository
+    if (buildLocally) {
+      const localToolDir = path.resolve(process.cwd(), `../${tool}`);
+      if (!fs.existsSync(localToolDir)) {
+        throw new Error(
+          `Local repository directory not found for ${tool} at ${localToolDir}. --local requires all WASM targets to be built locally and never from GitHub releases.`,
+        );
       }
 
-      const hashFile = path.join(DEST_DIR, `${tool}.wasm.hash`);
+      if (fs.existsSync(releaseFile)) {
+        fs.unlinkSync(releaseFile);
+        if (fs.existsSync(hashFile)) fs.unlinkSync(hashFile);
+        removeToolArtifacts(tool, wasmDest);
+      }
+
+      const gitState = getRepoGitState(localToolDir);
+      const currentHash = gitState.hash;
+      let builtLocally = false;
+
       if (
-        !forceRebuild &&
-        currentHash &&
+        !forceRebuildTool &&
+        gitState.canReuseCache &&
         fs.existsSync(hashFile) &&
-        fs.existsSync(wasmDest) &&
-        fs.statSync(wasmDest).size > 0
+        !fs.existsSync(releaseFile) &&
+        hasValidLocalArtifact(tool, wasmDest)
       ) {
         const savedHash = fs.readFileSync(hashFile, 'utf-8').trim();
         if (savedHash === currentHash) {
-          console.log(`  ⏭️  Skipping local build, git hash hasn't changed.`);
+          console.log(
+            `  ⏭️  Skipping local build, git hash hasn't changed and no non-markdown edits exist.`,
+          );
           supported = true;
           builtLocally = true;
         }
       }
 
       if (!builtLocally) {
-        console.log(`  Found local directory ${localToolDir}, attempting to build WASM locally...`);
+        console.log(`  Found local directory ${localToolDir}, building WASM locally...`);
         try {
           let success = false;
           const buildWasmScriptRoot = path.join(localToolDir, 'build_wasm.sh');
@@ -225,75 +416,6 @@ async function run() {
               success = true;
             }
           } else if (fs.existsSync(buildWasmScriptRoot)) {
-            if (tool === 'cdd-kotlin') {
-              console.log('Patching Kotlin to add to_sdk...');
-              const ktPath = path.join(localToolDir, 'src/wasmMain/kotlin/org/cdd/wasm/Main.kt');
-              if (fs.existsSync(ktPath)) {
-                let kt = fs.readFileSync(ktPath, 'utf8');
-                kt = kt.replace(
-                  /fun from_openapi\(\): Int \{[\s\S]*?runCli\(arrayOf\("from_openapi"\)\)[\s\S]*?\}/,
-                  'fun from_openapi(): Int { return runCli(arrayOf("from_openapi", "to_sdk", "-o", "out")) }',
-                );
-                fs.writeFileSync(ktPath, kt);
-              }
-              const ktCommonPath = path.join(localToolDir, 'src/commonMain/kotlin/Main.kt');
-              if (fs.existsSync(ktCommonPath)) {
-                let ktCommon = fs.readFileSync(ktCommonPath, 'utf8');
-                if (!ktCommon.includes('command == "to_sdk"')) {
-                  const sdkLogic = `
-    if (command == "to_sdk") {
-        var outputDir = "out"
-        var i = 1
-        while (i < args.size) {
-            when (args[i]) {
-                "-o", "--output" -> if (i + 1 < args.size) outputDir = args[++i]
-            }
-            i++
-        }
-        val clientCode = "package org.example\n\nclass ApiClient {\n    // Generated natively by cdd-kotlin\n}\n"
-        writeToFile(outputDir + "/ApiClient.kt", clientCode)
-        return 0
-    }
-`;
-                  ktCommon = ktCommon.replace(
-                    'if (command == "to_docs_json") {',
-                    sdkLogic + '\n    if (command == "to_docs_json") {',
-                  );
-                  fs.writeFileSync(ktCommonPath, ktCommon);
-                }
-              }
-            }
-
-            if (tool === 'cdd-sh') {
-              console.log('Patching Shell to mock mkdir...');
-              const shPath = path.join(localToolDir, 'main.go');
-              if (fs.existsSync(shPath)) {
-                let sh = fs.readFileSync(shPath, 'utf8');
-                if (!sh.includes('mkdirCallHandler')) {
-                  const mkdirLogic = `
-func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
-        if len(args) > 0 && args[0] == "mkdir" {
-                return []string{}, nil
-        }
-        if len(args) > 0 && args[0] == "rm" {
-                return []string{}, nil
-        }
-        if len(args) > 0 && args[0] == "cp" {
-                return []string{}, nil
-        }
-        return cdCallHandler(ctx, args)
-}
-`;
-                  sh = sh.replace('func cdCallHandler', mkdirLogic + '\nfunc cdCallHandler');
-                  sh = sh.replace(
-                    'interp.CallHandler(cdCallHandler),',
-                    'interp.CallHandler(mkdirCallHandler),',
-                  );
-                  fs.writeFileSync(shPath, sh);
-                }
-              }
-            }
-
             console.log(`  Running build_wasm.sh...`);
             execSync(`bash build_wasm.sh`, { cwd: localToolDir, stdio: 'inherit' });
             const customWasmSource = path.join(localToolDir, 'target', 'wasm', `${tool}.wasm`);
@@ -310,94 +432,26 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
               success = true;
             }
           } else if (fs.existsSync(cargoTomlPath)) {
-            if (tool === 'cdd-kotlin') {
-              console.log('Patching Kotlin to add to_sdk...');
-              const ktPath = path.join(localToolDir, 'src/wasmMain/kotlin/org/cdd/wasm/Main.kt');
-              if (fs.existsSync(ktPath)) {
-                let kt = fs.readFileSync(ktPath, 'utf8');
-                kt = kt.replace(
-                  /fun from_openapi\(\): Int \{[\s\S]*?runCli\(arrayOf\("from_openapi"\)\)[\s\S]*?\}/,
-                  'fun from_openapi(): Int { return runCli(arrayOf("from_openapi", "to_sdk", "-o", "out")) }',
-                );
-                fs.writeFileSync(ktPath, kt);
-              }
-              const ktCommonPath = path.join(localToolDir, 'src/commonMain/kotlin/Main.kt');
-              if (fs.existsSync(ktCommonPath)) {
-                let ktCommon = fs.readFileSync(ktCommonPath, 'utf8');
-                if (!ktCommon.includes('command == "to_sdk"')) {
-                  const sdkLogic = `
-    if (command == "to_sdk") {
-        var outputDir = "out"
-        var i = 1
-        while (i < args.size) {
-            when (args[i]) {
-                "-o", "--output" -> if (i + 1 < args.size) outputDir = args[++i]
-            }
-            i++
-        }
-        val clientCode = "package org.example\n\nclass ApiClient {\n    // Generated natively by cdd-kotlin\n}\n"
-        writeToFile(outputDir + "/ApiClient.kt", clientCode)
-        return 0
-    }
-`;
-                  ktCommon = ktCommon.replace(
-                    'if (command == "to_docs_json") {',
-                    sdkLogic + '\n    if (command == "to_docs_json") {',
-                  );
-                  fs.writeFileSync(ktCommonPath, ktCommon);
-                }
-              }
-            }
-
-            if (tool === 'cdd-sh') {
-              console.log('Patching Shell to mock mkdir...');
-              const shPath = path.join(localToolDir, 'main.go');
-              if (fs.existsSync(shPath)) {
-                let sh = fs.readFileSync(shPath, 'utf8');
-                if (!sh.includes('mkdirCallHandler')) {
-                  const mkdirLogic = `
-func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
-        if len(args) > 0 && args[0] == "mkdir" {
-                return []string{}, nil
-        }
-        if len(args) > 0 && args[0] == "rm" {
-                return []string{}, nil
-        }
-        if len(args) > 0 && args[0] == "cp" {
-                return []string{}, nil
-        }
-        return cdCallHandler(ctx, args)
-}
-`;
-                  sh = sh.replace('func cdCallHandler', mkdirLogic + '\nfunc cdCallHandler');
-                  sh = sh.replace(
-                    'interp.CallHandler(cdCallHandler),',
-                    'interp.CallHandler(mkdirCallHandler),',
-                  );
-                  fs.writeFileSync(shPath, sh);
-                }
-              }
-            }
-
             console.log(`  Building via Cargo for wasm32-wasip1...`);
+            const cargoRustFlags = '--cfg no_salsa_async_drops -C target-feature=+multivalue';
             try {
               execSync(`cargo build --target wasm32-wasip1 --release --workspace --bin ${tool}`, {
                 cwd: localToolDir,
                 stdio: 'inherit',
-                env: { ...process.env, RUSTFLAGS: '-C target-feature=+multivalue' },
+                env: { ...process.env, RUSTFLAGS: cargoRustFlags },
               });
             } catch (e) {
               try {
                 execSync(`cargo build --target wasm32-wasip1 --release --bin ${tool}`, {
                   cwd: localToolDir,
                   stdio: 'inherit',
-                  env: { ...process.env, RUSTFLAGS: '-C target-feature=+multivalue' },
+                  env: { ...process.env, RUSTFLAGS: cargoRustFlags },
                 });
               } catch (e2) {
                 execSync('cargo build --target wasm32-wasip1 --release', {
                   cwd: localToolDir,
                   stdio: 'inherit',
-                  env: { ...process.env, RUSTFLAGS: '-C target-feature=+multivalue' },
+                  env: { ...process.env, RUSTFLAGS: cargoRustFlags },
                 });
               }
             }
@@ -413,75 +467,6 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
               success = true;
             }
           } else if (tool === 'cdd-sh') {
-            if (tool === 'cdd-kotlin') {
-              console.log('Patching Kotlin to add to_sdk...');
-              const ktPath = path.join(localToolDir, 'src/wasmMain/kotlin/org/cdd/wasm/Main.kt');
-              if (fs.existsSync(ktPath)) {
-                let kt = fs.readFileSync(ktPath, 'utf8');
-                kt = kt.replace(
-                  /fun from_openapi\(\): Int \{[\s\S]*?runCli\(arrayOf\("from_openapi"\)\)[\s\S]*?\}/,
-                  'fun from_openapi(): Int { return runCli(arrayOf("from_openapi", "to_sdk", "-o", "out")) }',
-                );
-                fs.writeFileSync(ktPath, kt);
-              }
-              const ktCommonPath = path.join(localToolDir, 'src/commonMain/kotlin/Main.kt');
-              if (fs.existsSync(ktCommonPath)) {
-                let ktCommon = fs.readFileSync(ktCommonPath, 'utf8');
-                if (!ktCommon.includes('command == "to_sdk"')) {
-                  const sdkLogic = `
-    if (command == "to_sdk") {
-        var outputDir = "out"
-        var i = 1
-        while (i < args.size) {
-            when (args[i]) {
-                "-o", "--output" -> if (i + 1 < args.size) outputDir = args[++i]
-            }
-            i++
-        }
-        val clientCode = "package org.example\n\nclass ApiClient {\n    // Generated natively by cdd-kotlin\n}\n"
-        writeToFile(outputDir + "/ApiClient.kt", clientCode)
-        return 0
-    }
-`;
-                  ktCommon = ktCommon.replace(
-                    'if (command == "to_docs_json") {',
-                    sdkLogic + '\n    if (command == "to_docs_json") {',
-                  );
-                  fs.writeFileSync(ktCommonPath, ktCommon);
-                }
-              }
-            }
-
-            if (tool === 'cdd-sh') {
-              console.log('Patching Shell to mock mkdir...');
-              const shPath = path.join(localToolDir, 'main.go');
-              if (fs.existsSync(shPath)) {
-                let sh = fs.readFileSync(shPath, 'utf8');
-                if (!sh.includes('mkdirCallHandler')) {
-                  const mkdirLogic = `
-func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
-        if len(args) > 0 && args[0] == "mkdir" {
-                return []string{}, nil
-        }
-        if len(args) > 0 && args[0] == "rm" {
-                return []string{}, nil
-        }
-        if len(args) > 0 && args[0] == "cp" {
-                return []string{}, nil
-        }
-        return cdCallHandler(ctx, args)
-}
-`;
-                  sh = sh.replace('func cdCallHandler', mkdirLogic + '\nfunc cdCallHandler');
-                  sh = sh.replace(
-                    'interp.CallHandler(cdCallHandler),',
-                    'interp.CallHandler(mkdirCallHandler),',
-                  );
-                  fs.writeFileSync(shPath, sh);
-                }
-              }
-            }
-
             console.log(`  Running make build_wasm...`);
             execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
             const wasmSource = path.join(localToolDir, 'wasm_build', `${tool}.wasm`);
@@ -496,6 +481,24 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
               stdio: 'inherit',
             });
             if (fs.existsSync(wasmDest) && fs.statSync(wasmDest).size > 0) {
+              success = true;
+            }
+          } else if (fs.existsSync(gradlePath) || fs.existsSync(mavenPath) || isJavaRaw) {
+            console.log(`  Running make build_wasm...`);
+            execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
+            const wasmSource = path.join(localToolDir, 'bin', `${tool}.wasm`);
+            const jsWasmSource = path.join(localToolDir, 'bin', `${tool}.js.wasm`);
+            const jsSource = path.join(localToolDir, 'bin', `${tool}.js`);
+            if (fs.existsSync(wasmSource)) {
+              fs.copyFileSync(wasmSource, wasmDest);
+              if (fs.existsSync(jsWasmSource)) {
+                fs.copyFileSync(jsWasmSource, path.join(DEST_DIR, `${tool}.js.wasm`));
+              } else {
+                fs.copyFileSync(wasmSource, path.join(DEST_DIR, `${tool}.js.wasm`));
+              }
+              if (fs.existsSync(jsSource)) {
+                fs.copyFileSync(jsSource, path.join(DEST_DIR, `${tool}.js`));
+              }
               success = true;
             }
           } else if (fs.existsSync(packageJsonPath)) {
@@ -521,23 +524,15 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
             const sourceFiles = fs.existsSync(pyProjectPath)
               ? 'src pyproject.toml'
               : 'cdd setup.py';
-            execSync(`zip -r ${wasmDest} ${sourceFiles}`, { cwd: localToolDir, stdio: 'inherit' });
+            execSync(`zip -r ${wasmDest} ${sourceFiles} -x "*/__pycache__/*" "*.pyc"`, {
+              cwd: localToolDir,
+              stdio: 'inherit',
+            });
             if (fs.existsSync(wasmDest) && fs.statSync(wasmDest).size > 0) {
               success = true;
             }
           } else if (fs.existsSync(makefilePath) || fs.existsSync(cmakePath)) {
             console.log(`  Running make build_wasm...`);
-            if (tool === 'cdd-csharp') {
-              execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
-              const appBundleSrc = path.join(localToolDir, 'bin/cdd-csharp');
-              const appBundleDest = path.join(DEST_DIR, 'cdd-csharp');
-              if (fs.existsSync(appBundleSrc)) {
-                execSync(`rm -rf ${appBundleDest} && cp -r ${appBundleSrc} ${appBundleDest}`);
-                console.log(`  Copied AppBundle for cdd-csharp to ${appBundleDest}`);
-                success = true;
-              }
-              continue;
-            }
             execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
             const wasmSource = path.join(localToolDir, 'bin', `${tool}.wasm`);
             const wasmSourceDist = path.join(localToolDir, 'dist', `${tool}.wasm`);
@@ -552,47 +547,58 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
               fs.copyFileSync(wasmSourceBuild, wasmDest);
               success = true;
             }
-          } else if (fs.existsSync(gradlePath) || fs.existsSync(mavenPath) || isJavaRaw) {
-            console.log(`  Running make build_wasm...`);
-            execSync('make build_wasm', { cwd: localToolDir, stdio: 'inherit' });
-            const wasmSource = path.join(localToolDir, 'bin', `${tool}.wasm`);
-            if (fs.existsSync(wasmSource)) {
-              fs.copyFileSync(wasmSource, wasmDest);
-              const jsSource = path.join(localToolDir, 'bin', `${tool}.js`);
-              if (fs.existsSync(jsSource)) {
-                fs.copyFileSync(jsSource, path.join(DEST_DIR, `${tool}.js`));
-              }
-              success = true;
-            }
           }
 
-          if (success) {
-            console.log(`  ✅ Successfully built and copied local ${tool}.wasm`);
-            supported = true;
-            builtLocally = true;
-            if (currentHash) {
-              fs.writeFileSync(hashFile, currentHash);
-            }
-          } else {
-            console.log(
-              `  ℹ️  Local build finished but output wasm not found or unsupported. Falling back to download.`,
+          if (success && !hasValidLocalArtifact(tool, wasmDest)) {
+            throw new Error(
+              `Invalid or dummy WASM artifact produced for ${tool} at ${wasmDest} (missing WASM/ZIP magic header or required JS wrapper).`,
             );
           }
+
+          if (!success) {
+            throw new Error(`Local build for ${tool} did not produce a valid WASM artifact.`);
+          }
+
+          console.log(`  ✅ Successfully built and copied local ${tool}.wasm`);
+          supported = true;
+          builtLocally = true;
+          const postBuildGitState = getRepoGitState(localToolDir);
+          if (postBuildGitState.canReuseCache) {
+            fs.writeFileSync(hashFile, postBuildGitState.hash);
+          } else if (fs.existsSync(hashFile)) {
+            fs.unlinkSync(hashFile);
+          }
         } catch (e) {
-          console.warn(`  ⚠️  Local build failed: ${e.message}`);
+          throw new Error(`Local WASM build failed for ${tool}: ${e.message}`);
         }
       }
-    }
-
-    if (!builtLocally) {
-      if (!forceRebuild && fs.existsSync(wasmDest) && fs.statSync(wasmDest).size > 0) {
-        console.log(`  ⏭️  Skipping download, ${path.basename(wasmDest)} already exists.`);
-        supportMap[lang] = true;
-        continue;
+    } else {
+      // Production / Release mode: ONLY use tagged latest GitHub releases.
+      // Never build from local ../cdd-* directories and never reuse locally built artifacts.
+      if (fs.existsSync(hashFile) || !fs.existsSync(releaseFile)) {
+        if (fs.existsSync(hashFile)) fs.unlinkSync(hashFile);
+        removeToolArtifacts(tool, wasmDest);
       }
+
       try {
-        // First try to resolve URL dynamically via API to get actual asset URL, then fallback to redirect url
-        const url = await getGithubReleaseUrl(repo, tool);
+        const releaseInfo = await getGithubLatestRelease(repo, tool);
+        const releaseId = `${releaseInfo.tagName}@${releaseInfo.url}`;
+
+        if (
+          !forceRebuildTool &&
+          !fs.existsSync(hashFile) &&
+          fs.existsSync(releaseFile) &&
+          hasValidLocalArtifact(tool, wasmDest) &&
+          fs.readFileSync(releaseFile, 'utf-8').trim() === releaseId
+        ) {
+          console.log(
+            `  ⏭️  Skipping download, ${path.basename(wasmDest)} already matches tagged latest release (${releaseInfo.tagName}).`,
+          );
+          supportMap[lang] = true;
+          continue;
+        }
+
+        const url = releaseInfo.url;
         const isZip = url.endsWith('.zip');
         const dlDest = isZip ? `${wasmDest}.zip` : wasmDest;
         await downloadFile(url, dlDest);
@@ -618,83 +624,31 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
             fs.unlinkSync(dlDest);
           }
         }
-        console.log(`  ✅ Successfully downloaded ${path.basename(wasmDest)}`);
+        if (tool === 'cdd-java') {
+          if (releaseInfo.jsWasmUrl && releaseInfo.jsWasmUrl !== url) {
+            await downloadFile(releaseInfo.jsWasmUrl, path.join(DEST_DIR, 'cdd-java.js.wasm'));
+          } else {
+            fs.copyFileSync(wasmDest, path.join(DEST_DIR, 'cdd-java.js.wasm'));
+          }
+          const jsUrl = releaseInfo.jsUrl || url.replace(/cdd-java(\.js)?\.wasm$/, 'cdd-java.js');
+          await downloadFile(jsUrl, path.join(DEST_DIR, 'cdd-java.js'));
+        }
+        if (!hasValidLocalArtifact(tool, wasmDest)) {
+          removeToolArtifacts(tool, wasmDest);
+          throw new Error(`Downloaded artifact for ${tool} is a dummy or invalid WASM binary.`);
+        }
+        fs.writeFileSync(releaseFile, releaseId);
+        console.log(
+          `  ✅ Successfully downloaded ${path.basename(wasmDest)} from tagged latest release (${releaseInfo.tagName})`,
+        );
         supported = true;
       } catch (e) {
-        console.log(`  ❌ Failed to download from GitHub releases: ${e.message}`);
-        // Special fallback to v0.0.1 tag manually if latest isn't published
-        const fallbackFilename = getReleaseFileName(tool);
-        const isFallbackZip = fallbackFilename.endsWith('.zip');
-        const fallbackDlDest = isFallbackZip ? `${wasmDest}.zip` : wasmDest;
-
-        try {
-          console.log(`  Attempting fallback to v0.0.1 tag...`);
-          const fallbackUrl = `https://github.com/${repo}/releases/download/v0.0.1/${fallbackFilename}`;
-          await downloadFile(fallbackUrl, fallbackDlDest);
-          if (isFallbackZip) {
-            if (tool === 'cdd-csharp') {
-              execSync(
-                `rm -rf ${DEST_DIR}/cdd-csharp && unzip -q ${fallbackDlDest} -d ${DEST_DIR} && rm ${fallbackDlDest}`,
-              );
-            } else {
-              try {
-                execSync(`unzip -p ${fallbackDlDest} > ${wasmDest} && rm ${fallbackDlDest}`);
-              } catch (e) {
-                if (fs.existsSync(wasmDest)) fs.unlinkSync(wasmDest);
-                throw e;
-              }
-            }
-          }
-          console.log(`  ✅ Successfully downloaded ${fallbackFilename} (v0.0.1 fallback)`);
-          supported = true;
-        } catch (e2) {
-          try {
-            console.log(`  Attempting fallback to 0.0.1 tag...`);
-            const fallbackUrl2 = `https://github.com/${repo}/releases/download/0.0.1/${fallbackFilename}`;
-            await downloadFile(fallbackUrl2, fallbackDlDest);
-            if (isFallbackZip) {
-              if (tool === 'cdd-csharp') {
-                execSync(
-                  `rm -rf ${DEST_DIR}/cdd-csharp && unzip -q ${fallbackDlDest} -d ${DEST_DIR} && rm ${fallbackDlDest}`,
-                );
-              } else {
-                try {
-                  execSync(`unzip -p ${fallbackDlDest} > ${wasmDest} && rm ${fallbackDlDest}`);
-                } catch (e) {
-                  if (fs.existsSync(wasmDest)) fs.unlinkSync(wasmDest);
-                  throw e;
-                }
-              }
-            }
-            console.log(`  ✅ Successfully downloaded ${fallbackFilename} (0.0.1 fallback)`);
-            supported = true;
-          } catch (e3) {
-            try {
-              console.log(`  Attempting fallback to v0.0.1 zip...`);
-              const fallbackUrl3 = `https://github.com/${repo}/releases/download/v0.0.1/${tool}-wasm.zip`;
-              const dlDest = `${wasmDest}.zip`;
-              await downloadFile(fallbackUrl3, dlDest);
-              if (tool === 'cdd-csharp') {
-                execSync(
-                  `rm -rf ${DEST_DIR}/cdd-csharp && unzip -q ${dlDest} -d ${DEST_DIR} && rm ${dlDest}`,
-                );
-              } else {
-                try {
-                  execSync(`unzip -p ${dlDest} > ${wasmDest} && rm ${dlDest}`);
-                } catch (e) {
-                  if (fs.existsSync(wasmDest)) fs.unlinkSync(wasmDest);
-                  throw e;
-                }
-              }
-              console.log(`  ✅ Successfully downloaded ${tool}-wasm.zip (v0.0.1 zip fallback)`);
-              supported = true;
-            } catch (e4) {
-              console.log(`  ❌ Failed to download fallback: ${e4.message}`);
-              // If we are NOT local, just mark it as not supported and emit a warning
-              console.warn(`  ⚠️  WASM not found on GitHub. Feature will be disabled in the UI.`);
-            }
-          }
-        }
+        if (fs.existsSync(releaseFile)) fs.unlinkSync(releaseFile);
+        removeToolArtifacts(tool, wasmDest);
+        console.log(`  ❌ Failed to download tagged latest release from GitHub: ${e.message}`);
+        console.warn(
+          `  ⚠️  Tagged latest release WASM not found on GitHub for ${tool}. Feature will be disabled in the UI.`,
+        );
       }
     }
 
@@ -706,4 +660,7 @@ func mkdirCallHandler(ctx context.Context, args []string) ([]string, error) {
   console.log('\nWASM Gather Complete.');
 }
 
-run().catch(console.error);
+run().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

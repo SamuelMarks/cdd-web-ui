@@ -116,7 +116,7 @@ if exist "%TARGET_DIR%\assets\wasm" rmdir /s /q "%TARGET_DIR%\assets\wasm"
 GOTO :EOF
 
 :build_wasm_local
-call node scripts/build-wasm.mjs --local --force
+call node scripts/build-wasm.mjs --local
 GOTO :EOF
 
 :build_local

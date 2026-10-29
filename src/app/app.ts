@@ -1,3 +1,7 @@
+/**
+ * Root application component.
+ * @module app/app
+ */
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { RouterOutlet, RouterLink } from '@angular/router';

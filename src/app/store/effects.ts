@@ -1,3 +1,7 @@
+/**
+ * NgRx effects for workspace execution, URL fetching, and API Docs synchronization.
+ * @module app/store/effects
+ */
 import { inject } from '@angular/core';
 import { Actions, createEffect, ofType, ROOT_EFFECTS_INIT } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
@@ -14,11 +18,15 @@ import {
   selectApiDocsPaneHeight,
   selectOpenApiInputFormat,
   selectActiveFileContent,
+  selectOpenApiInputMode,
+  selectOpenApiSpecUrls,
 } from './selectors';
 import { WasmWorkerService } from '../services/wasm-worker.service';
 import { LanguageService } from '../services/language.service';
 import { NotificationService } from '../services/notification.service';
 import { OpenApiParser } from '../components/openapi-editor/openapi-parser.util';
+import { OpenApiUrlFetcher } from '../components/openapi-editor/openapi-url-fetcher.util';
+import { OpenApiUrlEntry } from '../models/types';
 
 /**
 @Injectable()
@@ -34,6 +42,91 @@ export class WorkspaceEffects {
   private languageService = inject(LanguageService);
   /** Injected NotificationService */
   private notificationService = inject(NotificationService);
+  /** Injected OpenApiUrlFetcher */
+  private urlFetcher = inject(OpenApiUrlFetcher);
+
+  /**
+   * Resolves and merges remote OpenAPI URL entries, dispatching start/success/failure actions per entry.
+   * @param entries All current URL entries in the store.
+   * @param targetIds Optional subset of entry IDs to force-fetch; if omitted, fetches entries needing resolution.
+   * @returns A promise resolving to the merged specification string.
+   */
+  private async resolveUrlEntries(
+    entries: OpenApiUrlEntry[],
+    targetIds?: string[],
+  ): Promise<string> {
+    const activeEntries = entries.filter((e) => e.url.trim().length > 0);
+    if (activeEntries.length === 0) {
+      throw new Error('Please provide at least one valid OpenAPI URL.');
+    }
+
+    const resolvedContents: string[] = [];
+
+    for (const entry of activeEntries) {
+      const shouldFetch =
+        targetIds !== undefined
+          ? targetIds.includes(entry.id)
+          : entry.status !== 'loaded' || !entry.content;
+
+      if (shouldFetch) {
+        this.store.dispatch(WorkspaceActions.fetchOpenApiUrlStart({ id: entry.id }));
+        try {
+          const content = await this.urlFetcher.fetchSpec(entry.url);
+          const timestamp = Date.now();
+          this.store.dispatch(
+            WorkspaceActions.fetchOpenApiUrlSuccess({
+              id: entry.id,
+              content,
+              timestamp,
+            }),
+          );
+          resolvedContents.push(content);
+        } catch (err: unknown) {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          this.store.dispatch(
+            WorkspaceActions.fetchOpenApiUrlFailure({
+              id: entry.id,
+              error: errorMessage,
+            }),
+          );
+          throw new Error(errorMessage, { cause: err });
+        }
+      } else {
+        resolvedContents.push(entry.content as string);
+      }
+    }
+
+    const mergeResult = this.urlFetcher.mergeSpecsWithLogging(resolvedContents);
+    if (mergeResult.errors.length > 0) {
+      throw new Error(mergeResult.errors.join(' '));
+    }
+    this.store.dispatch(
+      WorkspaceActions.applyFetchedUrlsToSpec({ mergedContent: mergeResult.merged }),
+    );
+    return mergeResult.merged;
+  }
+
+  /**
+   * Effect that listens for `fetchOpenApiUrls` action and fetches/merges remote OpenAPI specifications.
+   */
+  fetchOpenApiUrls$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(WorkspaceActions.fetchOpenApiUrls),
+        withLatestFrom(this.store.select(selectOpenApiSpecUrls)),
+        switchMap(([{ ids }, specUrls]) =>
+          this.resolveUrlEntries(specUrls, ids)
+            .then(() => {
+              this.notificationService.success('Successfully loaded OpenAPI URL(s).');
+            })
+            .catch((err: unknown) => {
+              const message = err instanceof Error ? err.message : String(err);
+              this.notificationService.error(`Failed to load OpenAPI URL(s): ${message}`);
+            }),
+        ),
+      ),
+    { dispatch: false },
+  );
 
   /**
    * Effect that listens for `executeRun` action.
@@ -51,6 +144,8 @@ export class WorkspaceEffects {
         this.store.select(selectCurrentLanguageOptions),
         this.store.select(selectOpenApiInputFormat),
         this.store.select(selectActiveFileContent),
+        this.store.select(selectOpenApiInputMode),
+        this.store.select(selectOpenApiSpecUrls),
       ),
       switchMap(
         ([
@@ -62,6 +157,8 @@ export class WorkspaceEffects {
           languageOptions,
           ,
           activeFileContent,
+          activeInputMode,
+          specUrls,
         ]) => {
           // Dispatch start action immediately to show loading state
           this.store.dispatch(WorkspaceActions.executeRunStart());
@@ -90,7 +187,10 @@ export class WorkspaceEffects {
             // Override target if language is openapi
             const actualTarget = languageId === 'openapi' ? 'to_openapi_3_2_0' : target;
 
-            const upgradePromise = Promise.resolve(specContent);
+            const upgradePromise =
+              activeInputMode === 'urls'
+                ? this.resolveUrlEntries(specUrls)
+                : Promise.resolve(specContent);
 
             return upgradePromise
               .then((upgradedSpec) => {
@@ -122,14 +222,9 @@ export class WorkspaceEffects {
                           ? OpenApiParser.parseAndValidate(upgradedSpec)
                           : { parsed: upgradedSpec };
                       const parsedSpec = parsedSpecResult.parsed as {
+                        /** OpenAPI paths map. */
                         paths?: Record<string, Record<string, unknown>>;
                       } | null;
-                      console.error(
-                        'PARSED SPEC TYPE: ' +
-                          typeof parsedSpec +
-                          ' KEYS: ' +
-                          Object.keys(parsedSpec || {}).join(','),
-                      );
                       if (parsedSpec && parsedSpec.paths) {
                         for (const route of Object.keys(parsedSpec.paths)) {
                           const methods = parsedSpec.paths[route];
@@ -262,6 +357,7 @@ export class WorkspaceEffects {
             this.notificationService.success(`Successfully generated ${result.length} file(s).`);
           } else if (typeof result === 'string') {
             // It's an OpenAPI spec string (to_openapi)
+            this.store.dispatch(WorkspaceActions.setOpenApiInputMode({ mode: 'editor' }));
             this.store.dispatch(WorkspaceActions.updateOpenApiSpec({ content: result }));
             this.notificationService.success('Successfully generated OpenAPI specification.');
           }

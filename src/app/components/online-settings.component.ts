@@ -1,3 +1,7 @@
+/**
+ * Dialog component for configuring online/offline execution mode and backend authentication.
+ * @module app/components/online-settings.component
+ */
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -254,7 +258,10 @@ export class OnlineSettingsComponent {
     password: ['', Validators.required],
   });
 
-  /** Changes the run mode. */
+  /**
+   * Changes the run mode.
+   * @param mode The selected execution run mode.
+   */
   onRunModeChange(mode: RunMode): void {
     this.config.setRunMode(mode);
     this.successMsg.set('Execution mode updated.');
@@ -285,17 +292,26 @@ export class OnlineSettingsComponent {
   /** Logs into the backend. */
   onLogin(): void {
     if (this.authForm.valid) {
-      this.api.login(this.authForm.value as { username: string; password: string }).subscribe({
-        next: (res) => {
-          this.authService.setToken(res.token);
-          this.successMsg.set('Logged in successfully!');
-          this.errorMsg.set('');
-        },
-        error: () => {
-          this.errorMsg.set('Login failed');
-          this.successMsg.set('');
-        },
-      });
+      this.api
+        .login(
+          this.authForm.value as {
+            /** Account username. */
+            username: string;
+            /** Account password. */
+            password: string;
+          },
+        )
+        .subscribe({
+          next: (res) => {
+            this.authService.setToken(res.token);
+            this.successMsg.set('Logged in successfully!');
+            this.errorMsg.set('');
+          },
+          error: () => {
+            this.errorMsg.set('Login failed');
+            this.successMsg.set('');
+          },
+        });
     }
   }
 
@@ -307,7 +323,16 @@ export class OnlineSettingsComponent {
         email: `${this.authForm.value.username}@example.com`,
       };
       this.api
-        .register(payload as { username: string; password: string; email: string })
+        .register(
+          payload as {
+            /** Account username. */
+            username: string;
+            /** Account password. */
+            password: string;
+            /** Account email address. */
+            email: string;
+          },
+        )
         .subscribe({
           next: (res) => {
             this.authService.setToken(res.token);

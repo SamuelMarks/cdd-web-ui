@@ -1,3 +1,7 @@
+/**
+ * Browser online/offline state tracking service.
+ * @module app/services/offline.service
+ */
 import { Injectable, signal, inject } from '@angular/core';
 import { WINDOW } from '../tokens';
 

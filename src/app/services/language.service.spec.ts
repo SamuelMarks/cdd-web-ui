@@ -98,4 +98,16 @@ describe('LanguageService', () => {
     await promise;
     expect(service.languages().find((l) => l.id === 'openapi')?.availableInWasm).toBe(true);
   });
+
+  it('should load wasm support when python key is used instead of python-all', async () => {
+    const promise = service.loadWasmSupport();
+
+    const req = httpMock.expectOne('assets/wasm-support.json');
+    req.flush({
+      python: true,
+    });
+
+    await promise;
+    expect(service.languages().find((l) => l.id === 'python')?.availableInWasm).toBe(true);
+  });
 });

@@ -1,3 +1,7 @@
+/**
+ * Dashboard shell layout component with navigation sidebar and router outlet.
+ * @module app/pages/dashboard/dashboard.component
+ */
 import { Component, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';

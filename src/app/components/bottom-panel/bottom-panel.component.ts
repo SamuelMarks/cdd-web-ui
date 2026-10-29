@@ -1,3 +1,7 @@
+/**
+ * Bottom panel component displaying execution logs and API visualizations.
+ * @module app/components/bottom-panel/bottom-panel.component
+ */
 import { Component, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';

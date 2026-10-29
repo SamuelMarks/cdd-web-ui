@@ -1,3 +1,7 @@
+/**
+ * Interactive D3.js tree visualization component for OpenAPI paths and schemas.
+ * @module app/components/visualisations/visualisations.component
+ */
 import { Component, inject, effect, viewChild, ElementRef, OnDestroy, signal } from '@angular/core';
 import { Store } from '@ngrx/store';
 import * as d3 from 'd3';
@@ -7,10 +11,15 @@ import { load } from 'js-yaml';
 
 /** Data structure for D3 nodes */
 type VisualNode = d3.HierarchyPointNode<NodeData> & {
+  /** Collapsed child nodes */
   _children?: VisualNode[] | null;
+  /** Expanded child nodes */
   children?: VisualNode[] | null;
+  /** Node identifier */
   id?: string | number;
+  /** Previous X coordinate */
   x0?: number;
+  /** Previous Y coordinate */
   y0?: number;
 };
 
@@ -66,37 +75,41 @@ export class VisualisationsComponent implements OnDestroy {
     return this.svgContainerSignal()!;
   }
 
+  /**
+   * Sets an override reference for the SVG container element.
+   * @param val The ElementRef wrapping the SVG container div.
+   */
   set svgContainer(val: ElementRef<HTMLDivElement>) {
     this._svgContainerOverride = val;
   }
 
-  /** doc */
+  /** NgRx store instance */
   private store = inject(Store<AppState>);
-  /** doc */
+  /** OpenAPI specification content signal */
   private specContent = this.store.selectSignal(Selectors.selectOpenApiSpecContent);
 
-  /** doc */
+  /** Signal indicating if tree visualization data is available */
   hasData = signal(false);
-  /** doc */
+  /** Root SVG group selection */
   private svg: d3.Selection<SVGGElement, unknown, null, undefined> | null = null;
-  /** doc */
+  /** Root D3 hierarchy node */
   private root: VisualNode | null = null;
-  /** doc */
+  /** D3 tree layout instance */
   private tree: d3.TreeLayout<NodeData> | null = null;
-  /** doc */
+  /** Auto-incrementing counter for node IDs */
   private i = 0;
-  /** doc */
+  /** Transition duration in milliseconds */
   private duration = 0;
-  /** doc */
+  /** SVG layout margins */
   private margin = { top: 20, right: 120, bottom: 20, left: 120 };
-  /** doc */
+  /** Computed inner width of the SVG canvas */
   private width = 960 - this.margin.right - this.margin.left;
-  /** doc */
+  /** Computed inner height of the SVG canvas */
   private height = 800 - this.margin.top - this.margin.bottom;
-  /** doc */
+  /** ResizeObserver tracking container dimension changes */
   private resizeObserver: ResizeObserver;
 
-  /** doc */
+  /** Initializes reactive rendering and resize observation. */
   constructor() {
     effect(() => {
       const content = this.specContent();
@@ -113,18 +126,18 @@ export class VisualisationsComponent implements OnDestroy {
     });
   }
 
-  /** doc */
-  ngAfterViewInit() {
+  /** Starts observing the SVG container once the view is initialized. */
+  ngAfterViewInit(): void {
     this.resizeObserver.observe(this.svgContainer.nativeElement);
   }
 
-  /** doc */
-  ngOnDestroy() {
+  /** Disconnects the ResizeObserver when the component is destroyed. */
+  ngOnDestroy(): void {
     this.resizeObserver.disconnect();
   }
 
-  /** doc */
-  private handleResize() {
+  /** Recalculates layout dimensions when the container resizes. */
+  private handleResize(): void {
     if (!this.svgContainer || !this.hasData()) return;
     const rect = this.svgContainer.nativeElement.getBoundingClientRect();
     if (rect.width === 0) return;
@@ -136,20 +149,34 @@ export class VisualisationsComponent implements OnDestroy {
     }
   }
 
-  /** doc */
-  private clearSvg() {
+  /** Removes any rendered SVG elements from the container. */
+  private clearSvg(): void {
     if (this.svgContainer) {
       d3.select(this.svgContainer.nativeElement).selectAll('svg').remove();
     }
   }
 
-  /** doc */
-  private parseAndRender(content: string) {
+  /**
+   * Parses the OpenAPI specification string and renders the interactive D3 tree.
+   * @param content Raw OpenAPI YAML or JSON string.
+   */
+  private parseAndRender(content: string): void {
     try {
+      /** Internal representation of parsed OpenAPI fields for visualization. */
       type OpenApiRecord = {
-        info?: { title?: string };
+        /** API metadata block */
+        info?: {
+          /** API title */
+          title?: string;
+        };
+        /** API paths map */
         paths?: Record<string, Record<string, unknown>>;
-        components?: { schemas?: Record<string, unknown> };
+        /** OpenAPI 3.x components block */
+        components?: {
+          /** Schema definitions map */
+          schemas?: Record<string, unknown>;
+        };
+        /** Swagger 2.0 definitions map */
         definitions?: Record<string, unknown>;
       };
       const parsed = load(content) as OpenApiRecord;
@@ -226,8 +253,11 @@ export class VisualisationsComponent implements OnDestroy {
     }
   }
 
-  /** doc */
-  private collapse(d: VisualNode) {
+  /**
+   * Recursively collapses a node and all of its descendants.
+   * @param d The VisualNode to collapse.
+   */
+  private collapse(d: VisualNode): void {
     if (d.children) {
       d._children = d.children;
       d._children.forEach(this.collapse.bind(this));
@@ -235,18 +265,18 @@ export class VisualisationsComponent implements OnDestroy {
     }
   }
 
-  /** doc */
+  /** Callback invoked on D3 zoom events. */
   public zoomCallback: ((event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => void) | null = null;
 
-  /** doc */
-  private initSvg() {
+  /** Initializes the SVG element, zoom behavior, and D3 tree layout. */
+  private initSvg(): void {
     this.clearSvg();
     const container = this.svgContainer.nativeElement;
     const { width: cWidth, height: cHeight } = container.getBoundingClientRect();
     this.width = Math.max(cWidth - this.margin.right - this.margin.left, 800);
     this.height = Math.max(cHeight - this.margin.top - this.margin.bottom, 600);
 
-    this.zoomCallback = (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+    this.zoomCallback = (event: d3.D3ZoomEvent<SVGSVGElement, unknown>): void => {
       if (this.svg) {
         this.svg.attr('transform', event.transform as unknown as string);
       }
@@ -267,8 +297,11 @@ export class VisualisationsComponent implements OnDestroy {
     this.tree = d3.tree<NodeData>().nodeSize([30, 150]); // Use nodeSize instead of size for better scrolling/panning
   }
 
-  /** doc */
-  private update(source: VisualNode) {
+  /**
+   * Updates the D3 tree nodes and links from a given source node.
+   * @param source The VisualNode that triggered the layout update.
+   */
+  private update(source: VisualNode): void {
     if (!this.svg) return;
 
     const treeData = this.tree!(this.root as d3.HierarchyNode<NodeData>);
@@ -380,16 +413,25 @@ export class VisualisationsComponent implements OnDestroy {
     });
   }
 
-  /** doc */
-  private diagonal(s: VisualNode, d: VisualNode) {
+  /**
+   * Generates a cubic Bezier SVG path string connecting two nodes.
+   * @param s Source VisualNode.
+   * @param d Destination VisualNode.
+   * @returns SVG path data string.
+   */
+  private diagonal(s: VisualNode, d: VisualNode): string {
     return `M ${s.y} ${s.x}
             C ${(s.y + d.y) / 2} ${s.x},
               ${(s.y + d.y) / 2} ${d.x},
               ${d.y} ${d.x}`;
   }
 
-  /** doc */
-  private click(event: Event, d: VisualNode) {
+  /**
+   * Toggles children expansion when a node is clicked or activated via keyboard.
+   * @param event DOM click or keyboard event.
+   * @param d The clicked VisualNode.
+   */
+  private click(event: Event, d: VisualNode): void {
     if (d.children) {
       d._children = d.children;
       d.children = undefined;

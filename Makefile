@@ -48,7 +48,7 @@ deploy_c_only: build_production_c_only
 	rm -rf "/Users/samuel/repos/offscale.github.io/cdd-web-ui-c-only/assets/wasm"
 
 build_wasm_local:
-	node scripts/build-wasm.mjs --local --force
+	REBUILD_CDD_C="$(REBUILD_CDD_C)" REBUILD_ALL="$(REBUILD_ALL)" node scripts/build-wasm.mjs --local
 
 build_local: build_wasm_local
 	npx ng build

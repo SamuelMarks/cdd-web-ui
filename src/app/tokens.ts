@@ -1,3 +1,7 @@
+/**
+ * Dependency injection tokens for browser globals.
+ * @module app/tokens
+ */
 import { InjectionToken, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 

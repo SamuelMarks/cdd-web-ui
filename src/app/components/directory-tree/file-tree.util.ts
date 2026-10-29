@@ -1,4 +1,9 @@
 /**
+ * File tree construction and manipulation utilities.
+ * @module app/components/directory-tree/file-tree.util
+ */
+
+/**
  * Represents a node in the directory tree (either a file or a folder).
  */
 export interface FileNode {

@@ -39,6 +39,10 @@ describe('WasmLoadDialogComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+    const content = fixture.nativeElement.textContent as string;
+    expect(content).toContain('~72MB of WASM');
+    expect(content).toContain('plus ~20MB for Pyodide and other runtime assets, ~92MB total');
+    expect(content).toContain('Load ~72MB of WASM');
   });
 
   it('should start loading, call preloadAllWasm with callback, and close dialog', async () => {

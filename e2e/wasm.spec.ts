@@ -1,10 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { LANGUAGES } from '../src/app/models/constants';
 
-test.describe('WASM E2E Tests', () => {
-  test.setTimeout(120000);
+test.describe('WASM E2E Tests (All 13 cdd-${LANGUAGE} compilers, from_openapi and to_openapi)', () => {
+  test.setTimeout(180000);
 
   test.beforeEach(async ({ page }) => {
+    const preloadFailures: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.text().includes('Failed to preload')) {
+        preloadFailures.push(msg.text());
+      }
+    });
     await page.route('**/*google-analytics*', (route) => route.abort());
     await page.goto('/');
     const loadWasmBtn = page.locator('button', { hasText: /Load ~.*MB of WASM/i });
@@ -15,13 +21,11 @@ test.describe('WASM E2E Tests', () => {
     }
 
     await page.waitForSelector('.workspace-container', { state: 'visible', timeout: 120000 });
+    expect(preloadFailures).toEqual([]);
   });
 
   for (const lang of LANGUAGES) {
-    test(`Real WASM Generation for ${lang.name}`, async ({ page }) => {
-      // Ignore generating typescript as its extremely slow right now
-      test.skip(true, `Skipping WASM run for ${lang.name} as its very slow to start`);
-      return;
+    test(`Real WASM Generation (from_openapi & to_openapi) for ${lang.name}`, async ({ page }) => {
       if (!lang.availableInWasm) {
         test.skip(true, `WASM not available for ${lang.name}`);
         return;
@@ -33,22 +37,27 @@ test.describe('WASM E2E Tests', () => {
       const langOption = page.locator('mat-option').filter({ hasText: lang.name }).first();
       await langOption.click();
 
-      // Listen to console to see what the worker is logging!
-      page.on('console', (msg) => console.log('BROWSER CONSOLE:', msg.text()));
-
-      const generateBtn = page.locator('button', { hasText: /Generate/i });
+      const generateBtn = page.locator('button', { hasText: /Generate/i }).first();
       await generateBtn.click();
       await expect(generateBtn).toBeEnabled({ timeout: 120000 });
+      await expect(page.locator('mat-form-field.has-error')).toHaveCount(0);
 
       const codeViewer = page.locator('.code-viewer-container');
       await expect(codeViewer).toBeVisible({ timeout: 120000 });
-      const firstFileItem = page.locator('cdd-directory-tree li.file-item').first();
+      const firstFileItem = page.locator('app-directory-tree li[role="treeitem"] .node').first();
       await expect(firstFileItem).toBeVisible({ timeout: 120000 });
       await firstFileItem.click();
       const codeEditorContent = page.locator('.monaco-editor').first();
       await expect(codeEditorContent).toBeVisible({ timeout: 120000 });
       const textContent = await codeEditorContent.textContent();
       expect(textContent?.length).toBeGreaterThan(0);
+
+      // Swap orientation to test to_openapi (code -> OpenAPI)
+      const swapButton = page.locator('button[aria-label="Swap Panes"]');
+      await swapButton.click();
+      await generateBtn.click();
+      await expect(generateBtn).toBeEnabled({ timeout: 120000 });
+      await expect(page.locator('mat-form-field.has-error')).toHaveCount(0);
     });
   }
 });

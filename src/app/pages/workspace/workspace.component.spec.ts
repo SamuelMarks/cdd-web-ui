@@ -24,6 +24,7 @@ import { DirectoryTreeComponent } from '../../components/directory-tree/director
 import { CodeViewerComponent } from '../../components/code-viewer/code-viewer.component';
 import { LanguageSelectorComponent } from '../../components/language-selector/language-selector.component';
 import { BottomPanelComponent } from '../../components/bottom-panel/bottom-panel.component';
+import { GeneratedFile } from '../../services/wasm-worker.service';
 import { PETSTORE_SPEC, HELLO_WORLD_SPEC } from '../../models/examples';
 
 // We mock the child components so we just test the orchestration layer without heavy Monaco dependencies
@@ -40,11 +41,15 @@ class MockSplitPaneComponent {
 @Component({ selector: 'app-openapi-editor', template: '<div></div>' })
 class MockOpenApiEditorComponent {
   specContent = input<string>();
+  isExecuting = input<boolean>();
+  activeMode = input<string>();
+  specUrls = input<unknown[]>();
+  isFetchingUrls = input<boolean>();
 }
 
 @Component({ selector: 'app-directory-tree', template: '<div></div>' })
 class MockDirectoryTreeComponent {
-  files = input<object[]>();
+  files = input<GeneratedFile[]>();
   activeFilePath = input<string | null>();
   isExecuting = input<boolean>();
 }
@@ -88,6 +93,9 @@ describe('WorkspaceComponent', () => {
             { selector: Selectors.selectCurrentLanguageOptions, value: {} },
             { selector: Selectors.selectOpenApiSpecContent, value: 'spec' },
             { selector: Selectors.selectOpenApiInputFormat, value: 'openapi_3_2_0' },
+            { selector: Selectors.selectOpenApiInputMode, value: 'editor' },
+            { selector: Selectors.selectOpenApiSpecUrls, value: [] },
+            { selector: Selectors.selectIsFetchingOpenApiUrls, value: false },
             { selector: Selectors.selectGeneratedFiles, value: [] },
             { selector: Selectors.selectActiveFilePath, value: null },
             { selector: Selectors.selectActiveFileContent, value: null },
@@ -236,6 +244,32 @@ describe('WorkspaceComponent', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
+  it('should dispatch OpenAPI input mode and URL actions from workspace handlers', () => {
+    const spy = vi.spyOn(store, 'dispatch');
+
+    component.onInputModeChange('urls');
+    expect(spy).toHaveBeenCalledWith(Actions.setOpenApiInputMode({ mode: 'urls' }));
+
+    component.onUrlAdded('https://example.com/spec.yaml');
+    expect(spy).toHaveBeenCalledWith(
+      Actions.addOpenApiUrl({ url: 'https://example.com/spec.yaml' }),
+    );
+
+    component.onUrlUpdated({ id: 'u1', url: 'https://example.com/updated.yaml' });
+    expect(spy).toHaveBeenCalledWith(
+      Actions.updateOpenApiUrl({ id: 'u1', url: 'https://example.com/updated.yaml' }),
+    );
+
+    component.onUrlRemoved('u1');
+    expect(spy).toHaveBeenCalledWith(Actions.removeOpenApiUrl({ id: 'u1' }));
+
+    component.onUrlsCleared();
+    expect(spy).toHaveBeenCalledWith(Actions.clearOpenApiUrls());
+
+    component.onFetchUrls(['u1']);
+    expect(spy).toHaveBeenCalledWith(Actions.fetchOpenApiUrls({ ids: ['u1'] }));
+  });
+
   describe('API Docs pane controls', () => {
     it('should dispatch toggleApiDocsPane on toggleApiDocs', () => {
       const dispatchSpy = vi.spyOn(store, 'dispatch');
@@ -359,6 +393,104 @@ describe('WorkspaceComponent', () => {
       expect(dispatchSpy).toHaveBeenCalledWith(
         Actions.updateActiveFileContent({ content: 'new content' }),
       );
+    });
+  });
+
+  describe('All 13 compilers and UI option selections without error', () => {
+    const ALL_LANGUAGES = [
+      'c',
+      'cpp',
+      'csharp',
+      'go',
+      'java',
+      'kotlin',
+      'php',
+      'python',
+      'ruby',
+      'rust',
+      'sh',
+      'swift',
+      'typescript',
+      'openapi',
+    ] as const;
+
+    const ALL_TARGETS = [
+      'to_sdk',
+      'to_sdk_cli',
+      'to_mcp',
+      'to_server',
+      'to_orm',
+      'to_openapi_3_2_0',
+    ] as const;
+
+    const ALL_INPUT_FORMATS = [
+      'openapi_3_2_0',
+      'openapi_older',
+      'google_discovery',
+      'c_source',
+    ] as const;
+
+    it('should dispatch actions and executeRun without error for every language, target, input format, example, and option', () => {
+      const dispatchSpy = vi.spyOn(store, 'dispatch');
+
+      for (const lang of ALL_LANGUAGES) {
+        dispatchSpy.mockClear();
+        component.onLanguageChanged(lang);
+        expect(dispatchSpy).toHaveBeenCalledWith(Actions.setSelectedLanguage({ languageId: lang }));
+        expect(dispatchSpy).toHaveBeenCalledWith(Actions.executeRun());
+      }
+
+      for (const target of ALL_TARGETS) {
+        dispatchSpy.mockClear();
+        component.onTargetChanged(target);
+        expect(dispatchSpy).toHaveBeenCalledWith(Actions.setTarget({ target }));
+        expect(dispatchSpy).toHaveBeenCalledWith(Actions.executeRun());
+      }
+
+      for (const format of ALL_INPUT_FORMATS) {
+        dispatchSpy.mockClear();
+        component.onInputFormatChange(format);
+        expect(dispatchSpy).toHaveBeenCalledWith(Actions.setInputFormat({ format }));
+      }
+
+      for (const example of ['petstore', 'hello', 'custom'] as const) {
+        component.onExampleChange(example);
+      }
+
+      const optionCombinations = [
+        { framework: 'vanilla' as const },
+        { framework: 'angular' as const, autoAdmin: true },
+        { framework: 'react' as const },
+        { framework: 'vue' as const },
+        { serverFramework: 'express' as const, withEphemeral: true, withSeed: true },
+        { serverFramework: 'node' as const },
+        { serverFramework: 'bun' as const },
+        { serverFramework: 'deno' as const },
+        { orm: 'typeorm' as const, noGenerateServices: true },
+        {
+          noGithubActions: true,
+          noInstallablePackage: true,
+          tests: true,
+          noTestGen: true,
+          mcp: true,
+        },
+      ];
+
+      for (const options of optionCombinations) {
+        dispatchSpy.mockClear();
+        component.onOptionsChanged({ languageId: 'typescript', options });
+        expect(dispatchSpy).toHaveBeenCalledWith(
+          Actions.setLanguageOptions({ languageId: 'typescript', options }),
+        );
+        expect(dispatchSpy).toHaveBeenCalledWith(Actions.executeRun());
+      }
+
+      // Swap orientation (from_openapi <-> to_openapi) and run
+      dispatchSpy.mockClear();
+      component.onSwap();
+      expect(dispatchSpy).toHaveBeenCalledWith(Actions.toggleOrientation());
+      component.onRun();
+      expect(dispatchSpy).toHaveBeenCalledWith(Actions.executeRun());
     });
   });
 });

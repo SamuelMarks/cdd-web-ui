@@ -9,16 +9,21 @@ import * as Actions from './actions';
 import { WasmWorkerService, GeneratedFile } from '../services/wasm-worker.service';
 import { LanguageService } from '../services/language.service';
 import { NotificationService } from '../services/notification.service';
+import { OpenApiUrlFetcher } from '../components/openapi-editor/openapi-url-fetcher.util';
 import { AppState } from './state';
 import { initialWorkspaceState, initialFileTreeState, initialOpenApiState } from './reducers';
 import {
   selectOrientation,
   selectSelectedLanguageId,
+  selectTarget,
+  selectCurrentLanguageOptions,
   selectOpenApiSpecContent,
   selectOpenApiInputFormat,
   selectIsApiDocsVisible,
   selectApiDocsPaneHeight,
   selectActiveFileContent,
+  selectOpenApiInputMode,
+  selectOpenApiSpecUrls,
 } from './selectors';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
@@ -29,6 +34,10 @@ describe('WorkspaceEffects', () => {
   let wasmWorkerServiceMock: { generateCode: import('vitest').Mock };
   let languageServiceMock: Record<string, import('vitest').Mock>;
   let notificationServiceMock: { error: import('vitest').Mock; success: import('vitest').Mock };
+  let urlFetcherMock: {
+    fetchSpec: import('vitest').Mock;
+    mergeSpecsWithLogging: import('vitest').Mock;
+  };
 
   beforeEach(() => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -47,6 +56,10 @@ describe('WorkspaceEffects', () => {
       success: vi.fn(),
       error: vi.fn(),
     };
+    urlFetcherMock = {
+      fetchSpec: vi.fn(),
+      mergeSpecsWithLogging: vi.fn(),
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -62,6 +75,7 @@ describe('WorkspaceEffects', () => {
         { provide: WasmWorkerService, useValue: wasmWorkerServiceMock },
         { provide: LanguageService, useValue: languageServiceMock },
         { provide: NotificationService, useValue: notificationServiceMock },
+        { provide: OpenApiUrlFetcher, useValue: urlFetcherMock },
       ],
     });
 
@@ -476,8 +490,11 @@ describe('WorkspaceEffects', () => {
     });
 
     it('should ignore success payload if neither array nor string', () => {
-      // @ts-expect-error - simulating strange object
-      actions$ = of(Actions.executeRunSuccess({ result: { strange: 'object' } }));
+      actions$ = of(
+        Actions.executeRunSuccess({
+          result: { strange: 'object' } as unknown as string,
+        }),
+      );
       const spy = vi.spyOn(store, 'dispatch');
 
       effects.handleExecutionSuccess$.subscribe();
@@ -549,5 +566,255 @@ describe('WorkspaceEffects', () => {
 
       expect(setItemSpy).toHaveBeenCalledWith('apiDocsPaneHeight', '500');
     });
+  });
+
+  describe('fetchOpenApiUrls$ & URL resolution in executeRun$', () => {
+    it('should show error notification if no non-empty URLs are configured', async () => {
+      store.overrideSelector(selectOpenApiSpecUrls, [
+        { id: 'u1', url: '   ', status: 'idle', error: null },
+      ]);
+      actions$ = of(Actions.fetchOpenApiUrls({}));
+      await effects.fetchOpenApiUrls$.toPromise();
+
+      expect(notificationServiceMock.error).toHaveBeenCalledWith(
+        'Failed to load OpenAPI URL(s): Please provide at least one valid OpenAPI URL.',
+      );
+    });
+
+    it('should fetch specific URL ids, reuse already loaded URLs, merge, and dispatch applyFetchedUrlsToSpec', async () => {
+      const dispatchSpy = vi.spyOn(store, 'dispatch');
+      store.overrideSelector(selectOpenApiSpecUrls, [
+        { id: 'u1', url: 'https://example.com/1.yaml', status: 'idle', error: null },
+        {
+          id: 'u2',
+          url: 'https://example.com/2.yaml',
+          status: 'loaded',
+          content: 'cached2',
+          error: null,
+        },
+      ]);
+      urlFetcherMock.fetchSpec.mockResolvedValue('fetched1');
+      urlFetcherMock.mergeSpecsWithLogging.mockReturnValue({
+        merged: 'merged-spec',
+        errors: [],
+        warnings: [],
+      });
+
+      actions$ = of(Actions.fetchOpenApiUrls({ ids: ['u1'] }));
+      await effects.fetchOpenApiUrls$.toPromise();
+
+      expect(dispatchSpy).toHaveBeenCalledWith(Actions.fetchOpenApiUrlStart({ id: 'u1' }));
+      expect(urlFetcherMock.fetchSpec).toHaveBeenCalledWith('https://example.com/1.yaml');
+      expect(urlFetcherMock.mergeSpecsWithLogging).toHaveBeenCalledWith(['fetched1', 'cached2']);
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        Actions.applyFetchedUrlsToSpec({ mergedContent: 'merged-spec' }),
+      );
+      expect(notificationServiceMock.success).toHaveBeenCalledWith(
+        'Successfully loaded OpenAPI URL(s).',
+      );
+    });
+
+    it('should handle Error and non-Error rejection during fetchSpec', async () => {
+      const dispatchSpy = vi.spyOn(store, 'dispatch');
+      store.overrideSelector(selectOpenApiSpecUrls, [
+        { id: 'u1', url: 'https://example.com/1.yaml', status: 'idle', error: null },
+      ]);
+      urlFetcherMock.fetchSpec.mockRejectedValueOnce(new Error('404 Not Found'));
+
+      actions$ = of(Actions.fetchOpenApiUrls({}));
+      await effects.fetchOpenApiUrls$.toPromise();
+
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        Actions.fetchOpenApiUrlFailure({ id: 'u1', error: '404 Not Found' }),
+      );
+      expect(notificationServiceMock.error).toHaveBeenCalledWith(
+        'Failed to load OpenAPI URL(s): 404 Not Found',
+      );
+
+      urlFetcherMock.fetchSpec.mockRejectedValueOnce('String rejection');
+      actions$ = of(Actions.fetchOpenApiUrls({}));
+      await effects.fetchOpenApiUrls$.toPromise();
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        Actions.fetchOpenApiUrlFailure({ id: 'u1', error: 'String rejection' }),
+      );
+    });
+
+    it('should handle non-Error thrown in resolveUrlEntries catch block', async () => {
+      vi.spyOn(
+        effects as unknown as { resolveUrlEntries: () => Promise<string> },
+        'resolveUrlEntries',
+      ).mockRejectedValueOnce('Raw string error');
+      store.overrideSelector(selectOpenApiSpecUrls, []);
+      actions$ = of(Actions.fetchOpenApiUrls({}));
+      await effects.fetchOpenApiUrls$.toPromise();
+      expect(notificationServiceMock.error).toHaveBeenCalledWith(
+        'Failed to load OpenAPI URL(s): Raw string error',
+      );
+    });
+
+    it('should handle merge errors in resolveUrlEntries', async () => {
+      store.overrideSelector(selectOpenApiSpecUrls, [
+        {
+          id: 'u1',
+          url: 'https://example.com/1.yaml',
+          status: 'loaded',
+          content: 'bad',
+          error: null,
+        },
+      ]);
+      urlFetcherMock.mergeSpecsWithLogging.mockReturnValue({
+        merged: '',
+        errors: ['Merge failed'],
+        warnings: [],
+      });
+
+      actions$ = of(Actions.fetchOpenApiUrls({}));
+      await effects.fetchOpenApiUrls$.toPromise();
+
+      expect(notificationServiceMock.error).toHaveBeenCalledWith(
+        'Failed to load OpenAPI URL(s): Merge failed',
+      );
+    });
+
+    it('should resolve URLs before generating code when activeInputMode is urls in executeRun$', async () => {
+      store.overrideSelector(selectOrientation, 'openapi-left');
+      store.overrideSelector(selectSelectedLanguageId, 'openapi');
+      store.overrideSelector(selectOpenApiSpecContent, '{}');
+      store.overrideSelector(selectOpenApiInputFormat, 'openapi_3_2_0');
+      store.overrideSelector(selectOpenApiInputMode, 'urls');
+      store.overrideSelector(selectOpenApiSpecUrls, [
+        {
+          id: 'u1',
+          url: 'https://example.com/1.yaml',
+          status: 'loaded',
+          content: 'spec1',
+          error: null,
+        },
+      ]);
+
+      urlFetcherMock.mergeSpecsWithLogging.mockReturnValue({
+        merged: 'merged-from-url',
+        errors: [],
+        warnings: [],
+      });
+      const mockFiles: GeneratedFile[] = [{ path: 'out.yaml', content: new Uint8Array() }];
+      wasmWorkerServiceMock.generateCode.mockResolvedValue(mockFiles);
+
+      actions$ = of(Actions.executeRun());
+      const result = await effects.executeRun$.toPromise();
+
+      expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith(
+        'cdd-cpp',
+        'merged-from-url',
+        'to_openapi_3_2_0',
+        {},
+      );
+      expect(result).toEqual(Actions.executeRunSuccess({ result: mockFiles }));
+    });
+  });
+
+  describe('All 13 cdd-${LANGUAGE} compilers bidirectional execution (from_openapi and to_openapi)', () => {
+    const LANGUAGE_TO_ECOSYSTEM: ReadonlyArray<{ id: string; repo: string }> = [
+      { id: 'c', repo: 'cdd-c' },
+      { id: 'cpp', repo: 'cdd-cpp' },
+      { id: 'csharp', repo: 'cdd-csharp' },
+      { id: 'go', repo: 'cdd-go' },
+      { id: 'java', repo: 'cdd-java' },
+      { id: 'kotlin', repo: 'cdd-kotlin' },
+      { id: 'php', repo: 'cdd-php' },
+      { id: 'python', repo: 'cdd-python-all' },
+      { id: 'ruby', repo: 'cdd-ruby' },
+      { id: 'rust', repo: 'cdd-rust' },
+      { id: 'sh', repo: 'cdd-sh' },
+      { id: 'swift', repo: 'cdd-swift' },
+      { id: 'typescript', repo: 'cdd-ts' },
+    ];
+
+    for (const { id, repo } of LANGUAGE_TO_ECOSYSTEM) {
+      it(`should execute from_openapi (openapi-left) for ${id} (${repo}) without error`, async () => {
+        languageServiceMock['languages'].mockReturnValue(
+          LANGUAGE_TO_ECOSYSTEM.map((l) => ({
+            id: l.id,
+            name: l.id,
+            repo: l.repo,
+            availableInWasm: true,
+          })),
+        );
+        store.overrideSelector(selectOrientation, 'openapi-left');
+        store.overrideSelector(selectSelectedLanguageId, id);
+        store.overrideSelector(selectTarget, 'to_sdk');
+        store.overrideSelector(selectCurrentLanguageOptions, {});
+        store.overrideSelector(
+          selectOpenApiSpecContent,
+          '{"openapi":"3.2.0","info":{"title":"Petstore","version":"1.0.0"},"paths":{"/pets":{"get":{"operationId":"listPets"}}}}',
+        );
+        store.overrideSelector(selectOpenApiInputFormat, 'openapi_3_2_0');
+        store.overrideSelector(selectOpenApiInputMode, 'editor');
+
+        const mockFiles: GeneratedFile[] = [
+          {
+            path: `sdk.${id}`,
+            content: new TextEncoder().encode(`// Generated SDK for ${id}`),
+          },
+        ];
+        wasmWorkerServiceMock.generateCode.mockResolvedValue(mockFiles);
+
+        actions$ = of(Actions.executeRun());
+        const result = await effects.executeRun$.toPromise();
+
+        expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith(
+          repo,
+          expect.any(String),
+          'to_sdk',
+          {},
+        );
+        expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith(
+          repo,
+          expect.any(String),
+          'to_docs_json',
+          {},
+        );
+        expect(result?.type).toBe(Actions.executeRunSuccess.type);
+        const resultFiles = (result as ReturnType<typeof Actions.executeRunSuccess>)
+          .result as GeneratedFile[];
+        expect(resultFiles.some((f) => f.path === `sdk.${id}`)).toBe(true);
+        expect(resultFiles.some((f) => f.path === 'docs.json')).toBe(true);
+      });
+
+      it(`should execute to_openapi (openapi-right) for ${id} (${repo}) without error`, async () => {
+        languageServiceMock['languages'].mockReturnValue(
+          LANGUAGE_TO_ECOSYSTEM.map((l) => ({
+            id: l.id,
+            name: l.id,
+            repo: l.repo,
+            availableInWasm: true,
+          })),
+        );
+        store.overrideSelector(selectOrientation, 'openapi-right');
+        store.overrideSelector(selectSelectedLanguageId, id);
+        store.overrideSelector(selectCurrentLanguageOptions, {});
+        store.overrideSelector(selectActiveFileContent, `// Source code in ${id}`);
+
+        const expectedOpenApi = `{"openapi":"3.2.0","info":{"title":"From ${id}","version":"1.0.0"},"paths":{}}`;
+        const mockFiles: GeneratedFile[] = [
+          {
+            path: 'openapi.json',
+            content: new TextEncoder().encode(expectedOpenApi),
+          },
+        ];
+        wasmWorkerServiceMock.generateCode.mockResolvedValue(mockFiles);
+
+        actions$ = of(Actions.executeRun());
+        const result = await effects.executeRun$.toPromise();
+
+        expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith(
+          repo,
+          `// Source code in ${id}`,
+          'to_openapi',
+          {},
+        );
+        expect(result).toEqual(Actions.executeRunSuccess({ result: expectedOpenApi }));
+      });
+    }
   });
 });

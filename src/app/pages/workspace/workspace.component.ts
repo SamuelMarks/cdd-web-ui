@@ -1,3 +1,7 @@
+/**
+ * Main interactive workspace page component orchestrating the OpenAPI editor, WASM compilers, directory tree, code viewer, and API docs.
+ * @module app/pages/workspace/workspace.component
+ */
 import { Component, inject, OnInit, OnDestroy, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { fromEvent, Subject, takeUntil, tap, finalize } from 'rxjs';
@@ -6,7 +10,7 @@ import { Store } from '@ngrx/store';
 import { AppState } from '../../store/state';
 import * as Actions from '../../store/actions';
 import * as Selectors from '../../store/selectors';
-import { Target, LanguageOptions, InputFormat } from '../../models/types';
+import { Target, LanguageOptions, InputFormat, OpenApiInputMode } from '../../models/types';
 import { PETSTORE_SPEC, HELLO_WORLD_SPEC } from '../../models/examples';
 
 import { SplitPaneComponent } from '../../components/split-pane/split-pane.component';
@@ -231,8 +235,17 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       <app-openapi-editor
         [specContent]="specContent() || ''"
         [isExecuting]="isExecuting()"
+        [activeMode]="activeInputMode()"
+        [specUrls]="specUrls()"
+        [isFetchingUrls]="isFetchingUrls()"
         (specContentChange)="onSpecContentChange($event)"
         (validationErrorsChange)="onValidationErrorsChange($event)"
+        (activeModeChange)="onInputModeChange($event)"
+        (urlAdded)="onUrlAdded($event)"
+        (urlUpdated)="onUrlUpdated($event)"
+        (urlRemoved)="onUrlRemoved($event)"
+        (urlsClearClicked)="onUrlsCleared()"
+        (fetchUrlsClicked)="onFetchUrls($event)"
         (runClicked)="onRun()"
       ></app-openapi-editor>
     </ng-template>
@@ -306,6 +319,15 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   /** The currently selected input format (OpenAPI, Swagger, etc). */
   /** Signal for OpenAPI input format. */
   inputFormat = this.store.selectSignal(Selectors.selectOpenApiInputFormat);
+  /** The active input mode tab in the OpenAPI pane ('editor' or 'urls'). */
+  /** Signal for active OpenAPI input mode. */
+  activeInputMode = this.store.selectSignal(Selectors.selectOpenApiInputMode);
+  /** The list of remote OpenAPI specification URL entries. */
+  /** Signal for OpenAPI spec URLs. */
+  specUrls = this.store.selectSignal(Selectors.selectOpenApiSpecUrls);
+  /** Whether remote OpenAPI URLs are currently being fetched. */
+  /** Signal for fetching OpenAPI URLs status. */
+  isFetchingUrls = this.store.selectSignal(Selectors.selectIsFetchingOpenApiUrls);
   /** The list of generated files returned by the code generator. */
   /** Signal for generated files array. */
   generatedFiles = this.store.selectSignal(Selectors.selectGeneratedFiles);
@@ -370,7 +392,12 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    * Handles changes to language-specific options.
    * @param event The object containing the language ID and updated options.
    */
-  onOptionsChanged(event: { languageId: string; options: LanguageOptions }): void {
+  onOptionsChanged(event: {
+    /** ID of the language whose options changed. */
+    languageId: string;
+    /** Updated language options object. */
+    options: LanguageOptions;
+  }): void {
     this.store.dispatch(Actions.setLanguageOptions(event));
     this.store.dispatch(Actions.executeRun());
   }
@@ -397,10 +424,64 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    */
   onExampleChange(example: 'petstore' | 'hello' | 'custom'): void {
     if (example === 'petstore') {
+      this.store.dispatch(Actions.setOpenApiInputMode({ mode: 'editor' }));
       this.store.dispatch(Actions.updateOpenApiSpec({ content: PETSTORE_SPEC }));
     } else if (example === 'hello') {
+      this.store.dispatch(Actions.setOpenApiInputMode({ mode: 'editor' }));
       this.store.dispatch(Actions.updateOpenApiSpec({ content: HELLO_WORLD_SPEC }));
     }
+  }
+
+  /**
+   * Updates the active OpenAPI input mode tab ('editor' or 'urls') in the store.
+   * @param mode The newly selected input mode.
+   */
+  onInputModeChange(mode: OpenApiInputMode): void {
+    this.store.dispatch(Actions.setOpenApiInputMode({ mode }));
+  }
+
+  /**
+   * Adds a new OpenAPI URL entry in the store.
+   * @param url Optional initial URL string.
+   */
+  onUrlAdded(url?: string): void {
+    this.store.dispatch(Actions.addOpenApiUrl({ url }));
+  }
+
+  /**
+   * Updates an existing OpenAPI URL entry in the store.
+   * @param event Object containing the entry ID and updated URL string.
+   */
+  onUrlUpdated(event: {
+    /** Entry identifier to update. */
+    id: string;
+    /** Updated URL string. */
+    url: string;
+  }): void {
+    this.store.dispatch(Actions.updateOpenApiUrl(event));
+  }
+
+  /**
+   * Removes an OpenAPI URL entry from the store.
+   * @param id The ID of the URL entry to remove.
+   */
+  onUrlRemoved(id: string): void {
+    this.store.dispatch(Actions.removeOpenApiUrl({ id }));
+  }
+
+  /**
+   * Clears all OpenAPI URL entries in the store.
+   */
+  onUrlsCleared(): void {
+    this.store.dispatch(Actions.clearOpenApiUrls());
+  }
+
+  /**
+   * Dispatches an action to fetch and merge remote OpenAPI URLs.
+   * @param ids Optional array of specific URL entry IDs to fetch.
+   */
+  onFetchUrls(ids?: string[]): void {
+    this.store.dispatch(Actions.fetchOpenApiUrls({ ids }));
   }
 
   /**
@@ -415,19 +496,23 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    * Selects a file to display in the code viewer.
    * @param filePath The path of the file to select.
    */
-
-  /** onFileSelected */
   onFileSelected(filePath: string): void {
     this.store.dispatch(Actions.selectFile({ filePath }));
   }
 
-  /** Updates the active file content. */
+  /**
+   * Updates the active file content.
+   * @param content The modified file content string.
+   */
   onActiveFileContentChange(content: string): void {
     // Dispatch action to update active file content
     this.store.dispatch(Actions.updateActiveFileContent({ content }));
   }
 
-  /** Handles the mouse down event on the Bottom Pane resizer bar. */
+  /**
+   * Handles the mouse down event on the Bottom Pane resizer bar.
+   * @param event The DOM MouseEvent triggered on the resizer bar.
+   */
   onResizerMouseDown(event: MouseEvent): void {
     event.preventDefault(); // Prevent text selection
 
@@ -479,7 +564,10 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     this.store.dispatch(Actions.resizeApiDocsPane({ height: 300 }));
   }
 
-  /** Handles keyboard events on the Bottom Pane resizer bar for accessibility. */
+  /**
+   * Handles keyboard events on the Bottom Pane resizer bar for accessibility.
+   * @param event The DOM KeyboardEvent on the resizer bar.
+   */
   onResizerKeydown(event: KeyboardEvent): void {
     if (event.key === 'ArrowUp') {
       event.preventDefault();
@@ -496,7 +584,10 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
     this.store.dispatch(Actions.toggleApiDocsPane());
   }
 
-  /** Handles global keyboard shortcuts */
+  /**
+   * Handles global keyboard shortcuts.
+   * @param event The DOM KeyboardEvent triggered on the document.
+   */
   handleKeyboardEvent(event: KeyboardEvent): void {
     if (event.key.toLowerCase() === 'd' && (event.ctrlKey || event.metaKey) && event.shiftKey) {
       event.preventDefault();

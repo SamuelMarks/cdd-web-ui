@@ -28,8 +28,8 @@ export const environment: {
   eagerLoadWasm: false,
   appName: 'CDD (WASM) web UI',
   footerText: '© 2026 Compiler Driven Development (CDD) WASM web demo.',
-  wasmSizeText: '~295MB',
-  loadWasmButtonText: 'Load ~295MB of WASM',
+  wasmSizeText: '~72MB',
+  loadWasmButtonText: 'Load ~72MB of WASM',
   languages: [
     {
       id: 'c',

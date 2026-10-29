@@ -52,7 +52,6 @@ describe('wasm-worker.worker.ts', () => {
 
   let messageHandler: (...args: unknown[]) => unknown;
   let originalAddEventListener: unknown;
-  // let originalPostMessage: any;
   let postMessageSpy: import('vitest').Mock;
 
   beforeEach(() => {
@@ -164,9 +163,16 @@ describe('wasm-worker.worker.ts', () => {
 
   it('should handle cdd-csharp target to_sdk correctly', async () => {
     await import('./wasm-worker.worker');
+    const generateSpy = vi.fn().mockReturnValue('{"test.cs":"class Test {}"}');
     vi.stubGlobal('_cddCsharpExports', {
-      BrowserInterop: {
-        GenerateFromOpenApi: vi.fn().mockReturnValue('{"test.cs":"class Test {}"}'),
+      Cdd: {
+        OpenApi: {
+          Cli: {
+            BrowserInterop: {
+              GenerateFromOpenApi: generateSpy,
+            },
+          },
+        },
       },
     });
     vi.stubGlobal('_cddCsharpInitPromise', Promise.resolve());
@@ -180,10 +186,11 @@ describe('wasm-worker.worker.ts', () => {
           ecosystem: 'cdd-csharp',
           specContent: '{}',
           target: 'to_sdk',
-          languageOptions: {},
+          languageOptions: { tests: true },
         },
       },
     });
+    expect(generateSpy).toHaveBeenCalledWith('{}', 'from_openapi --tests', 'to_sdk');
 
     const successCall = postMessageSpy.mock.calls.find(
       (call: [Record<string, unknown>]) => call[0].status === 'success' && call[0].jobId === '124',
@@ -424,6 +431,21 @@ describe('wasm-worker.worker.ts', () => {
       (call: [Record<string, unknown>]) => call[0].status === 'error',
     );
     expect(errorCall).toBeDefined();
+
+    const { CddWasmSdk } = await import('cdd-browser-sdk');
+    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockRejectedValueOnce('string error');
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        payload: { ecosystem: 'cdd-ts', specContent: '{}', target: 'to_sdk' },
+        jobId: 'err-2',
+      },
+    } as unknown as MessageEvent);
+    const nonErrCall = postMessageSpy.mock.calls.find(
+      (call: [Record<string, unknown>]) =>
+        call[0].status === 'error' && call[0].error === 'string error',
+    );
+    expect(nonErrCall).toBeDefined();
   });
 
   it('should handle fetch error for cdd-java.js gracefully', async () => {
@@ -561,9 +583,354 @@ describe('wasm-worker.worker.ts', () => {
     expect(fetchSpy).toHaveBeenCalled();
     fetchSpy.mockRestore();
   });
+
+  it('should execute CddJavaBrowserEngine methods and handle GraalVM run branches', async () => {
+    const { CddJavaBrowserEngine, handleMessage } = await import('./wasm-worker.worker');
+    const engineDefault = new CddJavaBrowserEngine();
+
+    delete (globalThis as unknown as Record<string, unknown>).GraalVM;
+    await expect(engineDefault.run(['to_sdk'])).rejects.toThrow('GraalVM runtime is not loaded.');
+
+    // Queue recovery after rejected run + Config branch + success response
+    let capturedArgs: string[] = [];
+    let capturedConfig: { wasm_path?: string } | undefined;
+    class MockConfig {
+      wasm_path?: string;
+    }
+    (globalThis as unknown as Record<string, unknown>).GraalVM = {
+      Config: MockConfig,
+      run: (args: string[], cfg?: { wasm_path?: string }): Promise<void> => {
+        capturedArgs = args;
+        capturedConfig = cfg;
+        console.log(
+          'CDD_IN_MEMORY_START\n' +
+            JSON.stringify({ success: true, files: { 'Sdk.java': 'public class Sdk {}' } }) +
+            '\nCDD_IN_MEMORY_END',
+        );
+        return Promise.resolve();
+      },
+    };
+
+    const sdkRes = await engineDefault.generateSdk('{}', true, true, true);
+    expect(sdkRes.files['Sdk.java']).toBe('public class Sdk {}');
+    expect(capturedConfig?.wasm_path).toBe('./assets/wasm/cdd-java.js.wasm');
+    expect(capturedArgs[0]).toBe('process_in_memory');
+
+    const sdkCliRes = await engineDefault.generateSdkCli('{}', true, true, true);
+    expect(sdkCliRes.files['Sdk.java']).toBe('public class Sdk {}');
+
+    const sdkCliDefaultsRes = await engineDefault.generateSdkCli('{}');
+    expect(sdkCliDefaultsRes.files['Sdk.java']).toBe('public class Sdk {}');
+
+    const serverRes = await engineDefault.generateServer('{}');
+    expect(serverRes.files['Sdk.java']).toBe('public class Sdk {}');
+
+    const ormRes = await engineDefault.generateOrm('{}');
+    expect(ormRes.files['Sdk.java']).toBe('public class Sdk {}');
+
+    const defaultRunRes = await engineDefault.run(['from_openapi']);
+    expect(defaultRunRes.files['Sdk.java']).toBe('public class Sdk {}');
+
+    // Empty files fallback when parsed.files is undefined
+    (globalThis as unknown as Record<string, unknown>).GraalVM = {
+      run: (): Promise<void> => {
+        console.info('CDD_IN_MEMORY_START\n{"success":true}\nCDD_IN_MEMORY_END');
+        return Promise.resolve();
+      },
+    };
+    const emptyFilesRes = await engineDefault.generateSdk('{}');
+    expect(emptyFilesRes.files).toEqual({});
+
+    // Error response with explicit error message and fallback Unknown error
+    (globalThis as unknown as Record<string, unknown>).GraalVM = {
+      run: (): Promise<void> => {
+        console.log('CDD_IN_MEMORY_START\n{"success":false,"error":"Bad spec"}\nCDD_IN_MEMORY_END');
+        return Promise.resolve();
+      },
+    };
+    await expect(engineDefault.generateSdk('{}')).rejects.toThrow(
+      'cdd-java execution error: Bad spec',
+    );
+
+    (globalThis as unknown as Record<string, unknown>).GraalVM = {
+      run: (): Promise<void> => {
+        console.log('CDD_IN_MEMORY_START\n{"success":false}\nCDD_IN_MEMORY_END');
+        return Promise.resolve();
+      },
+    };
+    await expect(engineDefault.generateSdk('{}')).rejects.toThrow(
+      'cdd-java execution error: Unknown error',
+    );
+
+    // Missing markers response
+    (globalThis as unknown as Record<string, unknown>).GraalVM = {
+      run: (): Promise<void> => {
+        console.log('no markers here');
+        return Promise.resolve();
+      },
+    };
+    await expect(engineDefault.generateSdk('{}')).rejects.toThrow(
+      'cdd-java did not return a valid in-memory response.',
+    );
+
+    // Handle to_docs_json and to_openapi via handleMessage when GraalVM.run is a function
+    (globalThis as unknown as Record<string, unknown>).GraalVM = {
+      run: (): Promise<void> => {
+        console.log(
+          'CDD_IN_MEMORY_START\n' +
+            JSON.stringify({ success: true, files: { 'spec.json': '{"openapi":"3.2.0"}' } }) +
+            '\nCDD_IN_MEMORY_END',
+        );
+        return Promise.resolve();
+      },
+    };
+
+    postMessageSpy.mockClear();
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'java-docs-json',
+        payload: {
+          ecosystem: 'cdd-java',
+          specContent: { openapi: '3.2.0' },
+          target: 'to_docs_json',
+          cddJavaWasmUrl: 'http://localhost/cdd-java.js.wasm',
+        },
+      },
+    } as unknown as MessageEvent);
+    expect(
+      postMessageSpy.mock.calls.find(
+        (c: [Record<string, unknown>]) =>
+          c[0].status === 'success' && c[0].jobId === 'java-docs-json',
+      ),
+    ).toBeDefined();
+
+    postMessageSpy.mockClear();
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'java-to-openapi',
+        payload: {
+          ecosystem: 'cdd-java',
+          specContent: 'public class Sdk {}',
+          target: 'to_openapi',
+        },
+      },
+    } as unknown as MessageEvent);
+    expect(
+      postMessageSpy.mock.calls.find(
+        (c: [Record<string, unknown>]) =>
+          c[0].status === 'success' && c[0].jobId === 'java-to-openapi',
+      ),
+    ).toBeDefined();
+
+    delete (globalThis as unknown as Record<string, unknown>).GraalVM;
+  });
+
   it('should cover the message event listener', () => {
     if (messageHandler) {
       messageHandler({ data: {} });
+    }
+  });
+
+  it('should capture stdout JSON when target is to_docs_json and no files are written to /out', async () => {
+    const { CddWasmSdk } = await import('cdd-browser-sdk');
+    const { handleMessage } = await import('./wasm-worker.worker');
+
+    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockImplementationOnce(() => {
+      console.log('[other-eco] ignored line');
+      console.log('[cdd-c] {');
+      console.log('[cdd-c]   "endpoints": { "/pet": { "get": "int main(void) { return 0; }" } }');
+      console.log('[cdd-c] }');
+      return Promise.resolve([]);
+    });
+
+    postMessageSpy.mockClear();
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'c-docs-stdout',
+        payload: {
+          ecosystem: 'cdd-c',
+          specContent: '{"openapi":"3.2.0"}',
+          target: 'to_docs_json',
+        },
+      },
+    } as unknown as MessageEvent);
+
+    const successCall = postMessageSpy.mock.calls.find(
+      (c: [Record<string, unknown>]) => c[0].status === 'success' && c[0].jobId === 'c-docs-stdout',
+    );
+    expect(successCall).toBeDefined();
+    const files = (successCall?.[0] as { data: { path: string; content: Uint8Array }[] }).data;
+    expect(files.length).toBe(1);
+    expect(files[0].path).toBe('docs.json');
+    expect(new TextDecoder().decode(files[0].content)).toContain('"endpoints"');
+
+    // JSON array stdout branch when generatedFiles is empty
+    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockImplementationOnce(() => {
+      console.log('[cdd-c] [{"endpoints": {}}]');
+      return Promise.resolve([]);
+    });
+    postMessageSpy.mockClear();
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'c-docs-array',
+        payload: {
+          ecosystem: 'cdd-c',
+          specContent: '{"openapi":"3.2.0"}',
+          target: 'to_docs_json',
+        },
+      },
+    } as unknown as MessageEvent);
+    const arrayCall = postMessageSpy.mock.calls.find(
+      (c: [Record<string, unknown>]) => c[0].status === 'success' && c[0].jobId === 'c-docs-array',
+    );
+    expect((arrayCall?.[0] as { data: unknown[] }).data.length).toBe(1);
+
+    // Non-JSON stdout fallback branch when generatedFiles is empty
+    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockImplementationOnce(() => {
+      console.log('[cdd-c] plain text output');
+      return Promise.resolve([]);
+    });
+    postMessageSpy.mockClear();
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'c-docs-nonjson',
+        payload: {
+          ecosystem: 'cdd-c',
+          specContent: '{"openapi":"3.2.0"}',
+          target: 'to_docs_json',
+        },
+      },
+    } as unknown as MessageEvent);
+    const nonJsonCall = postMessageSpy.mock.calls.find(
+      (c: [Record<string, unknown>]) =>
+        c[0].status === 'success' && c[0].jobId === 'c-docs-nonjson',
+    );
+    expect((nonJsonCall?.[0] as { data: unknown[] }).data).toEqual([]);
+  });
+
+  describe('All 13 cdd-${LANGUAGE} compilers (from_openapi and to_openapi)', () => {
+    const ALL_ECOSYSTEMS = [
+      'cdd-c',
+      'cdd-cpp',
+      'cdd-csharp',
+      'cdd-go',
+      'cdd-java',
+      'cdd-kotlin',
+      'cdd-php',
+      'cdd-python-all',
+      'cdd-ruby',
+      'cdd-rust',
+      'cdd-sh',
+      'cdd-swift',
+      'cdd-ts',
+    ] as const;
+
+    const ALL_TARGETS = [
+      'to_sdk',
+      'to_sdk_cli',
+      'to_mcp',
+      'to_server',
+      'to_orm',
+      'to_openapi_3_2_0',
+      'to_docs_json',
+      'to_openapi',
+    ] as const;
+
+    for (const ecosystem of ALL_ECOSYSTEMS) {
+      it(`should execute ${ecosystem} across all targets including from_openapi and to_openapi without error`, async () => {
+        const { CddWasmSdk } = await import('cdd-browser-sdk');
+        const encoder = new TextEncoder();
+        vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValue([
+          {
+            path: 'openapi.json',
+            content: encoder.encode(
+              '{"openapi":"3.2.0","info":{"title":"Test","version":"1.0.0"},"paths":{}}',
+            ),
+          },
+        ]);
+
+        vi.stubGlobal('_cddCsharpExports', {
+          Cdd: {
+            OpenApi: {
+              Cli: {
+                BrowserInterop: {
+                  GenerateFromOpenApi: vi
+                    .fn()
+                    .mockImplementation((_spec: string, direction: string) => {
+                      if (direction === 'to_openapi') {
+                        return JSON.stringify({
+                          'openapi.json':
+                            '{"openapi":"3.2.0","info":{"title":"CSharp","version":"1.0.0"},"paths":{}}',
+                        });
+                      }
+                      return JSON.stringify({
+                        'Client.cs': 'namespace Sdk { public class Client {} }',
+                      });
+                    }),
+                },
+              },
+            },
+          },
+        });
+        vi.stubGlobal('_cddCsharpInitPromise', Promise.resolve());
+        (globalThis as unknown as Record<string, unknown>).GraalVM = { ready: true };
+
+        const { handleMessage } = await import('./wasm-worker.worker');
+
+        for (const target of ALL_TARGETS) {
+          postMessageSpy.mockClear();
+          const jobId = `${ecosystem}-${target}`;
+          await handleMessage({
+            data: {
+              action: 'generateSdk',
+              jobId,
+              payload: {
+                ecosystem,
+                specContent:
+                  target === 'to_openapi'
+                    ? '// source code input'
+                    : '{"openapi":"3.2.0","info":{"title":"API","version":"1.0.0"},"paths":{}}',
+                target,
+                languageOptions: {
+                  framework: 'angular',
+                  serverFramework: 'express',
+                  orm: 'typeorm',
+                  autoAdmin: true,
+                  noGithubActions: false,
+                  noInstallablePackage: false,
+                  tests: true,
+                  mcp: true,
+                  withEphemeral: true,
+                  withSeed: true,
+                  noGenerateServices: false,
+                },
+                wasmBinary: new ArrayBuffer(8),
+              },
+            },
+          } as unknown as MessageEvent);
+
+          const errorCall = postMessageSpy.mock.calls.find(
+            (call: [Record<string, unknown>]) =>
+              call[0].status === 'error' && call[0].jobId === jobId,
+          );
+          expect(errorCall).toBeUndefined();
+
+          const successCall = postMessageSpy.mock.calls.find(
+            (call: [Record<string, unknown>]) =>
+              call[0].status === 'success' && call[0].jobId === jobId,
+          );
+          expect(successCall).toBeDefined();
+          expect(Array.isArray(successCall![0].data)).toBe(true);
+          expect(successCall![0].data.length).toBeGreaterThan(0);
+        }
+
+        delete (globalThis as unknown as Record<string, unknown>).GraalVM;
+      });
     }
   });
 });

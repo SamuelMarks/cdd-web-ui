@@ -1,3 +1,7 @@
+/**
+ * Authentication service managing JWT tokens and user session state.
+ * @module app/services/auth.service
+ */
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { DOCUMENT } from '@angular/common';

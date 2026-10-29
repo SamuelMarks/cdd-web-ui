@@ -1,3 +1,7 @@
+/**
+ * WASM and remote code generation service.
+ * @module app/services/wasm-generator.service
+ */
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Repository } from '../models/types';
@@ -72,7 +76,18 @@ export class WasmGeneratorService {
           id: 1,
         };
         const response: unknown = await firstValueFrom(this.http.post(baseUrl, payload));
-        const res = response as { error?: { message?: string }; result?: { code?: string } };
+        const res = response as {
+          /** Optional JSON-RPC error object. */
+          error?: {
+            /** Error message string. */
+            message?: string;
+          };
+          /** Optional JSON-RPC result object. */
+          result?: {
+            /** Generated code string. */
+            code?: string;
+          };
+        };
         if (res?.error) {
           throw new Error(res.error.message || 'RPC Error');
         }
@@ -174,7 +189,8 @@ export class WasmGeneratorService {
    * Generates OpenAPI spec from SDK.
    * @param repository The repo.
    * @param languageId The language id.
-   * @param sdkContent The SDK content.
+   * @param _sdkContent The SDK content.
+   * @returns Promise resolving to the generated OpenAPI specification string.
    */
   async generateOpenApi(
     repository: Repository,
@@ -254,8 +270,12 @@ export class WasmGeneratorService {
   /**
    * Extracts info from spec string.
    * @param spec The spec string.
+   * @returns Object containing the optional extracted title.
    */
-  private extractInfoFromSpec(spec: string): { title?: string } {
+  private extractInfoFromSpec(spec: string): {
+    /** Extracted specification title, if present. */
+    title?: string;
+  } {
     try {
       const parsed = JSON.parse(spec);
       return { title: parsed.info?.title };

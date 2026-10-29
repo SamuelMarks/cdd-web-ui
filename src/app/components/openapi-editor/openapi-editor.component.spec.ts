@@ -288,4 +288,141 @@ describe('OpenApiEditorComponent', () => {
 
     expect(emitSpy).not.toHaveBeenCalled();
   });
+
+  describe('Tabs & URLs mode interactions', () => {
+    it('should compute selectedTabIndex, hasNonEmptyUrls, and hasLoadedUrls from inputs', () => {
+      expect(component.selectedTabIndex()).toBe(0);
+      expect(component.hasNonEmptyUrls()).toBe(false);
+      expect(component.hasLoadedUrls()).toBe(false);
+
+      fixture.componentRef.setInput('activeMode', 'urls');
+      fixture.componentRef.setInput('specUrls', [
+        { id: 'u1', url: 'https://example.com/1.yaml', status: 'loaded', content: 'openapi: 3.0' },
+        { id: 'u2', url: 'https://example.com/2.yaml', status: 'loading' },
+        { id: 'u3', url: 'https://example.com/3.yaml', status: 'error', error: 'Failed' },
+        { id: 'u4', url: '', status: 'idle' },
+      ]);
+      fixture.detectChanges();
+
+      expect(component.selectedTabIndex()).toBe(1);
+      expect(component.hasNonEmptyUrls()).toBe(true);
+      expect(component.hasLoadedUrls()).toBe(true);
+    });
+
+    it('should emit activeModeChange and refresh editor layout when switching tabs', () => {
+      const modeSpy = vi.spyOn(component.activeModeChange, 'emit');
+      const layoutSpy = vi.fn();
+      component.onEditorInit({ layout: layoutSpy });
+
+      component.onTabIndexChange(1);
+      expect(modeSpy).toHaveBeenCalledWith('urls');
+      expect(layoutSpy).not.toHaveBeenCalled();
+
+      component.onTabIndexChange(0);
+      expect(modeSpy).toHaveBeenCalledWith('editor');
+      expect(layoutSpy).toHaveBeenCalled();
+    });
+
+    it('should handle refreshEditorLayout gracefully when editorInstance has no layout method', () => {
+      component.onEditorInit(null);
+      expect(() => component.onTabIndexChange(0)).not.toThrow();
+    });
+
+    it('should emit urlAdded, urlUpdated, urlRemoved, urlsClearClicked, and fetchUrlsClicked', () => {
+      const addSpy = vi.spyOn(component.urlAdded, 'emit');
+      const updateSpy = vi.spyOn(component.urlUpdated, 'emit');
+      const removeSpy = vi.spyOn(component.urlRemoved, 'emit');
+      const clearSpy = vi.spyOn(component.urlsClearClicked, 'emit');
+      const fetchSpy = vi.spyOn(component.fetchUrlsClicked, 'emit');
+
+      component.onAddUrl('https://example.com/spec.json');
+      expect(addSpy).toHaveBeenCalledWith('https://example.com/spec.json');
+
+      const inputEl = document.createElement('input');
+      inputEl.value = 'https://example.com/updated.json';
+      const inputEvent = new Event('input');
+      Object.defineProperty(inputEvent, 'target', { value: inputEl });
+      component.onUrlInput('u1', inputEvent);
+      expect(updateSpy).toHaveBeenCalledWith({
+        id: 'u1',
+        url: 'https://example.com/updated.json',
+      });
+
+      const emptyTargetEvent = new Event('input');
+      Object.defineProperty(emptyTargetEvent, 'target', { value: null });
+      component.onUrlInput('u1', emptyTargetEvent);
+      expect(updateSpy).toHaveBeenCalledWith({ id: 'u1', url: '' });
+
+      const enterEvent = new KeyboardEvent('keydown', { key: 'Enter' });
+      vi.spyOn(enterEvent, 'preventDefault');
+      component.onUrlEnterKey('u1', enterEvent);
+      expect(enterEvent.preventDefault).toHaveBeenCalled();
+      expect(fetchSpy).toHaveBeenCalledWith(['u1']);
+
+      component.onFetchAllUrls();
+      expect(fetchSpy).toHaveBeenCalledWith(undefined);
+
+      component.onRemoveUrl('u1');
+      expect(removeSpy).toHaveBeenCalledWith('u1');
+
+      component.onClearUrls();
+      expect(clearSpy).toHaveBeenCalled();
+    });
+
+    it('should split multi-line pasted URLs into urlUpdated and multiple urlAdded emissions', () => {
+      const updateSpy = vi.spyOn(component.urlUpdated, 'emit');
+      const addSpy = vi.spyOn(component.urlAdded, 'emit');
+
+      const multiLinePaste = {
+        clipboardData: {
+          getData: () =>
+            'https://example.com/1.yaml\nhttps://example.com/2.yaml\r\nhttps://example.com/3.yaml',
+        },
+        preventDefault: vi.fn(),
+      } as unknown as ClipboardEvent;
+
+      component.onUrlPaste('u1', multiLinePaste);
+
+      expect(multiLinePaste.preventDefault).toHaveBeenCalled();
+      expect(updateSpy).toHaveBeenCalledWith({ id: 'u1', url: 'https://example.com/1.yaml' });
+      expect(addSpy).toHaveBeenCalledTimes(2);
+      expect(addSpy).toHaveBeenNthCalledWith(1, 'https://example.com/2.yaml');
+      expect(addSpy).toHaveBeenNthCalledWith(2, 'https://example.com/3.yaml');
+    });
+
+    it('should ignore single-line or empty paste events', () => {
+      const updateSpy = vi.spyOn(component.urlUpdated, 'emit');
+
+      const singleLinePaste = {
+        clipboardData: { getData: () => 'https://example.com/single.yaml' },
+        preventDefault: vi.fn(),
+      } as unknown as ClipboardEvent;
+      component.onUrlPaste('u1', singleLinePaste);
+      expect(updateSpy).not.toHaveBeenCalled();
+
+      const singleLineWithTrailingNewline = {
+        clipboardData: { getData: () => 'https://example.com/single.yaml\n   ' },
+        preventDefault: vi.fn(),
+      } as unknown as ClipboardEvent;
+      component.onUrlPaste('u1', singleLineWithTrailingNewline);
+      expect(updateSpy).not.toHaveBeenCalled();
+
+      const nullClipboardPaste = {
+        clipboardData: null,
+        preventDefault: vi.fn(),
+      } as unknown as ClipboardEvent;
+      component.onUrlPaste('u1', nullClipboardPaste);
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
+
+    it('should switch to editor and refresh layout on onPreviewInEditor', () => {
+      const modeSpy = vi.spyOn(component.activeModeChange, 'emit');
+      const layoutSpy = vi.fn();
+      component.onEditorInit({ layout: layoutSpy });
+
+      component.onPreviewInEditor();
+      expect(modeSpy).toHaveBeenCalledWith('editor');
+      expect(layoutSpy).toHaveBeenCalled();
+    });
+  });
 });

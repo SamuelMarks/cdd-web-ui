@@ -229,8 +229,7 @@ describe('WasmWorkerService', () => {
 
   it('should log warning if Worker is undefined', () => {
     const origWorker = globalThis.Worker;
-    // @ts-expect-error - simulating missing Worker
-    delete globalThis.Worker;
+    Reflect.deleteProperty(globalThis, 'Worker');
     const warnSpy = vi.spyOn(console, 'warn');
 
     TestBed.resetTestingModule();
@@ -321,5 +320,100 @@ describe('WasmWorkerService', () => {
     const result = await service.generateCode('cdd-python-all', 'spec', 'to_sdk');
     expect(result.length).toBe(1);
     expect(result[0].path).toBe('test.ts');
+  });
+
+  it('should reject when worker emits an error event and deduplicate concurrent job logs', async () => {
+    const listeners: {
+      message: ((ev: MessageEvent) => void)[];
+      error: ((ev: ErrorEvent) => void)[];
+    } = { message: [], error: [] };
+
+    const multiWorker = {
+      addEventListener: vi.fn(
+        (type: 'message' | 'error', cb: EventListenerOrEventListenerObject) => {
+          if (type === 'message') listeners.message.push(cb as (ev: MessageEvent) => void);
+          if (type === 'error') listeners.error.push(cb as (ev: ErrorEvent) => void);
+        },
+      ),
+      removeEventListener: vi.fn(),
+      postMessage: vi.fn((data: { jobId: string; payload: { target: string } }) => {
+        if (data.payload.target === 'error-with-msg') {
+          listeners.error.forEach((cb) =>
+            cb({ message: 'Failed to resolve module' } as ErrorEvent),
+          );
+        } else if (data.payload.target === 'error-empty-msg') {
+          listeners.error.forEach((cb) => cb({ message: '' } as ErrorEvent));
+        }
+      }),
+      terminate: vi.fn(),
+    };
+
+    (service as unknown as { worker: Worker | null }).worker = multiWorker as unknown as Worker;
+
+    await expect(service.generateCode('cdd-c', '{}', 'error-with-msg')).rejects.toThrow(
+      'Failed to resolve module',
+    );
+    await expect(service.generateCode('cdd-c', '{}', 'error-empty-msg')).rejects.toThrow(
+      'Web Worker error',
+    );
+
+    // Concurrent jobs: only the primary active job should log to LoggingService
+    listeners.message = [];
+    listeners.error = [];
+    const jobIds: string[] = [];
+    multiWorker.postMessage = vi.fn((data: { jobId: string }) => {
+      jobIds.push(data.jobId);
+      if (jobIds.length === 2) {
+        const logEvent = new MessageEvent('message', {
+          data: { status: 'log', level: 'INFO', message: 'Dedup log' },
+        });
+        listeners.message.forEach((cb) => cb(logEvent));
+        for (const id of jobIds) {
+          const doneEvent = new MessageEvent('message', {
+            data: { status: 'success', jobId: id, data: [] },
+          });
+          listeners.message.forEach((cb) => cb(doneEvent));
+        }
+      }
+    });
+
+    await Promise.all([
+      service.generateCode('cdd-c', '{}', 'to_sdk'),
+      service.generateCode('cdd-c', '{}', 'to_docs_json'),
+    ]);
+
+    expect(mockLoggingService.info).toHaveBeenCalledTimes(1);
+    expect(mockLoggingService.info).toHaveBeenCalledWith('Dedup log');
+  });
+
+  it('should reject generateCode if worker emitted an error during initialization', async () => {
+    let capturedInitErrorCb: ((ev: ErrorEvent) => void) | null = null;
+    class InitErrorWorker extends MockWorker {
+      override addEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
+        super.addEventListener(type, listener);
+        if (type === 'error' && !capturedInitErrorCb) {
+          capturedInitErrorCb = listener as (ev: ErrorEvent) => void;
+        }
+      }
+    }
+
+    globalThis.Worker = InitErrorWorker as unknown as typeof Worker;
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: WasmLoaderService, useValue: mockLoaderService },
+        { provide: LoggingService, useValue: mockLoggingService },
+      ],
+    });
+    const initService = TestBed.inject(WasmWorkerService);
+    expect(capturedInitErrorCb).toBeTruthy();
+
+    capturedInitErrorCb!({ message: 'Module load failed' } as ErrorEvent);
+    await expect(initService.generateCode('cdd-c', '{}')).rejects.toThrow('Module load failed');
+
+    capturedInitErrorCb!({ message: '' } as ErrorEvent);
+    await expect(initService.generateCode('cdd-c', '{}')).rejects.toThrow(
+      'Web Worker failed to load.',
+    );
   });
 });

@@ -40,8 +40,8 @@ const monacoConfig = {
  * @param languageService The language service to use.
  * @returns A function that initializes WASM support.
  */
-export function initWasmSupport(languageService: LanguageService) {
-  return () => languageService.loadWasmSupport();
+export function initWasmSupport(languageService: LanguageService): () => Promise<void> {
+  return (): Promise<void> => languageService.loadWasmSupport();
 }
 
 /**

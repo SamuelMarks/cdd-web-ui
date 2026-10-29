@@ -4,6 +4,7 @@
   height: 100%;
   width: 100%;
   background-color: var(--surface-color);
+  overflow: hidden;
 }
 
 .toolbar {
@@ -24,9 +25,31 @@
   margin-right: auto;
 }
 
+.openapi-tabs {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+:host ::ng-deep .openapi-tabs .mat-mdc-tab-body-wrapper {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+:host ::ng-deep .openapi-tabs .mat-mdc-tab-body-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
 .editor-wrapper {
   flex: 1 1 auto;
   position: relative;
+  height: 100%;
   overflow: hidden; /* Monaco handles its own scrolling */
 }
 
@@ -73,4 +96,118 @@ ngx-monaco-editor {
 
 :host-context(html.dark-theme) .editor-floating-actions {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* URLs Tab Styles */
+.urls-tab-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: var(--surface-color);
+  overflow: hidden;
+}
+
+.urls-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--surface-color);
+}
+
+.clear-urls-btn {
+  margin-left: auto;
+}
+
+.urls-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.url-entry-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--surface-color);
+}
+
+.url-entry-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.url-index-badge {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary, var(--text-primary));
+  min-width: 1.75rem;
+  text-align: center;
+}
+
+.url-input-field {
+  flex: 1 1 auto;
+}
+
+.url-status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+}
+
+.status-icon.status-loaded {
+  color: #2e7d32;
+}
+
+:host-context(html.dark-theme) .status-icon.status-loaded {
+  color: #81c784;
+}
+
+.status-icon.status-error {
+  color: var(--error-text, #d32f2f);
+}
+
+.status-icon.status-idle {
+  opacity: 0.65;
+}
+
+.url-entry-error {
+  background-color: var(--error-bg, #fdecea);
+  color: var(--error-text, #b71c1c);
+  padding: 0.375rem 0.625rem;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  border-left: 3px solid var(--error-text, #b71c1c);
+  word-break: break-word;
+}
+
+.urls-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem 1rem;
+  gap: 0.75rem;
+  color: var(--text-primary);
+}
+
+.urls-empty-state p {
+  margin: 0;
+  max-width: 360px;
+  font-size: 0.875rem;
 }

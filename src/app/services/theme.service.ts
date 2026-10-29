@@ -1,3 +1,7 @@
+/**
+ * Light and dark theme management service.
+ * @module app/services/theme.service
+ */
 import { Injectable, signal, effect, inject, PLATFORM_ID } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { WINDOW } from '../tokens';

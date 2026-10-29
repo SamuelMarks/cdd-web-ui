@@ -1,3 +1,7 @@
+/**
+ * OpenAPI JSON/YAML parsing and structural validation utility.
+ * @module app/components/openapi-editor/openapi-parser.util
+ */
 import * as yaml from 'js-yaml';
 
 /**

@@ -447,4 +447,109 @@ describe('LanguageSelectorComponent', () => {
       options: { noGithubActions: true },
     });
   });
+
+  describe('Confirm lack of error across all 13 languages, targets, dropdowns, and checkboxes', () => {
+    const ALL_LANGUAGE_IDS = [
+      'c',
+      'cpp',
+      'csharp',
+      'go',
+      'java',
+      'kotlin',
+      'php',
+      'python',
+      'ruby',
+      'rust',
+      'sh',
+      'swift',
+      'typescript',
+      'openapi',
+    ] as const;
+
+    const ALL_TARGETS = [
+      'to_sdk',
+      'to_sdk_cli',
+      'to_mcp',
+      'to_server',
+      'to_orm',
+      'to_openapi_3_2_0',
+    ] as const;
+
+    const CLIENT_FRAMEWORKS = ['vanilla', 'angular', 'react', 'vue'] as const;
+    const SERVER_FRAMEWORKS = ['express', 'node', 'bun', 'deno'] as const;
+    const ORM_OPTIONS = ['typeorm'] as const;
+    const CHECKBOX_OPTIONS = [
+      'noGithubActions',
+      'noInstallablePackage',
+      'tests',
+      'noTestGen',
+      'mcp',
+      'autoAdmin',
+      'withEphemeral',
+      'withSeed',
+      'noGenerateServices',
+    ] as const;
+
+    it('should select every language, target, framework, ORM, and checkbox option without error', async () => {
+      hostFixture.detectChanges();
+      await hostFixture.whenStable();
+      component = hostFixture.debugElement.query(
+        By.directive(LanguageSelectorComponent),
+      ).componentInstance;
+
+      for (const langId of ALL_LANGUAGE_IDS) {
+        component.onSelectionChange(langId);
+        hostComponent.selectedLanguageId.set(langId);
+        hostFixture.detectChanges();
+        await hostFixture.whenStable();
+        expect(component.hasError()).toBe(false);
+        expect(component.errorMessage()).toBeNull();
+
+        for (const target of ALL_TARGETS) {
+          component.onTargetChange(target);
+          hostComponent.target.set(target);
+          hostFixture.detectChanges();
+          await hostFixture.whenStable();
+          expect(component.hasError()).toBe(false);
+        }
+      }
+
+      // Test all TypeScript client frameworks, server frameworks, ORM, and checkboxes
+      hostComponent.selectedLanguageId.set('typescript');
+      hostFixture.detectChanges();
+
+      for (const fw of CLIENT_FRAMEWORKS) {
+        component.onOptionsChange('framework', fw);
+        hostComponent.options.set({ ...hostComponent.options(), framework: fw });
+        hostFixture.detectChanges();
+        expect(component.hasError()).toBe(false);
+      }
+
+      for (const sfw of SERVER_FRAMEWORKS) {
+        component.onOptionsChange('serverFramework', sfw);
+        hostComponent.options.set({ ...hostComponent.options(), serverFramework: sfw });
+        hostFixture.detectChanges();
+        expect(component.hasError()).toBe(false);
+      }
+
+      for (const orm of ORM_OPTIONS) {
+        component.onOptionsChange('orm', orm);
+        hostComponent.options.set({ ...hostComponent.options(), orm });
+        hostFixture.detectChanges();
+        expect(component.hasError()).toBe(false);
+      }
+
+      for (const checkboxKey of CHECKBOX_OPTIONS) {
+        component.onOptionsChange(checkboxKey, true);
+        hostComponent.options.set({ ...hostComponent.options(), [checkboxKey]: true });
+        hostFixture.detectChanges();
+        expect(component.hasError()).toBe(false);
+
+        component.onOptionsChange(checkboxKey, false);
+        hostComponent.options.set({ ...hostComponent.options(), [checkboxKey]: false });
+        hostFixture.detectChanges();
+        expect(component.hasError()).toBe(false);
+      }
+    });
+  });
 });

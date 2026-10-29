@@ -1,3 +1,7 @@
+/**
+ * Startup confirmation dialog component for preloading WASM compiler binaries.
+ * @module app/components/wasm-load-dialog/wasm-load-dialog.component
+ */
 import { Component, inject, signal } from '@angular/core';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -53,7 +57,11 @@ import { environment } from '../../../environments/environment';
         }
         <p>
           Every compiler is compiled to WebAssembly (WASM). Do you want to load
-          {{ environment.wasmSizeText }} of WASM?
+          {{ environment.wasmSizeText }} of WASM
+          @if (!environment.singleLanguageMode) {
+            (plus ~20MB for Pyodide and other runtime assets, ~92MB total)
+          }
+          ?
         </p>
         <p>
           This is required to generate code using the selected language in the browser (with no

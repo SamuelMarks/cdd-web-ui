@@ -200,6 +200,37 @@ describe('WasmLoaderService', () => {
     expect(progressCallback).toHaveBeenCalled();
   });
 
+  it('should accept ZIP magic number in loadWasmBinary and preloadAllWasm, and warn on invalid magic in preloadAllWasm', async () => {
+    const zipData = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x0a, 0x00]);
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'content-type': 'application/octet-stream' }),
+      arrayBuffer: () => Promise.resolve(zipData.buffer),
+    });
+
+    const loadedZip = await service.loadWasmBinary('cdd-python-all');
+    expect(new Uint8Array(loadedZip)).toEqual(zipData);
+    expect(globalThis.fetch).toHaveBeenCalledWith('./assets/wasm/cdd-python-all.wasm');
+
+    service.clearCache();
+    await service.preloadAllWasm();
+    expect(globalThis.fetch).toHaveBeenCalled();
+
+    service.clearCache();
+    const consoleSpy = vi.spyOn(console, 'warn');
+    const htmlData = new Uint8Array([0x3c, 0x21]);
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'content-type': 'text/html' }),
+      arrayBuffer: () => Promise.resolve(htmlData.buffer),
+    });
+
+    await service.preloadAllWasm();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to preload cdd-ts: Invalid magic number'),
+    );
+  });
+
   it('should handle errors in preloadAllWasm when 404', async () => {
     const consoleSpy = vi.spyOn(console, 'warn');
     globalThis.fetch = vi.fn().mockResolvedValue({

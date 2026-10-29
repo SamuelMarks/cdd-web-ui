@@ -1,3 +1,7 @@
+/**
+ * Dashboard audit logs page component displaying SDK generation and publishing history.
+ * @module app/pages/dashboard/audit-logs/audit-logs.component
+ */
 import { Component, signal, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';

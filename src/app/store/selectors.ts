@@ -1,15 +1,19 @@
+/**
+ * NgRx selectors for workspace, file tree, and OpenAPI state slices.
+ * @module app/store/selectors
+ */
 import { createSelector } from '@ngrx/store';
 import { AppState, WorkspaceState, FileTreeState, OpenApiState } from './state';
 import { GeneratedFile } from '../services/wasm-worker.service';
 
 /** Feature selector for Workspace State */
-export const selectWorkspaceFeature = (state: AppState) => state.workspace;
+export const selectWorkspaceFeature = (state: AppState): WorkspaceState => state.workspace;
 
 /** Feature selector for File Tree State */
-export const selectFileTreeFeature = (state: AppState) => state.fileTree;
+export const selectFileTreeFeature = (state: AppState): FileTreeState => state.fileTree;
 
 /** Feature selector for OpenAPI State */
-export const selectOpenApiFeature = (state: AppState) => state.openApi;
+export const selectOpenApiFeature = (state: AppState): OpenApiState => state.openApi;
 
 // --- Workspace Selectors ---
 
@@ -105,7 +109,36 @@ export const selectOpenApiValidationErrors = createSelector(
 /** Selects the OpenAPI input format */
 export const selectOpenApiInputFormat = createSelector(
   selectOpenApiFeature,
-  (state) => state.inputFormat,
+  (state: OpenApiState) => state.inputFormat,
+);
+
+/** Selects the active input mode tab in the OpenAPI pane ('editor' or 'urls') */
+export const selectOpenApiInputMode = createSelector(
+  selectOpenApiFeature,
+  (state: OpenApiState) => state.activeInputMode,
+);
+
+/** Selects the list of remote OpenAPI specification URL entries */
+export const selectOpenApiSpecUrls = createSelector(
+  selectOpenApiFeature,
+  (state: OpenApiState) => state.specUrls,
+);
+
+/** Selects whether one or more remote OpenAPI URLs are currently being fetched */
+export const selectIsFetchingOpenApiUrls = createSelector(
+  selectOpenApiFeature,
+  (state: OpenApiState) => state.isFetchingUrls,
+);
+
+/** Selects the count of non-empty remote OpenAPI URL entries */
+export const selectValidOpenApiUrlCount = createSelector(
+  selectOpenApiSpecUrls,
+  (urls) => urls.filter((entry) => entry.url.trim().length > 0).length,
+);
+
+/** Selects all error messages from remote OpenAPI URL entries */
+export const selectOpenApiUrlErrors = createSelector(selectOpenApiSpecUrls, (urls) =>
+  urls.filter((entry) => Boolean(entry.error)).map((entry) => entry.error as string),
 );
 
 // API Docs Selectors
