@@ -6,13 +6,25 @@ import { createSelector } from '@ngrx/store';
 import { AppState, WorkspaceState, FileTreeState, OpenApiState } from './state';
 import { GeneratedFile } from '../services/wasm-worker.service';
 
-/** Feature selector for Workspace State */
+/**
+ * Feature selector for Workspace State.
+ * @param state The root application state.
+ * @returns The workspace state slice.
+ */
 export const selectWorkspaceFeature = (state: AppState): WorkspaceState => state.workspace;
 
-/** Feature selector for File Tree State */
+/**
+ * Feature selector for File Tree State.
+ * @param state The root application state.
+ * @returns The file tree state slice.
+ */
 export const selectFileTreeFeature = (state: AppState): FileTreeState => state.fileTree;
 
-/** Feature selector for OpenAPI State */
+/**
+ * Feature selector for OpenAPI State.
+ * @param state The root application state.
+ * @returns The OpenAPI state slice.
+ */
 export const selectOpenApiFeature = (state: AppState): OpenApiState => state.openApi;
 
 // --- Workspace Selectors ---
@@ -158,4 +170,38 @@ export const selectApiDocsPaneHeight = createSelector(
 export const selectApiDocsLoadState = createSelector(
   selectWorkspaceFeature,
   (state: WorkspaceState) => state.apiDocsLoadState,
+);
+
+/** Selects the language ID that produced the workspace docs.json files. */
+export const selectDocsJsonLanguageId = createSelector(
+  selectWorkspaceFeature,
+  (state: WorkspaceState | undefined): string | undefined => state?.docsJsonLanguageId,
+);
+
+/** Selects the dedicated docs.json files stored in the workspace state. */
+export const selectDocsJsonFiles = createSelector(
+  selectWorkspaceFeature,
+  (state: WorkspaceState | undefined): GeneratedFile[] => {
+    if (!state?.docsJsonFiles) {
+      return [];
+    }
+    if (state.docsJsonLanguageId && state.docsJsonLanguageId !== state.selectedLanguageId) {
+      return [];
+    }
+    return state.docsJsonFiles;
+  },
+);
+
+/** Selects concise `to_docs_json` files (preferring dedicated workspace docsJsonFiles, then docs.json entries in generatedFiles). */
+export const selectDocsJsonExamples = createSelector(
+  selectDocsJsonFiles,
+  selectGeneratedFiles,
+  (docsJsonFiles: GeneratedFile[], generatedFiles: GeneratedFile[]): GeneratedFile[] => {
+    if (docsJsonFiles.length > 0) {
+      return docsJsonFiles;
+    }
+    return generatedFiles.filter(
+      (f: GeneratedFile): boolean => f.path === 'docs.json' || f.path.endsWith('/docs.json'),
+    );
+  },
 );

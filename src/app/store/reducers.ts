@@ -90,6 +90,8 @@ export const workspaceReducer = createReducer(
         [languageId]: newOptions,
       },
       executionError: null,
+      docsJsonFiles: undefined,
+      docsJsonLanguageId: undefined,
     };
   }),
   /** on */
@@ -114,10 +116,47 @@ export const workspaceReducer = createReducer(
     executionError: null,
   })),
   /** on */
-  on(Actions.executeRunSuccess, (state): WorkspaceState => ({
+  on(Actions.executeRunSuccess, (state, { result, languageId }): WorkspaceState => {
+    if (languageId && languageId !== state.selectedLanguageId) {
+      return {
+        ...state,
+        isExecuting: false,
+        executionError: null,
+      };
+    }
+    const isFileArray = Array.isArray(result);
+    const docsFiles = isFileArray
+      ? result.filter((f) => f.path === 'docs.json' || f.path.endsWith('/docs.json'))
+      : undefined;
+    const hasDocsFiles = Boolean(docsFiles && docsFiles.length > 0);
+    return {
+      ...state,
+      isExecuting: false,
+      executionError: null,
+      ...(isFileArray
+        ? {
+            docsJsonFiles: hasDocsFiles ? docsFiles : undefined,
+            docsJsonLanguageId: hasDocsFiles
+              ? (languageId ?? state.selectedLanguageId)
+              : undefined,
+          }
+        : {}),
+    };
+  }),
+  /** on */
+  on(Actions.loadDocsJsonSuccess, (state, { files, languageId }): WorkspaceState => {
+    if (languageId && languageId !== state.selectedLanguageId) {
+      return state;
+    }
+    return {
+      ...state,
+      docsJsonFiles: files,
+      docsJsonLanguageId: languageId ?? state.selectedLanguageId,
+    };
+  }),
+  /** on */
+  on(Actions.loadDocsJsonFailure, (state): WorkspaceState => ({
     ...state,
-    isExecuting: false,
-    executionError: null,
   })),
   /** on */
   on(Actions.executeRunFailure, (state, { error }): WorkspaceState => ({

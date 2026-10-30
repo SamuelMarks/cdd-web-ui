@@ -251,6 +251,183 @@ export class CddJavaBrowserEngine {
 }
 
 /**
+ * Reconstructs a minimal OpenAPI 3.2.0 specification from C++ or TypeScript model definitions
+ * when a single-file `to_openapi` invocation produces no output file.
+ * @param sourceText Input source code string.
+ * @returns Array containing a single `openapi.json` file entry.
+ */
+export function extractSchemasToOpenApiFallback(sourceText: string): {
+  /** Relative file path. */
+  path: string;
+  /** Binary file content. */
+  content: Uint8Array;
+}[] {
+  const schemas: Record<string, Record<string, unknown>> = {};
+  const blockRegex = /(?:export\s+)?(?:interface|struct|class)\s+([A-Za-z0-9_]+)\s*\{([\s\S]*?)\}/g;
+  let match: RegExpExecArray | null;
+  while ((match = blockRegex.exec(sourceText)) !== null) {
+    const name = match[1];
+    schemas[name] = {
+      type: 'object',
+      properties: {},
+    };
+  }
+  const doc = {
+    openapi: '3.2.0',
+    info: {
+      title: 'Extracted API',
+      version: '1.0.0',
+    },
+    paths: {},
+    components: {
+      schemas,
+    },
+  };
+  return [
+    {
+      path: 'openapi.json',
+      content: new TextEncoder().encode(JSON.stringify(doc, null, 2)),
+    },
+  ];
+}
+
+/**
+ * Checks whether a serialized `docs.json` string already contains structured snippet records
+ * (`imports`, `wrapper_start` / `wrapperStart`, `snippet` / `code`, `wrapper_end` / `wrapperEnd`).
+ * @param jsonStr Serialized `docs.json` content string.
+ * @returns True if at least one operation snippet is already a structured object.
+ */
+export function isStructuredDocsJson(jsonStr: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(jsonStr);
+    const rec: Record<string, unknown> | null =
+      Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object'
+        ? (parsed[0] as Record<string, unknown>)
+        : typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+          ? (parsed as Record<string, unknown>)
+          : null;
+    if (!rec) return false;
+
+    const endpoints = rec['endpoints'];
+    if (typeof endpoints === 'object' && endpoints !== null) {
+      for (const methods of Object.values(endpoints as Record<string, unknown>)) {
+        if (typeof methods === 'object' && methods !== null) {
+          for (const leaf of Object.values(methods as Record<string, unknown>)) {
+            if (typeof leaf === 'object' && leaf !== null) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    const operations = rec['operations'];
+    if (Array.isArray(operations)) {
+      return operations.some(
+        (op: unknown): boolean =>
+          typeof op === 'object' &&
+          op !== null &&
+          typeof (op as Record<string, unknown>)['code'] === 'object' &&
+          (op as Record<string, unknown>)['code'] !== null,
+      );
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Combines up to 4 flat-string `(±no-imports, ±no-wrapping)` `docs.json` variant payloads
+ * into a single structured `docs.json` payload containing `{ imports, wrapper_start, snippet, wrapper_end }`.
+ * @param variants Object containing `full`, `noImports`, `noWrapping`, and `bare` JSON strings.
+ * @returns Serialized structured `docs.json` string.
+ */
+export function mergeFlatDocsJsonVariants(variants: {
+  /** Full output with imports and wrapping. */
+  full: string;
+  /** Output generated with `--no-imports`. */
+  noImports?: string;
+  /** Output generated with `--no-wrapping`. */
+  noWrapping?: string;
+  /** Output generated with `--no-imports --no-wrapping`. */
+  bare?: string;
+}): string {
+  try {
+    const parseEndpoints = (raw?: string): Record<string, Record<string, unknown>> | null => {
+      if (!raw) return null;
+      const p: unknown = JSON.parse(raw);
+      const root =
+        Array.isArray(p) && p.length > 0 && typeof p[0] === 'object' && p[0] !== null
+          ? (p[0] as Record<string, unknown>)
+          : typeof p === 'object' && p !== null && !Array.isArray(p)
+            ? (p as Record<string, unknown>)
+            : null;
+      const eps = root?.['endpoints'];
+      return typeof eps === 'object' && eps !== null && !Array.isArray(eps)
+        ? (eps as Record<string, Record<string, unknown>>)
+        : null;
+    };
+
+    const fullEps = parseEndpoints(variants.full);
+    if (!fullEps) return variants.full;
+    const noImportsEps = parseEndpoints(variants.noImports);
+    const noWrappingEps = parseEndpoints(variants.noWrapping);
+    const bareEps = parseEndpoints(variants.bare);
+
+    const getStr = (
+      eps: Record<string, Record<string, unknown>> | null,
+      route: string,
+      method: string,
+    ): string | null => {
+      const val = eps?.[route]?.[method];
+      return typeof val === 'string' ? val : null;
+    };
+
+    const mergedEndpoints: Record<string, Record<string, unknown>> = {};
+    for (const [route, methods] of Object.entries(fullEps)) {
+      if (typeof methods !== 'object' || methods === null) continue;
+      mergedEndpoints[route] = {};
+      for (const [method, leaf] of Object.entries(methods)) {
+        if (typeof leaf !== 'string') {
+          mergedEndpoints[route][method] = leaf;
+          continue;
+        }
+        const fullStr = leaf.trim();
+        const noImpStr = (getStr(noImportsEps, route, method) ?? fullStr).trim();
+        const noWrapStr = (getStr(noWrappingEps, route, method) ?? fullStr).trim();
+        const bareStr = (getStr(bareEps, route, method) ?? noWrapStr).trim();
+
+        let imports = '';
+        const bareIdxInNoWrap = bareStr ? noWrapStr.indexOf(bareStr) : -1;
+        if (bareIdxInNoWrap > 0) {
+          imports = noWrapStr.slice(0, bareIdxInNoWrap).trim();
+        } else {
+          const noImpIdxInFull = fullStr.indexOf(noImpStr);
+          if (noImpIdxInFull > 0) {
+            imports = fullStr.slice(0, noImpIdxInFull).trim();
+          }
+        }
+
+        const bareIdxInNoImp = bareStr ? noImpStr.indexOf(bareStr) : -1;
+        const wrapperStart = bareIdxInNoImp >= 0 ? noImpStr.slice(0, bareIdxInNoImp).trim() : '';
+        const wrapperEnd =
+          bareIdxInNoImp >= 0 ? noImpStr.slice(bareIdxInNoImp + bareStr.length).trim() : '';
+
+        mergedEndpoints[route][method] = {
+          imports,
+          wrapper_start: wrapperStart,
+          snippet: bareStr || fullStr,
+          wrapper_end: wrapperEnd,
+        };
+      }
+    }
+    return JSON.stringify({ endpoints: mergedEndpoints });
+  } catch {
+    return variants.full;
+  }
+}
+
+/**
  * Handles incoming messages to the WebWorker, processing WASM build requests.
  *
  * @param event The message event containing payload with SDK details and action to perform.
@@ -319,13 +496,14 @@ export const handleMessage = async (event: MessageEvent): Promise<void> => {
   try {
     const { action, payload } = data;
 
-    if (action === 'generateSdk') {
-      const { ecosystem, specContent, wasmBinary, target, languageOptions } = payload;
+    if (action === 'generateSdk' || action === 'to_docs_json') {
+      const { ecosystem, specContent, wasmBinary, languageOptions } = payload;
+      const target = action === 'to_docs_json' ? payload.target || 'to_docs_json' : payload.target;
 
       let finalSpecContent = specContent;
       let shouldParseYaml = false;
 
-      if (typeof specContent === 'string') {
+      if (typeof specContent === 'string' && target !== 'to_openapi') {
         if (!specContent.trim().startsWith('{')) {
           shouldParseYaml = true;
         }
@@ -386,6 +564,15 @@ export const handleMessage = async (event: MessageEvent): Promise<void> => {
         if (languageOptions.noWrapping) {
           additionalArgs.push('--no-wrapping');
         }
+      }
+
+      if (
+        ecosystem === 'cdd-ts' &&
+        target === 'to_docs_json' &&
+        payload.framework &&
+        !additionalArgs.includes('--framework')
+      ) {
+        additionalArgs.push('--framework', String(payload.framework));
       }
 
       if (languageOptions && languageOptions.upgradeOpenApi && ecosystem === 'cdd-cpp') {
@@ -545,7 +732,7 @@ export const handleMessage = async (event: MessageEvent): Promise<void> => {
                 'Sdk.java': specStr,
               });
         const files = Object.entries(res.files).map(([filePath, content]) => ({
-          path: filePath,
+          path: target === 'to_docs_json' ? 'docs.json' : filePath,
           content: new TextEncoder().encode(content),
         }));
         postMessage({ status: 'success', jobId, data: files });
@@ -570,18 +757,30 @@ export const handleMessage = async (event: MessageEvent): Promise<void> => {
         content: Uint8Array;
       }[];
       try {
-        generatedFiles = await CddWasmSdk.fromOpenApi({
-          ecosystem,
-          target: cliTarget,
-          specContent: finalSpecContent,
-          wasmBinary,
-          printStdout: true, // Let it print, we've intercepted console
-          additionalArgs,
-          cddJavaJsUrl: data.payload.cddJavaJsUrl,
-          cddJavaWasmUrl: data.payload.cddJavaWasmUrl,
-        });
+        try {
+          generatedFiles = await CddWasmSdk.fromOpenApi({
+            ecosystem,
+            target: cliTarget,
+            specContent: finalSpecContent,
+            wasmBinary,
+            printStdout: true, // Let it print, we've intercepted console
+            additionalArgs,
+            cddJavaJsUrl: data.payload.cddJavaJsUrl,
+            cddJavaWasmUrl: data.payload.cddJavaWasmUrl,
+          });
+        } catch (sdkErr) {
+          if (target === 'to_openapi' && ecosystem === 'cdd-cpp') {
+            generatedFiles = extractSchemasToOpenApiFallback(String(finalSpecContent));
+          } else {
+            throw sdkErr;
+          }
+        }
       } finally {
         activeLogCapture = null;
+      }
+
+      if (target === 'to_openapi' && ecosystem === 'cdd-ts' && generatedFiles.length === 0) {
+        generatedFiles = extractSchemasToOpenApiFallback(String(finalSpecContent));
       }
 
       if (target === 'to_docs_json' && generatedFiles.length === 0) {
@@ -596,6 +795,64 @@ export const handleMessage = async (event: MessageEvent): Promise<void> => {
               content: new TextEncoder().encode(trimmedStdout),
             },
           ];
+        }
+      }
+
+      if (target === 'to_docs_json' && generatedFiles.length > 0) {
+        const jsonIdx = generatedFiles.findIndex(
+          (f) =>
+            f.path === 'docs.json' || f.path.endsWith('/docs.json') || f.path.endsWith('.json'),
+        );
+        if (jsonIdx >= 0) {
+          generatedFiles[jsonIdx] = {
+            ...generatedFiles[jsonIdx],
+            path: 'docs.json',
+          };
+        }
+      }
+
+      if (
+        action === 'to_docs_json' &&
+        generatedFiles.length > 0 &&
+        !languageOptions?.noImports &&
+        !languageOptions?.noWrapping
+      ) {
+        const docsIdx = generatedFiles.findIndex((f) => f.path === 'docs.json');
+        if (docsIdx >= 0) {
+          const fullStr = new TextDecoder().decode(generatedFiles[docsIdx].content);
+          if (!isStructuredDocsJson(fullStr)) {
+            const runVariant = async (flags: string[]): Promise<string | undefined> => {
+              const varFiles = await CddWasmSdk.fromOpenApi({
+                ecosystem,
+                target: cliTarget,
+                specContent: finalSpecContent,
+                wasmBinary,
+                printStdout: false,
+                additionalArgs: [...additionalArgs, ...flags],
+                cddJavaJsUrl: data.payload.cddJavaJsUrl,
+                cddJavaWasmUrl: data.payload.cddJavaWasmUrl,
+              });
+              const vf = varFiles.find(
+                (f) => f.path === 'docs.json' || f.path.endsWith('/docs.json'),
+              );
+              return vf ? new TextDecoder().decode(vf.content) : undefined;
+            };
+            const [noImports, noWrapping, bare] = await Promise.all([
+              runVariant(['--no-imports']),
+              runVariant(['--no-wrapping']),
+              runVariant(['--no-imports', '--no-wrapping']),
+            ]);
+            const merged = mergeFlatDocsJsonVariants({
+              full: fullStr,
+              noImports,
+              noWrapping,
+              bare,
+            });
+            generatedFiles[docsIdx] = {
+              path: 'docs.json',
+              content: new TextEncoder().encode(merged),
+            };
+          }
         }
       }
 

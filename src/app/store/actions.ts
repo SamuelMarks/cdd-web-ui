@@ -114,6 +114,8 @@ export const executeRunSuccess = createAction(
   props<{
     /** Generated OpenAPI string or list of generated files. */
     result: string | GeneratedFile[];
+    /** Optional language ID that produced the execution result. */
+    languageId?: string;
   }>(),
 );
 
@@ -290,6 +292,35 @@ export const apiDocsIframeLoadFailed = createAction(
   /** props */
   props<{
     /** Error message from iframe load failure. */
+    error: string;
+  }>(),
+);
+/** Triggers background generation of concise `to_docs_json` code snippets for API Docs. */
+export const loadDocsJson = createAction(
+  '[ApiDocs] Load Docs JSON',
+  /** props */
+  props<{
+    /** Optional language ID override. */
+    languageId?: string;
+  }>(),
+);
+/** Dispatched when `to_docs_json` generation succeeds. */
+export const loadDocsJsonSuccess = createAction(
+  '[ApiDocs] Load Docs JSON Success',
+  /** props */
+  props<{
+    /** Generated docs.json files. */
+    files: GeneratedFile[];
+    /** Optional language ID that produced the docs.json files. */
+    languageId?: string;
+  }>(),
+);
+/** Dispatched when `to_docs_json` generation fails. */
+export const loadDocsJsonFailure = createAction(
+  '[ApiDocs] Load Docs JSON Failure',
+  /** props */
+  props<{
+    /** Error message describing why generation failed. */
     error: string;
   }>(),
 );

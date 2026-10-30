@@ -1,3 +1,15 @@
+#!/usr/bin/env sh
+set -e
+
+if [ ! -d "node_modules" ]; then
+  echo "Installing dependencies..."
+  if [ -d "../cdd-docs-ui/dist" ] && [ -d "../cdd-browser-sdk/dist" ]; then
+    npm install --ignore-scripts
+  else
+    npm install
+  fi
+fi
+
 MODE=${PRECOMMIT_MODE:-fast}
 
 if [ "$MODE" = "slow" ]; then
@@ -11,6 +23,9 @@ if [ "$MODE" = "slow" ]; then
 
   echo "Running Linters..."
   npm run lint
+
+  echo "Running Documentation & Type Hygiene Coverage..."
+  npm run doc:coverage
 
   echo "Running Build..."
   npm run build
@@ -32,10 +47,14 @@ else
 
   echo "Running Formatters..."
   npm run format
+  npm run format:check
 
   echo "Running Linters..."
   npm run lint
 
-  echo "Running Unit Tests..."
-  npm run test
+  echo "Running Documentation & Type Hygiene Coverage..."
+  npm run doc:coverage
+
+  echo "Running Unit Tests with Coverage..."
+  npm run test:coverage
 fi

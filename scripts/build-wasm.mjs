@@ -87,6 +87,38 @@ function isValidJsWrapper(filePath) {
   return stat.size >= 1024;
 }
 
+function patchRustSalsaAsyncDropsInFile(filePath) {
+  if (!fs.existsSync(filePath)) return;
+  const buf = fs.readFileSync(filePath);
+  let patched = 0;
+  for (let i = 0; i <= buf.length - 19; i++) {
+    if (
+      buf[i] === 0x20 &&
+      buf[i + 2] === 0x45 &&
+      buf[i + 3] === 0x0d &&
+      buf[i + 4] === 0x00 &&
+      buf[i + 5] === 0x41 &&
+      buf[i + 10] === 0x2d &&
+      buf[i + 11] === 0x00 &&
+      buf[i + 12] === 0x00 &&
+      buf[i + 13] === 0x41 &&
+      buf[i + 14] === 0x03 &&
+      buf[i + 15] === 0x47 &&
+      buf[i + 16] === 0x04 &&
+      buf[i + 17] === 0x40 &&
+      buf[i + 18] === 0x10
+    ) {
+      buf[i] = 0x41;
+      buf[i + 1] = 0x01;
+      buf[i + 2] = 0x01;
+      patched++;
+    }
+  }
+  if (patched > 0) {
+    fs.writeFileSync(filePath, buf);
+  }
+}
+
 function hasValidLocalArtifact(tool, wasmDest) {
   if (tool === 'cdd-csharp') {
     const appBundleDest = path.join(DEST_DIR, 'cdd-csharp');
@@ -172,7 +204,7 @@ const REPOS = {
   php: 'SamuelMarks/cdd-php',
   python: 'offscale/cdd-python-all',
   ruby: 'SamuelMarks/cdd-ruby',
-  rust: 'SamuelMarks/cdd-rust',
+  rust: 'offscale/cdd-rust',
   sh: 'SamuelMarks/cdd-sh',
   swift: 'SamuelMarks/cdd-swift',
   ts: 'offscale/cdd-ts',
@@ -180,18 +212,21 @@ const REPOS = {
 
 const supportMap = {};
 
+function getAuthHeaders() {
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  return {
+    'User-Agent': 'node.js',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
     https
       .get(
         url,
         {
-          headers: {
-            'User-Agent': 'node.js',
-            ...(process.env.GITHUB_TOKEN
-              ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
-              : {}),
-          },
+          headers: getAuthHeaders(),
         },
         (response) => {
           if (
@@ -221,23 +256,41 @@ function downloadFile(url, dest) {
 function getReleaseFileName(tool) {
   if (tool === 'cdd-csharp') return 'cdd-csharp-wasm.zip';
   if (tool === 'cdd-ts') return 'cdd-ts-javy.wasm';
+  if (tool === 'cdd-python-all') return 'openapi_python_client-0.0.4-py3-none-any.whl';
   return `${tool}.wasm`;
 }
 
-function getGithubLatestRelease(repo, tool) {
+function buildFallbackRelease(repo, tool) {
+  return {
+    tagName: 'latest',
+    url: `https://github.com/${repo}/releases/latest/download/${getReleaseFileName(tool)}`,
+    jsUrl:
+      tool === 'cdd-java'
+        ? `https://github.com/${repo}/releases/latest/download/cdd-java.js`
+        : null,
+    jsWasmUrl:
+      tool === 'cdd-java'
+        ? `https://github.com/${repo}/releases/latest/download/cdd-java.js.wasm`
+        : null,
+  };
+}
+
+function getGithubLatestRelease(repo, tool, requestUrl = null) {
+  const targetUrl = requestUrl || `https://api.github.com/repos/${repo}/releases/latest`;
   return new Promise((resolve, reject) => {
     https
       .get(
-        `https://api.github.com/repos/${repo}/releases/latest`,
+        targetUrl,
         {
-          headers: {
-            'User-Agent': 'node.js',
-            ...(process.env.GITHUB_TOKEN
-              ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }
-              : {}),
-          },
+          headers: getAuthHeaders(),
         },
         (res) => {
+          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            res.resume();
+            return getGithubLatestRelease(repo, tool, res.headers.location)
+              .then(resolve)
+              .catch(reject);
+          }
           let data = '';
           res.on('data', (chunk) => (data += chunk));
           res.on('end', () => {
@@ -245,10 +298,7 @@ function getGithubLatestRelease(repo, tool) {
               return reject(new Error(`No tagged latest release found for ${repo} (HTTP 404)`));
             }
             if (res.statusCode === 403 || res.statusCode === 429) {
-              return resolve({
-                tagName: 'latest',
-                url: `https://github.com/${repo}/releases/latest/download/${getReleaseFileName(tool)}`,
-              });
+              return resolve(buildFallbackRelease(repo, tool));
             }
             if (res.statusCode !== 200) {
               return reject(
@@ -265,6 +315,11 @@ function getGithubLatestRelease(repo, tool) {
               let asset;
               if (tool === 'cdd-csharp') {
                 asset = json.assets?.find((a) => a.name === `${tool}-wasm.zip`);
+                if (!asset) {
+                  asset = json.assets?.find((a) => a.name === `${tool}.wasm`);
+                }
+              } else if (tool === 'cdd-python-all') {
+                asset = json.assets?.find((a) => a.name.endsWith('.whl'));
                 if (!asset) {
                   asset = json.assets?.find((a) => a.name === `${tool}.wasm`);
                 }
@@ -307,10 +362,7 @@ function getGithubLatestRelease(repo, tool) {
         },
       )
       .on('error', () => {
-        resolve({
-          tagName: 'latest',
-          url: `https://github.com/${repo}/releases/latest/download/${getReleaseFileName(tool)}`,
-        });
+        resolve(buildFallbackRelease(repo, tool));
       });
   });
 }
@@ -623,6 +675,9 @@ async function run() {
             }
             fs.unlinkSync(dlDest);
           }
+        }
+        if (tool === 'cdd-rust') {
+          patchRustSalsaAsyncDropsInFile(wasmDest);
         }
         if (tool === 'cdd-java') {
           if (releaseInfo.jsWasmUrl && releaseInfo.jsWasmUrl !== url) {

@@ -500,4 +500,77 @@ describe('WasmGeneratorService', () => {
     const stub = service['getMockOutput']('php', 'API');
     expect(stub).toContain('Generated code for php');
   });
+
+  describe('generateDocsJson across all 13 ecosystems', () => {
+    const ALL_13_LANGUAGES = [
+      { id: 'c', repo: 'cdd-c', name: 'C' },
+      { id: 'cpp', repo: 'cdd-cpp', name: 'C++' },
+      { id: 'csharp', repo: 'cdd-csharp', name: 'C#' },
+      { id: 'go', repo: 'cdd-go', name: 'Go' },
+      { id: 'java', repo: 'cdd-java', name: 'Java' },
+      { id: 'kotlin', repo: 'cdd-kotlin', name: 'Kotlin' },
+      { id: 'php', repo: 'cdd-php', name: 'PHP' },
+      { id: 'python', repo: 'cdd-python-all', name: 'Python' },
+      { id: 'ruby', repo: 'cdd-ruby', name: 'Ruby' },
+      { id: 'rust', repo: 'cdd-rust', name: 'Rust' },
+      { id: 'sh', repo: 'cdd-sh', name: 'Shell' },
+      { id: 'swift', repo: 'cdd-swift', name: 'Swift' },
+      { id: 'typescript', repo: 'cdd-ts', name: 'TypeScript' },
+    ];
+
+    it('should execute to_docs_json for all 13 ecosystems and handle options, YAML, empty, and error cases', async () => {
+      const { CddWasmSdk } = await import('cdd-browser-sdk');
+      const langService = TestBed.inject(LanguageService);
+      langService.languages.set(
+        ALL_13_LANGUAGES.map((l) => ({
+          ...l,
+          availableInWasm: true,
+          extension: '.txt',
+          monacoLanguage: 'plaintext',
+        })) as import('../models/types').Language[],
+      );
+
+      for (const lang of ALL_13_LANGUAGES) {
+        vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValueOnce([
+          {
+            path: 'docs.json',
+            content: new TextEncoder().encode(
+              JSON.stringify({ endpoints: { '/pets': { get: `// ${lang.repo} snippet` } } }),
+            ),
+          },
+        ]);
+
+        const res = await service.generateDocsJson(
+          dummyRepo,
+          lang.id,
+          'openapi: 3.2.0\ninfo:\n  title: Pets\n  version: 1.0.0',
+          { framework: 'angular', noImports: true, noWrapping: true },
+        );
+        expect(res).toContain(lang.repo);
+      }
+
+      // Disabled / unknown language
+      const disabledRes = await service.generateDocsJson(dummyRepo, 'unknown-id', '{}');
+      expect(disabledRes).toContain('is disabled due to lack of WASM support');
+
+      // Invalid YAML warning and empty spec fallback
+      vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValueOnce([]);
+      const emptyRes = await service.generateDocsJson(dummyRepo, 'rust', 'invalid:\n\t- yaml');
+      expect(emptyRes).toBe('{"endpoints":{}}');
+
+      // Empty string specContent and scalar YAML with /docs.json path
+      vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValueOnce([
+        { path: 'sub/docs.json', content: new TextEncoder().encode('{"endpoints":{}}') },
+      ]);
+      expect(await service.generateDocsJson(dummyRepo, 'rust', 'scalar_string')).toBe(
+        '{"endpoints":{}}',
+      );
+      vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValueOnce([]);
+      expect(await service.generateDocsJson(dummyRepo, 'rust', '')).toBe('{"endpoints":{}}');
+
+      // SDK throws error -> returns fallback {"endpoints":{}}
+      vi.spyOn(CddWasmSdk, 'fromOpenApi').mockRejectedValueOnce(new Error('WASM error'));
+      expect(await service.generateDocsJson(dummyRepo, 'rust', '{}')).toBe('{"endpoints":{}}');
+    });
+  });
 });

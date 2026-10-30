@@ -128,5 +128,48 @@ describe('Selectors', () => {
       const result = Selectors.selectApiDocsLoadState(mockState);
       expect(result).toBe('IDLE');
     });
+
+    it('should select docsJsonFiles and docsJsonExamples', () => {
+      expect(Selectors.selectDocsJsonFiles(mockState)).toEqual([]);
+      expect(Selectors.selectDocsJsonFiles({} as AppState)).toEqual([]);
+      expect(Selectors.selectDocsJsonExamples(mockState)).toEqual([]);
+
+      const docsFile = {
+        path: 'docs.json',
+        content: new TextEncoder().encode('{"endpoints":{}}'),
+      };
+      const stateWithFileTreeDocs: AppState = {
+        ...mockState,
+        fileTree: {
+          ...mockState.fileTree,
+          files: [docsFile, { path: 'sub/docs.json', content: new Uint8Array() }],
+        },
+      };
+      expect(Selectors.selectDocsJsonExamples(stateWithFileTreeDocs)).toHaveLength(2);
+
+      const dedicatedDocs = [{ path: 'docs.json', content: new Uint8Array([1]) }];
+      const stateWithDedicatedDocs: AppState = {
+        ...stateWithFileTreeDocs,
+        workspace: {
+          ...mockState.workspace,
+          docsJsonFiles: dedicatedDocs,
+          docsJsonLanguageId: 'rust',
+        },
+      };
+      expect(Selectors.selectDocsJsonLanguageId(stateWithDedicatedDocs)).toBe('rust');
+      expect(Selectors.selectDocsJsonLanguageId({} as AppState)).toBeUndefined();
+      expect(Selectors.selectDocsJsonExamples(stateWithDedicatedDocs)).toEqual(dedicatedDocs);
+
+      const stateWithStaleDedicatedDocs: AppState = {
+        ...stateWithFileTreeDocs,
+        workspace: {
+          ...mockState.workspace,
+          selectedLanguageId: 'cpp',
+          docsJsonFiles: dedicatedDocs,
+          docsJsonLanguageId: 'c',
+        },
+      };
+      expect(Selectors.selectDocsJsonFiles(stateWithStaleDedicatedDocs)).toEqual([]);
+    });
   });
 });

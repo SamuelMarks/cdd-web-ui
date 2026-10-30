@@ -137,6 +137,77 @@ describe('Reducers', () => {
       state = workspaceReducer(state, Actions.apiDocsIframeLoadFailed({ error: 'failed' }));
       expect(state.apiDocsLoadState).toBe('ERROR');
     });
+
+    it('should store docsJsonFiles on loadDocsJsonSuccess, executeRunSuccess with docs.json, clear on setSelectedLanguage or executeRunSuccess without docs.json, and ignore stale languageId', () => {
+      const docsFile: GeneratedFile = {
+        path: 'docs.json',
+        content: new TextEncoder().encode('{"endpoints":{}}'),
+      };
+      let state = workspaceReducer(
+        initialWorkspaceState,
+        Actions.loadDocsJsonSuccess({ files: [docsFile] }),
+      );
+      expect(state.docsJsonFiles).toEqual([docsFile]);
+      expect(state.docsJsonLanguageId).toBe('c');
+
+      state = workspaceReducer(
+        state,
+        Actions.loadDocsJsonSuccess({ files: [docsFile], languageId: 'c' }),
+      );
+      expect(state.docsJsonFiles).toEqual([docsFile]);
+      expect(state.docsJsonLanguageId).toBe('c');
+
+      // Ignore loadDocsJsonSuccess from a stale language
+      const staleDocsFile: GeneratedFile = {
+        path: 'docs.json',
+        content: new TextEncoder().encode('{"endpoints":{"/stale":{}}}'),
+      };
+      state = workspaceReducer(
+        state,
+        Actions.loadDocsJsonSuccess({ files: [staleDocsFile], languageId: 'rust' }),
+      );
+      expect(state.docsJsonFiles).toEqual([docsFile]);
+
+      state = workspaceReducer(state, Actions.loadDocsJsonFailure({ error: 'failed' }));
+      expect(state.docsJsonFiles).toEqual([docsFile]);
+
+      // Switching language clears docsJsonFiles and docsJsonLanguageId
+      state = workspaceReducer(state, Actions.setSelectedLanguage({ languageId: 'cpp' }));
+      expect(state.selectedLanguageId).toBe('cpp');
+      expect(state.docsJsonFiles).toBeUndefined();
+      expect(state.docsJsonLanguageId).toBeUndefined();
+
+      const nestedDocsFile: GeneratedFile = {
+        path: 'out/docs.json',
+        content: new TextEncoder().encode('{"endpoints":{"/pet":{}}}'),
+      };
+      state = workspaceReducer(state, Actions.executeRunSuccess({ result: [nestedDocsFile] }));
+      expect(state.docsJsonFiles).toEqual([nestedDocsFile]);
+      expect(state.docsJsonLanguageId).toBe('cpp');
+
+      // Ignore executeRunSuccess from a stale language
+      state = workspaceReducer(
+        state,
+        Actions.executeRunSuccess({ result: [docsFile], languageId: 'c' }),
+      );
+      expect(state.docsJsonFiles).toEqual([nestedDocsFile]);
+
+      // Clear docsJsonFiles when executeRunSuccess returns files without docs.json
+      state = workspaceReducer(
+        state,
+        Actions.executeRunSuccess({
+          result: [{ path: 'src/client.cpp', content: new Uint8Array() }],
+        }),
+      );
+      expect(state.docsJsonFiles).toBeUndefined();
+      expect(state.docsJsonLanguageId).toBeUndefined();
+
+      const stateFromString = workspaceReducer(
+        initialWorkspaceState,
+        Actions.executeRunSuccess({ result: 'openapi: 3.2.0' }),
+      );
+      expect(stateFromString.isExecuting).toBe(false);
+    });
   });
 
   describe('FileTreeReducer', () => {

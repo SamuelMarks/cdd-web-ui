@@ -51,7 +51,7 @@ const newDocBadge = `![Doc Coverage](https://img.shields.io/badge/Doc_Coverage-$
 
 const badges = `${newDocBadge}\n${newTestBadge}\n`;
 
-const titleRegex = /^(cdd-web-ui\r?\n=+\r?\n)/m;
+const titleRegex = /^(cdd-web-ui\r?\n=+\r?\n)\s*/m;
 if (readme.match(titleRegex)) {
   readme = readme.replace(titleRegex, `$1\n${badges}`);
 } else {

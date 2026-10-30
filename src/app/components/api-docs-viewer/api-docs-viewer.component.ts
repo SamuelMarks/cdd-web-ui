@@ -17,14 +17,62 @@ import { AppState } from '../../store/state';
 import {
   selectOpenApiSpecContent,
   selectGeneratedFiles,
+  selectDocsJsonExamples,
+  selectDocsJsonLanguageId,
   selectSelectedLanguageId,
   selectCurrentLanguageOptions,
 } from '../../store/selectors';
 import * as WorkspaceActions from '../../store/actions';
 import { ThemeService } from '../../services/theme.service';
-import { WasmWorkerService } from '../../services/wasm-worker.service';
+import { WasmWorkerService, GeneratedFile } from '../../services/wasm-worker.service';
 import { LanguageService } from '../../services/language.service';
 import 'cdd-docs-ui';
+
+/**
+ * Checks whether a generated file path is a build manifest, configuration file, documentation file,
+ * CI workflow, or test file that should be excluded when forwarding `to_sdk` files as SDK examples.
+ * @param filepath The relative file path to inspect.
+ * @returns True if the file should be excluded from SDK code examples.
+ */
+export function isExcludedSdkProjectFile(filepath: string): boolean {
+  const normalized = filepath.replace(/\\/g, '/').replace(/^\/+/, '');
+  const basename = normalized.split('/').pop() || normalized;
+  const excludedNames = new Set([
+    'Cargo.toml',
+    'Cargo.lock',
+    'package.json',
+    'package-lock.json',
+    'tsconfig.json',
+    'CMakeLists.txt',
+    'pom.xml',
+    'build.gradle',
+    'build.gradle.kts',
+    'settings.gradle',
+    'settings.gradle.kts',
+    'README.md',
+    'LICENSE',
+    'Makefile',
+    'Dockerfile',
+    'pyproject.toml',
+    'setup.py',
+    'Gemfile',
+    'composer.json',
+    'go.mod',
+    'go.sum',
+    'Package.swift',
+    '.gitignore',
+  ]);
+  if (excludedNames.has(basename)) {
+    return true;
+  }
+  if (normalized.startsWith('.github/')) {
+    return true;
+  }
+  if (/test/i.test(normalized)) {
+    return true;
+  }
+  return false;
+}
 
 /**
  * Single SDK code example item passed to `<cdd-api-docs>`.
@@ -48,6 +96,7 @@ export interface MappedSdkExample {
       <cdd-api-docs
         [attr.spec-content]="specContent()"
         [attr.theme]="theme()"
+        [attr.active-language]="activeUiLanguage()"
         [sdkExamples]="mappedSdkExamples()"
         (cdd-language-change)="onDocsLanguageChange($event)"
       ></cdd-api-docs>
@@ -90,16 +139,24 @@ export class ApiDocsViewerComponent implements OnInit, OnDestroy {
   specContent = this.store.selectSignal(selectOpenApiSpecContent);
   /** Generated files */
   generatedFiles = this.store.selectSignal(selectGeneratedFiles);
+  /** Dedicated or extracted docs.json files from store */
+  docsJsonExamples = this.store.selectSignal(selectDocsJsonExamples);
+  /** Language ID associated with dedicated docs.json files in store */
+  docsJsonLanguageId = this.store.selectSignal(selectDocsJsonLanguageId);
   /** Selected language ID */
   selectedLanguageId = this.store.selectSignal(selectSelectedLanguageId);
   /** Current language options */
   languageOptions = this.store.selectSignal(selectCurrentLanguageOptions);
 
+  /** Active normalized UI language name for `<cdd-api-docs>` */
+  activeUiLanguage = computed(() => this.normalizeLanguage(this.selectedLanguageId()));
+
   /** Cached `docs.json` content keyed by normalized UI language */
   docsJsonCache = signal<Record<string, string>>({});
 
   /**
-   * Initializes reactive effect to fetch `to_docs_json` when spec or language changes.
+   * Initializes reactive effects to fetch `to_docs_json` when spec or language changes
+   * and sync store `docs.json` files into the local language cache.
    */
   constructor() {
     effect(() => {
@@ -110,19 +167,109 @@ export class ApiDocsViewerComponent implements OnInit, OnDestroy {
         void this.fetchDocsJsonForLanguage(langId, spec, opts);
       }
     });
+
+    effect(() => {
+      const activeDocsFiles = this.getActiveStoreDocsFiles();
+      const lang = this.activeUiLanguage();
+      if (activeDocsFiles.length > 0) {
+        const decoder = new TextDecoder('utf-8');
+        const content = this.unwrapDocsJsonContent(decoder.decode(activeDocsFiles[0].content));
+        this.docsJsonCache.update((prev) => ({ ...prev, [lang]: content }));
+      }
+    });
   }
 
   /**
-   * Maps the language ID to a Prism.js compatible syntax name
-   * @param langId The raw language ID from the store
-   * @returns The normalized language name
+   * Maps any of the 13 language or ecosystem identifiers to a consistent `cdd-docs-ui` language name.
+   * @param langId The raw language ID or ecosystem repo from the store.
+   * @returns The normalized language name expected by `cdd-docs-ui`.
    */
   private normalizeLanguage(langId: string): string {
     if (!langId) return 'typescript';
-    const clean = langId.replace('cdd-', '');
-    if (clean === 'python-all') return 'python';
-    if (clean === 'sh') return 'bash';
-    return clean;
+    const clean = langId.replace(/^cdd-/, '');
+    const langMap: Record<string, string> = {
+      c: 'c',
+      cpp: 'cpp',
+      csharp: 'csharp',
+      go: 'go',
+      java: 'java',
+      kotlin: 'kotlin',
+      php: 'php',
+      python: 'python',
+      'python-all': 'python',
+      ruby: 'ruby',
+      rust: 'rust',
+      sh: 'bash',
+      bash: 'bash',
+      swift: 'swift',
+      ts: 'typescript',
+      typescript: 'typescript',
+    };
+    return langMap[clean] || clean;
+  }
+
+  /**
+   * Unwraps a single-element JSON array wrapping an `endpoints`, `workflows`, or `webhooks` object.
+   * @param raw Raw UTF-8 `docs.json` content string.
+   * @returns Normalized JSON string.
+   */
+  private unwrapDocsJsonContent(raw: string): string {
+    let content = raw;
+    if (content.trim().startsWith('[')) {
+      try {
+        const parsed: unknown = JSON.parse(content);
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0 &&
+          typeof parsed[0] === 'object' &&
+          parsed[0] !== null &&
+          ('endpoints' in parsed[0] || 'workflows' in parsed[0] || 'webhooks' in parsed[0])
+        ) {
+          content = JSON.stringify(parsed[0]);
+        }
+      } catch {
+        // Keep original content if JSON parsing fails
+      }
+    }
+    return content;
+  }
+
+  /**
+   * Returns `docs.json` files from the store only when they belong to the currently selected language.
+   * @returns Array of matching `docs.json` files from store state.
+   */
+  private getActiveStoreDocsFiles(): GeneratedFile[] {
+    const lang = this.activeUiLanguage();
+    const storeDocsLangId = this.docsJsonLanguageId();
+    if (storeDocsLangId && this.normalizeLanguage(storeDocsLangId) !== lang) {
+      return [];
+    }
+    const dedicatedDocsFiles = this.docsJsonExamples();
+    const rawFiles = this.generatedFiles();
+    const docsFilesInRaw = rawFiles.filter(
+      (f) => f.path === 'docs.json' || f.path.endsWith('/docs.json'),
+    );
+    const candidateFiles = dedicatedDocsFiles.length > 0 ? dedicatedDocsFiles : docsFilesInRaw;
+    const decoder = new TextDecoder('utf-8');
+    return candidateFiles.filter((file) => {
+      const text = decoder.decode(file.content).trim();
+      try {
+        const parsed: unknown = JSON.parse(text);
+        const item: unknown = Array.isArray(parsed) ? parsed[0] : parsed;
+        if (
+          typeof item === 'object' &&
+          item !== null &&
+          typeof (item as Record<string, unknown>)['language'] === 'string'
+        ) {
+          return (
+            this.normalizeLanguage((item as Record<string, unknown>)['language'] as string) === lang
+          );
+        }
+      } catch {
+        // Keep file when JSON is not parseable
+      }
+      return true;
+    });
   }
 
   /**
@@ -147,15 +294,17 @@ export class ApiDocsViewerComponent implements OnInit, OnDestroy {
         'to_docs_json',
         options || {},
       );
-      const docsFile = files.find((f) => f.path === 'docs.json' || f.path.endsWith('.json'));
+      const docsFile = files.find(
+        (f) => f.path === 'docs.json' || f.path.endsWith('/docs.json') || f.path.endsWith('.json'),
+      );
       if (docsFile) {
         const decoder = new TextDecoder('utf-8');
-        const content = decoder.decode(docsFile.content);
+        const content = this.unwrapDocsJsonContent(decoder.decode(docsFile.content));
         const uiLang = this.normalizeLanguage(langConfig.repo);
         this.docsJsonCache.update((prev) => ({ ...prev, [uiLang]: content }));
       }
-    } catch {
-      // Ignore background to_docs_json errors
+    } catch (err: unknown) {
+      console.warn(`[ApiDocsViewer] Failed to generate docs.json for ${langConfig.repo}:`, err);
     }
   }
 
@@ -188,45 +337,37 @@ export class ApiDocsViewerComponent implements OnInit, OnDestroy {
   /** Mapped SDK examples for the Web Component */
   mappedSdkExamples = computed<MappedSdkExample[]>(() => {
     const decoder = new TextDecoder('utf-8');
-    const lang = this.normalizeLanguage(this.selectedLanguageId());
-    const fromStore = this.generatedFiles().map((file) => {
-      let content = decoder.decode(file.content);
-      if (file.path === 'docs.json' && content.trim().startsWith('[')) {
-        try {
-          const parsed: unknown = JSON.parse(content);
-          if (
-            Array.isArray(parsed) &&
-            parsed.length > 0 &&
-            typeof parsed[0] === 'object' &&
-            parsed[0] !== null &&
-            ('endpoints' in parsed[0] || 'workflows' in parsed[0] || 'webhooks' in parsed[0])
-          ) {
-            content = JSON.stringify(parsed[0]);
-          }
-        } catch {
-          // Keep original content if JSON parsing fails
-        }
-      }
+    const lang = this.activeUiLanguage();
+    const activeDocsFiles = this.getActiveStoreDocsFiles();
+
+    const fromStore = activeDocsFiles.map((file) => {
+      const content = this.unwrapDocsJsonContent(decoder.decode(file.content));
       return {
         language: lang,
-        filepath: file.path,
+        filepath: 'docs.json',
         content,
       };
     });
 
     const cached = this.docsJsonCache();
-    const cachedEntries: MappedSdkExample[] = [];
+    const activeCachedEntries: MappedSdkExample[] = [];
+    const otherCachedEntries: MappedSdkExample[] = [];
     for (const [cachedLang, content] of Object.entries(cached)) {
       if (!fromStore.some((f) => f.language === cachedLang && f.filepath === 'docs.json')) {
-        cachedEntries.push({
+        const entry: MappedSdkExample = {
           language: cachedLang,
           filepath: 'docs.json',
           content,
-        });
+        };
+        if (cachedLang === lang) {
+          activeCachedEntries.push(entry);
+        } else {
+          otherCachedEntries.push(entry);
+        }
       }
     }
 
-    return [...cachedEntries, ...fromStore];
+    return [...fromStore, ...activeCachedEntries, ...otherCachedEntries];
   });
 
   /** Active theme signal derived from ThemeService */

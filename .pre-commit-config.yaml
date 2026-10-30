@@ -1,0 +1,49 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+        exclude: \.(bat|cmd|ps1)$
+  - repo: local
+    hooks:
+      - id: npm-format
+        name: npm format:check
+        description: Verify code formatting with Prettier.
+        entry: npm run format:check
+        language: system
+        types_or: [ts, javascript, json, css, scss, html, markdown, yaml]
+        pass_filenames: false
+
+      - id: npm-lint
+        name: npm lint
+        description: Lint TypeScript and Angular files with ESLint.
+        entry: npm run lint
+        language: system
+        types: [ts]
+        pass_filenames: false
+
+      - id: npm-doc-coverage
+        name: npm doc:coverage
+        description: Verify 100% AST and Compodoc documentation coverage and strong typing.
+        entry: npm run doc:coverage
+        language: system
+        types: [ts]
+        pass_filenames: false
+
+      - id: npm-test-coverage
+        name: npm test:coverage
+        description: Run Vitest unit tests with 100% coverage thresholds.
+        entry: npm run test:coverage
+        language: system
+        types: [ts]
+        pass_filenames: false
+
+      - id: coverage-shields
+        name: Update Coverage Shields
+        description: Update README.md coverage shields.
+        entry: node scripts/update-shields.mjs
+        language: system
+        types: [ts]
+        pass_filenames: false
+        always_run: true

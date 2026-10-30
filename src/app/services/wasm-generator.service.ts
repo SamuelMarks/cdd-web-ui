@@ -268,6 +268,87 @@ export class WasmGeneratorService {
   }
 
   /**
+   * Generates concise `docs.json` snippets from an OpenAPI specification for the given language or ecosystem.
+   * @param repository The target repository context.
+   * @param languageId The language ID or `cdd-*` ecosystem identifier.
+   * @param specContent The OpenAPI specification string (JSON or YAML).
+   * @param options Optional CLI flag configuration (e.g. `framework`, `noImports`, `noWrapping`).
+   * @returns Promise resolving to the serialized `docs.json` string.
+   */
+  async generateDocsJson(
+    repository: Repository,
+    languageId: string | number,
+    specContent: string,
+    options?: {
+      /** Client framework name for TypeScript (`angular`, `react`, `vue`, `vanilla`). */
+      framework?: string;
+      /** Omit import statements in generated snippets. */
+      noImports?: boolean;
+      /** Omit wrapper boilerplate in generated snippets. */
+      noWrapping?: boolean;
+    },
+  ): Promise<string> {
+    void repository;
+    const lang = this.langService
+      .languages()
+      .find((l) => l.id === languageId || l.repo === languageId);
+    if (!lang || !lang.availableInWasm) {
+      return JSON.stringify({
+        error: `Generation for ${lang?.name || languageId} is disabled due to lack of WASM support.`,
+      });
+    }
+
+    let finalSpecContent = specContent || '{}';
+    if (typeof finalSpecContent === 'string' && !finalSpecContent.trim().startsWith('{')) {
+      try {
+        const parsed = yaml.load(finalSpecContent);
+        if (parsed && typeof parsed === 'object') {
+          finalSpecContent = JSON.stringify(parsed, null, 2);
+        }
+      } catch (e) {
+        console.warn(`[WasmGenerator] Failed to parse YAML in generateDocsJson.`, e);
+      }
+    }
+
+    const additionalArgs: string[] = [];
+    if (options?.framework) {
+      additionalArgs.push('--framework', options.framework);
+    }
+    if (options?.noImports) {
+      additionalArgs.push('--no-imports');
+    }
+    if (options?.noWrapping) {
+      additionalArgs.push('--no-wrapping');
+    }
+
+    try {
+      const wasmBinary =
+        lang.repo !== 'cdd-csharp'
+          ? await this.wasmLoaderService.loadWasmBinary(lang.repo)
+          : new Uint8Array(0).buffer;
+
+      const generatedFiles = await CddWasmSdk.fromOpenApi({
+        ecosystem: lang.repo,
+        target: 'to_docs_json',
+        specContent: finalSpecContent,
+        wasmBinary,
+        printStdout: false,
+        additionalArgs,
+      });
+
+      const docsFile =
+        generatedFiles.find((f) => f.path === 'docs.json' || f.path.endsWith('/docs.json')) ||
+        generatedFiles[0];
+      if (!docsFile) {
+        return JSON.stringify({ endpoints: {} });
+      }
+      return new TextDecoder().decode(docsFile.content);
+    } catch {
+      return JSON.stringify({ endpoints: {} });
+    }
+  }
+
+  /**
    * Extracts info from spec string.
    * @param spec The spec string.
    * @returns Object containing the optional extracted title.

@@ -817,4 +817,121 @@ describe('WorkspaceEffects', () => {
       });
     }
   });
+
+  describe('triggerLoadDocsJson$ and loadDocsJson$', () => {
+    it('should trigger loadDocsJson when API Docs becomes visible or language/options/spec change while visible', async () => {
+      store.overrideSelector(selectIsApiDocsVisible, false);
+      actions$ = of(Actions.setApiDocsVisibility({ visible: true }));
+      expect(await effects.triggerLoadDocsJson$.toPromise()).toEqual(Actions.loadDocsJson({}));
+
+      store.overrideSelector(selectIsApiDocsVisible, true);
+      actions$ = of(Actions.setSelectedLanguage({ languageId: 'rust' }));
+      expect(await effects.triggerLoadDocsJson$.toPromise()).toEqual(Actions.loadDocsJson({}));
+    });
+
+    it('should execute loadDocsJson$ for supported languages and handle failures', async () => {
+      languageServiceMock['languages'].mockReturnValue([
+        { id: 'typescript', name: 'TypeScript', repo: 'cdd-ts', availableInWasm: true },
+        { id: 'sh', name: 'Shell', repo: 'cdd-sh', availableInWasm: true },
+        { id: 'python', name: 'Python', repo: 'cdd-python-all', availableInWasm: true },
+      ]);
+      store.overrideSelector(selectSelectedLanguageId, 'typescript');
+      store.overrideSelector(selectCurrentLanguageOptions, undefined);
+      store.overrideSelector(selectOpenApiSpecContent, '{"openapi":"3.2.0"}');
+
+      const docsFiles: GeneratedFile[] = [{ path: 'docs.json', content: new Uint8Array([1]) }];
+      wasmWorkerServiceMock.generateCode.mockResolvedValueOnce(docsFiles);
+
+      actions$ = of(Actions.loadDocsJson({}));
+      expect(await effects.loadDocsJson$.toPromise()).toEqual(
+        Actions.loadDocsJsonSuccess({ files: docsFiles }),
+      );
+      expect(wasmWorkerServiceMock.generateCode).toHaveBeenCalledWith(
+        'cdd-ts',
+        '{"openapi":"3.2.0"}',
+        'to_docs_json',
+        { framework: 'vanilla' },
+      );
+
+      // Test languageId aliases: bash -> sh, python-all -> python, ts -> typescript
+      wasmWorkerServiceMock.generateCode.mockResolvedValueOnce(docsFiles);
+      actions$ = of(Actions.loadDocsJson({ languageId: 'bash' }));
+      await effects.loadDocsJson$.toPromise();
+
+      wasmWorkerServiceMock.generateCode.mockResolvedValueOnce(docsFiles);
+      actions$ = of(Actions.loadDocsJson({ languageId: 'python-all' }));
+      await effects.loadDocsJson$.toPromise();
+
+      wasmWorkerServiceMock.generateCode.mockResolvedValueOnce(docsFiles);
+      actions$ = of(Actions.loadDocsJson({ languageId: 'ts' }));
+      await effects.loadDocsJson$.toPromise();
+
+      // Worker failure (Error and non-Error)
+      wasmWorkerServiceMock.generateCode.mockRejectedValueOnce(new Error('worker boom'));
+      actions$ = of(Actions.loadDocsJson({}));
+      expect(await effects.loadDocsJson$.toPromise()).toEqual(
+        Actions.loadDocsJsonFailure({ error: 'worker boom' }),
+      );
+
+      wasmWorkerServiceMock.generateCode.mockRejectedValueOnce('raw string err');
+      actions$ = of(Actions.loadDocsJson({}));
+      expect(await effects.loadDocsJson$.toPromise()).toEqual(
+        Actions.loadDocsJsonFailure({ error: 'raw string err' }),
+      );
+
+      // Unknown language or empty spec
+      actions$ = of(Actions.loadDocsJson({ languageId: 'nonexistent' }));
+      expect(await effects.loadDocsJson$.toPromise()).toEqual(
+        Actions.loadDocsJsonFailure({
+          error: "Cannot generate docs.json for 'nonexistent'.",
+        }),
+      );
+    });
+
+    it('should use switchMap in loadDocsJson$ to process the latest language when switching from C to C++', async () => {
+      const { Subject, firstValueFrom, toArray } = await import('rxjs');
+      languageServiceMock['languages'].mockReturnValue([
+        { id: 'c', name: 'C', repo: 'cdd-c', availableInWasm: true },
+        { id: 'cpp', name: 'C++', repo: 'cdd-cpp', availableInWasm: true },
+      ]);
+      store.overrideSelector(selectCurrentLanguageOptions, {});
+      store.overrideSelector(selectOpenApiSpecContent, '{"openapi":"3.2.0"}');
+
+      const cDocs: GeneratedFile[] = [
+        { path: 'docs.json', content: new TextEncoder().encode('{"endpoints":{"/c":{}}}') },
+      ];
+      const cppDocs: GeneratedFile[] = [
+        { path: 'docs.json', content: new TextEncoder().encode('{"endpoints":{"/cpp":{}}}') },
+      ];
+
+      let resolveC!: (value: GeneratedFile[]) => void;
+      wasmWorkerServiceMock.generateCode.mockImplementation((repo: string) => {
+        if (repo === 'cdd-c') {
+          return new Promise<GeneratedFile[]>((r) => {
+            resolveC = r;
+          });
+        }
+        return Promise.resolve(cppDocs);
+      });
+
+      const actionSubject = new Subject<Action>();
+      actions$ = actionSubject.asObservable();
+
+      const resultsPromise = firstValueFrom(effects.loadDocsJson$.pipe(toArray()));
+
+      store.overrideSelector(selectSelectedLanguageId, 'c');
+      store.refreshState();
+      actionSubject.next(Actions.loadDocsJson({ languageId: 'c' }));
+
+      // Switch to C++ before C finishes
+      store.overrideSelector(selectSelectedLanguageId, 'cpp');
+      store.refreshState();
+      actionSubject.next(Actions.loadDocsJson({ languageId: 'cpp' }));
+      actionSubject.complete();
+
+      resolveC(cDocs);
+      const emitted = await resultsPromise;
+      expect(emitted).toEqual([Actions.loadDocsJsonSuccess({ files: cppDocs })]);
+    });
+  });
 });

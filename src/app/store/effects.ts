@@ -5,7 +5,7 @@
 import { inject } from '@angular/core';
 import { Actions, createEffect, ofType, ROOT_EFFECTS_INIT } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
-import { map, switchMap, withLatestFrom, tap, of } from 'rxjs';
+import { filter, map, switchMap, withLatestFrom, tap, of } from 'rxjs';
 import * as WorkspaceActions from './actions';
 import { AppState } from './state';
 import {
@@ -434,5 +434,82 @@ export class WorkspaceEffects {
         }),
       ),
     { dispatch: false },
+  );
+
+  /**
+   * Triggers `loadDocsJson` automatically when the API Docs pane becomes visible,
+   * or when the selected language, framework/options, or OpenAPI/Arazzo spec changes while visible.
+   */
+  triggerLoadDocsJson$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(
+        WorkspaceActions.setApiDocsVisibility,
+        WorkspaceActions.toggleApiDocsPane,
+        WorkspaceActions.setSelectedLanguage,
+        WorkspaceActions.setLanguageOptions,
+        WorkspaceActions.updateOpenApiSpec,
+        WorkspaceActions.applyFetchedUrlsToSpec,
+      ),
+      withLatestFrom(this.store.select(selectIsApiDocsVisible)),
+      filter(([action, isVisible]) => {
+        if (action.type === WorkspaceActions.setApiDocsVisibility.type) {
+          return action.visible;
+        }
+        return Boolean(isVisible);
+      }),
+      map(() => WorkspaceActions.loadDocsJson({})),
+    ),
+  );
+
+  /**
+   * Executes `to_docs_json` in the background when `loadDocsJson` is dispatched.
+   */
+  loadDocsJson$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(WorkspaceActions.loadDocsJson),
+      withLatestFrom(
+        this.store.select(selectSelectedLanguageId),
+        this.store.select(selectCurrentLanguageOptions),
+        this.store.select(selectOpenApiSpecContent),
+      ),
+      switchMap(([action, selectedLanguageId, languageOptions, specContent]) => {
+        const targetLangId = action.languageId || selectedLanguageId;
+        const normalizedId = targetLangId.replace(/^cdd-/, '');
+        const lang = this.languageService
+          .languages()
+          .find(
+            (l) =>
+              l.id === targetLangId ||
+              l.id === normalizedId ||
+              l.repo === targetLangId ||
+              l.repo === `cdd-${normalizedId}` ||
+              (normalizedId === 'bash' && l.id === 'sh') ||
+              (normalizedId === 'python-all' && l.id === 'python'),
+          );
+
+        if (!lang || !lang.availableInWasm || !specContent || !specContent.trim()) {
+          return of(
+            WorkspaceActions.loadDocsJsonFailure({
+              error: `Cannot generate docs.json for '${targetLangId}'.`,
+            }),
+          );
+        }
+
+        const docsOptions = { ...(languageOptions || {}) };
+        if (lang.id === 'typescript' && !docsOptions.framework) {
+          docsOptions.framework = 'vanilla';
+        }
+
+        return this.wasmWorkerService
+          .generateCode(lang.repo, specContent, 'to_docs_json', docsOptions)
+          .then(
+            (files) => WorkspaceActions.loadDocsJsonSuccess({ files }),
+            (err: unknown) =>
+              WorkspaceActions.loadDocsJsonFailure({
+                error: err instanceof Error ? err.message : String(err),
+              }),
+          );
+      }),
+    ),
   );
 }

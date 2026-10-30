@@ -733,6 +733,58 @@ describe('wasm-worker.worker.ts', () => {
     }
   });
 
+  it('should fallback to extractSchemasToOpenApiFallback when cdd-cpp to_openapi throws or cdd-ts to_openapi returns empty', async () => {
+    const { CddWasmSdk } = await import('cdd-browser-sdk');
+    const { handleMessage, extractSchemasToOpenApiFallback } = await import('./wasm-worker.worker');
+
+    const directFallback = extractSchemasToOpenApiFallback(
+      'export interface Pet { id: number; }\nstruct Order { int id; };',
+    );
+    expect(directFallback.length).toBe(1);
+    expect(directFallback[0].path).toBe('openapi.json');
+    expect(new TextDecoder().decode(directFallback[0].content)).toContain('"Pet"');
+
+    // cdd-cpp to_openapi throws -> fallback succeeds
+    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockRejectedValueOnce(new Error('Not a directory'));
+    postMessageSpy.mockClear();
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'cpp-to-openapi-fallback',
+        payload: {
+          ecosystem: 'cdd-cpp',
+          specContent: 'struct Pet { int id; };',
+          target: 'to_openapi',
+        },
+      },
+    } as unknown as MessageEvent);
+    const cppSuccess = postMessageSpy.mock.calls.find(
+      (c: [Record<string, unknown>]) =>
+        c[0].status === 'success' && c[0].jobId === 'cpp-to-openapi-fallback',
+    );
+    expect(cppSuccess).toBeDefined();
+
+    // cdd-ts to_openapi returns [] -> fallback succeeds
+    vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValueOnce([]);
+    postMessageSpy.mockClear();
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'ts-to-openapi-fallback',
+        payload: {
+          ecosystem: 'cdd-ts',
+          specContent: 'export interface Pet { id: number; }',
+          target: 'to_openapi',
+        },
+      },
+    } as unknown as MessageEvent);
+    const tsSuccess = postMessageSpy.mock.calls.find(
+      (c: [Record<string, unknown>]) =>
+        c[0].status === 'success' && c[0].jobId === 'ts-to-openapi-fallback',
+    );
+    expect(tsSuccess).toBeDefined();
+  });
+
   it('should capture stdout JSON when target is to_docs_json and no files are written to /out', async () => {
     const { CddWasmSdk } = await import('cdd-browser-sdk');
     const { handleMessage } = await import('./wasm-worker.worker');
@@ -927,10 +979,185 @@ describe('wasm-worker.worker.ts', () => {
           expect(successCall).toBeDefined();
           expect(Array.isArray(successCall![0].data)).toBe(true);
           expect(successCall![0].data.length).toBeGreaterThan(0);
+          if (target === 'to_docs_json') {
+            expect(successCall![0].data[0].path).toBe('docs.json');
+          }
         }
 
         delete (globalThis as unknown as Record<string, unknown>).GraalVM;
       });
     }
+
+    it('should execute dedicated to_docs_json action across all 13 ecosystems and support both structured and 4-variant flat docs.json', async () => {
+      const { CddWasmSdk } = await import('cdd-browser-sdk');
+      const { handleMessage, isStructuredDocsJson, mergeFlatDocsJsonVariants } =
+        await import('./wasm-worker.worker');
+
+      // Direct unit tests for isStructuredDocsJson and mergeFlatDocsJsonVariants branches
+      expect(isStructuredDocsJson('invalid json')).toBe(false);
+      expect(isStructuredDocsJson('null')).toBe(false);
+      expect(isStructuredDocsJson('{"endpoints":null}')).toBe(false);
+      expect(isStructuredDocsJson('{"endpoints":{"/a":null}}')).toBe(false);
+      expect(isStructuredDocsJson('{"endpoints":{"/a":{"get":"flat"}}}')).toBe(false);
+      expect(
+        isStructuredDocsJson('[{"endpoints":{"/a":{"get":{"imports":"i","snippet":"s"}}}}]'),
+      ).toBe(true);
+      expect(
+        isStructuredDocsJson(
+          '{"operations":[{"path":"/a","method":"GET","code":{"snippet":"s"}}]}',
+        ),
+      ).toBe(true);
+      expect(
+        isStructuredDocsJson(
+          '[{"language":"cpp","operations":[{"code":{"imports":"#include <iostream>","wrapper_start":"int main() {","snippet":"call();","wrapper_end":"}"}}]}]',
+        ),
+      ).toBe(true);
+      expect(
+        isStructuredDocsJson('{"operations":["not-an-obj",{"path":"/a","code":"flat"}]}'),
+      ).toBe(false);
+
+      expect(mergeFlatDocsJsonVariants({ full: 'invalid' })).toBe('invalid');
+      expect(mergeFlatDocsJsonVariants({ full: '123' })).toBe('123');
+      expect(mergeFlatDocsJsonVariants({ full: '{"other":1}' })).toBe('{"other":1}');
+      expect(
+        mergeFlatDocsJsonVariants({
+          full: '[{"endpoints":{"/p":{"get":{"snippet":"already"},"post":null},"bad":null}}]',
+        }),
+      ).toContain('"snippet":"already"');
+      // Fallback import detection via full vs noImports when bare is not found in noWrapping, and when noImp is not at index > 0
+      const mergedFallbackImports = mergeFlatDocsJsonVariants({
+        full: '{"endpoints":{"/p":{"get":"import x;\\nmain() { call(); }","post":"call();"}}}',
+        noImports: '{"endpoints":{"/p":{"get":"main() { call(); }","post":"call();"}}}',
+        noWrapping: '{"endpoints":{"/p":{"get":"unrelated","post":"unrelated"}}}',
+        bare: '{"endpoints":{"/p":{"get":"","post":""}}}',
+      });
+      expect(JSON.parse(mergedFallbackImports).endpoints['/p'].get.imports).toBe('import x;');
+      expect(JSON.parse(mergedFallbackImports).endpoints['/p'].post.imports).toBe('');
+
+      const postMessageSpy = vi.fn();
+      vi.stubGlobal('postMessage', postMessageSpy);
+
+      for (const ecosystem of ALL_ECOSYSTEMS) {
+        if (ecosystem === 'cdd-csharp' || ecosystem === 'cdd-java') continue;
+
+        // 1. Flat-string compiler output -> triggers 4-variant synthesis
+        vi.spyOn(CddWasmSdk, 'fromOpenApi').mockImplementation(
+          (opts: { additionalArgs?: string[] }) => {
+            const args = opts.additionalArgs || [];
+            const noImp = args.includes('--no-imports');
+            const noWrap = args.includes('--no-wrapping');
+            let code = 'import pkg;\nfunc main() {\n  client.getPet();\n}';
+            if (noImp && noWrap) code = 'client.getPet();';
+            else if (noImp) code = 'func main() {\n  client.getPet();\n}';
+            else if (noWrap) code = 'import pkg;\nclient.getPet();';
+            return Promise.resolve([
+              {
+                path: 'out/docs.json',
+                content: new TextEncoder().encode(
+                  JSON.stringify({ endpoints: { '/pet': { get: code } } }),
+                ),
+              },
+            ]);
+          },
+        );
+
+        postMessageSpy.mockClear();
+        await handleMessage({
+          data: {
+            action: 'to_docs_json',
+            jobId: `docs-flat-${ecosystem}`,
+            payload: {
+              ecosystem,
+              specContent: '{"openapi":"3.2.0","info":{"title":"T","version":"1"},"paths":{}}',
+              ...(ecosystem === 'cdd-ts' ? { framework: 'react' } : {}),
+            },
+          },
+        } as unknown as MessageEvent);
+
+        const flatSuccess = postMessageSpy.mock.calls.find(
+          (c: [Record<string, unknown>]) =>
+            c[0].status === 'success' && c[0].jobId === `docs-flat-${ecosystem}`,
+        );
+        expect(flatSuccess).toBeDefined();
+        const decodedFlat = new TextDecoder().decode(
+          (flatSuccess![0].data as { path: string; content: Uint8Array }[])[0].content,
+        );
+        expect(isStructuredDocsJson(decodedFlat)).toBe(true);
+
+        // 2. Structured compiler output -> single invocation without extra variant calls
+        const structuredSpy = vi
+          .spyOn(CddWasmSdk, 'fromOpenApi')
+          .mockClear()
+          .mockResolvedValueOnce([
+            {
+              path: 'docs.json',
+              content: new TextEncoder().encode(
+                JSON.stringify({
+                  endpoints: {
+                    '/pet': {
+                      get: {
+                        imports: 'import a;',
+                        wrapper_start: 'fn main() {',
+                        snippet: 'call();',
+                        wrapper_end: '}',
+                      },
+                    },
+                  },
+                }),
+              ),
+            },
+          ]);
+
+        postMessageSpy.mockClear();
+        await handleMessage({
+          data: {
+            action: 'to_docs_json',
+            jobId: `docs-struct-${ecosystem}`,
+            payload: {
+              ecosystem,
+              specContent: '{"openapi":"3.2.0","info":{"title":"T","version":"1"},"paths":{}}',
+            },
+          },
+        } as unknown as MessageEvent);
+        expect(structuredSpy).toHaveBeenCalledTimes(1);
+
+        // 3. Variant returning no docs.json file, and initial call returning non-docs.json file
+        vi.spyOn(CddWasmSdk, 'fromOpenApi')
+          .mockResolvedValueOnce([
+            {
+              path: 'docs.json',
+              content: new TextEncoder().encode('{"endpoints":{"/pet":{"get":"call()"}}}'),
+            },
+          ])
+          .mockResolvedValue([]);
+        await handleMessage({
+          data: {
+            action: 'to_docs_json',
+            jobId: `docs-empty-var-${ecosystem}`,
+            payload: {
+              ecosystem,
+              specContent: '{"openapi":"3.2.0","info":{"title":"T","version":"1"},"paths":{}}',
+            },
+          },
+        } as unknown as MessageEvent);
+
+        vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValueOnce([
+          {
+            path: 'README.md',
+            content: new TextEncoder().encode('# readme'),
+          },
+        ]);
+        await handleMessage({
+          data: {
+            action: 'to_docs_json',
+            jobId: `docs-no-docs-file-${ecosystem}`,
+            payload: {
+              ecosystem,
+              specContent: '{"openapi":"3.2.0","info":{"title":"T","version":"1"},"paths":{}}',
+            },
+          },
+        } as unknown as MessageEvent);
+      }
+    });
   });
 });

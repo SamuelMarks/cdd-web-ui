@@ -207,6 +207,7 @@ for (const filePath of files) {
     } else if (ts.isVariableStatement(node)) {
       const isExported = node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
       if (isExported) {
+        const documentedParams = getDocumentedParamNames(node);
         for (const decl of node.declarationList.declarations) {
           const name = decl.name.getText(sourceFile);
           totalItems++;
@@ -214,6 +215,33 @@ for (const filePath of files) {
             documentedItems++;
           } else {
             missing.push(`${relPath}:${line} - Exported variable '${name}' is missing JSDoc`);
+          }
+          if (
+            decl.initializer &&
+            (ts.isArrowFunction(decl.initializer) || ts.isFunctionExpression(decl.initializer))
+          ) {
+            const fn = decl.initializer;
+            if (!fn.type && !decl.type) {
+              bannedDirectives.push(
+                `${relPath}:${line} - Exported callable '${name}' is missing explicit return type annotation`,
+              );
+            }
+            for (const param of fn.parameters) {
+              const paramName = param.name.getText(sourceFile);
+              if (!param.type && !decl.type) {
+                bannedDirectives.push(
+                  `${relPath}:${line} - Parameter '${paramName}' of '${name}' is missing explicit type annotation`,
+                );
+              }
+              totalItems++;
+              if (documentedParams.has(paramName)) {
+                documentedItems++;
+              } else {
+                missing.push(
+                  `${relPath}:${line} - Parameter '${paramName}' of '${name}' is missing @param JSDoc`,
+                );
+              }
+            }
           }
         }
       }
