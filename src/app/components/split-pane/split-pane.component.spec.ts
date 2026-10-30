@@ -174,8 +174,14 @@ describe('SplitPaneComponent', () => {
     component.onResizerKeydown(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     expect(component.splitPos()).toBe(50);
 
+    component.onResizerKeydown(new KeyboardEvent('keydown', { key: 'Home' }));
+    expect(component.splitPos()).toBe(20);
+
+    component.onResizerKeydown(new KeyboardEvent('keydown', { key: 'End' }));
+    expect(component.splitPos()).toBe(80);
+
     component.onResizerKeydown(new KeyboardEvent('keydown', { key: 'Enter' }));
-    expect(component.splitPos()).toBe(50);
+    expect(component.splitPos()).toBe(80);
   });
 
   it('should ignore other keys', () => {

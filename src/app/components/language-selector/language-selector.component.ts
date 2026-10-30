@@ -45,7 +45,6 @@ import { environment } from '../../../environments/environment';
               hasError() ? errorMessage() || 'Failed to generate code for this language' : ''
             "
             subscriptSizing="dynamic"
-            [color]="hasError() ? 'warn' : 'primary'"
           >
             <mat-label [class.error-text]="hasError()" i18n>Language</mat-label>
             <mat-select
@@ -334,12 +333,12 @@ export class LanguageSelectorComponent {
   constructor() {
     const lastLanguage = this.storageService.getItem<string>('lastSelectedLanguage');
     if (lastLanguage) {
-      setTimeout(() => {
+      queueMicrotask(() => {
         const langConfig = this.processedLanguages().find((l) => l.id === lastLanguage);
         if (langConfig && !langConfig.isDisabled) {
           this.languageChanged.emit(lastLanguage);
         }
-      }, 0);
+      });
     }
 
     /** effect */
@@ -351,9 +350,9 @@ export class LanguageSelectorComponent {
       if (currentLang && currentLang.isDisabled) {
         const fallbackLang = langs.find((l) => !l.isDisabled);
         if (fallbackLang) {
-          setTimeout(() => {
+          queueMicrotask(() => {
             this.onSelectionChange(fallbackLang.id);
-          }, 0);
+          });
         }
       }
     });

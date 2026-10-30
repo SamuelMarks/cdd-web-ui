@@ -27,49 +27,54 @@ interface ActionState {
   template: `
     <div class="page-container">
       <div class="header-actions">
-        <h1>Secrets & Releases</h1>
-        <p class="subtitle">Manage your registry tokens and manually trigger SDK releases.</p>
+        <h1 i18n="@@secretsTitle">Secrets & Releases</h1>
+        <p class="subtitle" i18n="@@secretsSubtitle">
+          Manage your registry tokens and manually trigger SDK releases.
+        </p>
       </div>
 
       <div class="grid">
         <!-- Tokens Configuration -->
         <div class="card tokens-card">
-          <h2>Registry Tokens</h2>
-          <p class="section-desc">
+          <h2 i18n="@@registryTokensHeading">Registry Tokens</h2>
+          <p class="section-desc" i18n="@@registryTokensDesc">
             These tokens are securely stored in the CDD Control Plane Vault.
           </p>
 
           <form [formGroup]="tokensForm" (ngSubmit)="onSaveTokens()">
             <div class="form-group">
-              <label for="npmToken">npm Token</label>
+              <label for="npmToken" i18n="@@npmTokenLabel">npm Token</label>
               <input
                 type="password"
                 id="npmToken"
                 formControlName="npm"
                 class="form-control"
                 placeholder="npm_..."
+                i18n-placeholder="@@npmTokenPlaceholder"
               />
             </div>
 
             <div class="form-group">
-              <label for="pypiToken">PyPI Token</label>
+              <label for="pypiToken" i18n="@@pypiTokenLabel">PyPI Token</label>
               <input
                 type="password"
                 id="pypiToken"
                 formControlName="pypi"
                 class="form-control"
                 placeholder="pypi-..."
+                i18n-placeholder="@@pypiTokenPlaceholder"
               />
             </div>
 
             <div class="form-group">
-              <label for="cargoToken">Cargo Token (crates.io)</label>
+              <label for="cargoToken" i18n="@@cargoTokenLabel">Cargo Token (crates.io)</label>
               <input
                 type="password"
                 id="cargoToken"
                 formControlName="cargo"
                 class="form-control"
                 placeholder="cio..."
+                i18n-placeholder="@@cargoTokenPlaceholder"
               />
             </div>
 
@@ -80,11 +85,19 @@ interface ActionState {
                 class="btn btn-primary"
                 [disabled]="tokensForm.pristine || tokensState().status === 'loading'"
               >
-                {{ tokensState().status === 'loading' ? 'Saving...' : 'Save Tokens' }}
+                @if (tokensState().status === 'loading') {
+                  <span i18n="@@savingTokensBtn">Saving...</span>
+                } @else {
+                  <span i18n="@@saveTokensBtn">Save Tokens</span>
+                }
               </button>
 
               @if (tokensState().status === 'success') {
-                <span class="status-msg success" role="status" aria-live="polite"
+                <span
+                  class="status-msg success"
+                  role="status"
+                  aria-live="polite"
+                  i18n="@@tokensSavedMsg"
                   >Tokens saved to vault!</span
                 >
               }
@@ -97,15 +110,17 @@ interface ActionState {
 
         <!-- Manual Actions -->
         <div class="card actions-card">
-          <h2>Manual Triggers</h2>
-          <p class="section-desc">
+          <h2 i18n="@@manualTriggersHeading">Manual Triggers</h2>
+          <p class="section-desc" i18n="@@manualTriggersDesc">
             Manually initiate generation or publishing for linked repositories.
           </p>
 
           <div class="action-item">
             <div class="action-info">
-              <h3>Generate SDKs</h3>
-              <p>Re-generates SDK source code based on the latest OpenAPI schemas.</p>
+              <h3 i18n="@@generateSdksHeading">Generate SDKs</h3>
+              <p i18n="@@generateSdksDesc">
+                Re-generates SDK source code based on the latest OpenAPI schemas.
+              </p>
             </div>
             <button
               type="button"
@@ -114,7 +129,11 @@ interface ActionState {
               (click)="triggerAction('generate')"
               [disabled]="generateState().status === 'loading'"
             >
-              {{ generateState().status === 'loading' ? 'Running...' : 'Run Generation' }}
+              @if (generateState().status === 'loading') {
+                <span i18n="@@runningGenerateBtn">Running...</span>
+              } @else {
+                <span i18n="@@runGenerationBtn">Run Generation</span>
+              }
             </button>
           </div>
           @if (generateState().message) {
@@ -133,8 +152,10 @@ interface ActionState {
 
           <div class="action-item">
             <div class="action-info">
-              <h3>Publish SDKs</h3>
-              <p>Publishes generated SDKs to configured package registries.</p>
+              <h3 i18n="@@publishSdksHeading">Publish SDKs</h3>
+              <p i18n="@@publishSdksDesc">
+                Publishes generated SDKs to configured package registries.
+              </p>
             </div>
             <button
               type="button"
@@ -143,7 +164,11 @@ interface ActionState {
               (click)="triggerAction('publish')"
               [disabled]="publishState().status === 'loading'"
             >
-              {{ publishState().status === 'loading' ? 'Running...' : 'Run Publishing' }}
+              @if (publishState().status === 'loading') {
+                <span i18n="@@runningPublishBtn">Running...</span>
+              } @else {
+                <span i18n="@@runPublishingBtn">Run Publishing</span>
+              }
             </button>
           </div>
           @if (publishState().message) {
@@ -222,9 +247,9 @@ interface ActionState {
       background-color: var(--surface-color);
       color: var(--text-primary);
       &:focus {
-        outline: none;
+        outline: 2px solid var(--primary-color);
+        outline-offset: 1px;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
       }
     }
     .form-actions {
@@ -297,9 +322,9 @@ interface ActionState {
       margin-top: 0.5rem;
     }
     .alert-success {
-      background: #dcffe4;
-      color: #1a7f37;
-      border: 1px solid #1a7f37;
+      background: var(--primary-hover);
+      color: var(--mat-sys-on-primary-container, var(--primary-color));
+      border: 1px solid var(--primary-color);
     }
     .alert-error {
       background: var(--error-bg);

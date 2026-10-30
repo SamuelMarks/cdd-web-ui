@@ -27,6 +27,7 @@ import { NotificationService } from '../services/notification.service';
 import { OpenApiParser } from '../components/openapi-editor/openapi-parser.util';
 import { OpenApiUrlFetcher } from '../components/openapi-editor/openapi-url-fetcher.util';
 import { OpenApiUrlEntry } from '../models/types';
+import { GLOBAL_DATE } from '../tokens';
 
 /**
 @Injectable()
@@ -44,6 +45,8 @@ export class WorkspaceEffects {
   private notificationService = inject(NotificationService);
   /** Injected OpenApiUrlFetcher */
   private urlFetcher = inject(OpenApiUrlFetcher);
+  /** Injected Global Date constructor */
+  private globalDate = inject(GLOBAL_DATE);
 
   /**
    * Resolves and merges remote OpenAPI URL entries, dispatching start/success/failure actions per entry.
@@ -72,7 +75,7 @@ export class WorkspaceEffects {
         this.store.dispatch(WorkspaceActions.fetchOpenApiUrlStart({ id: entry.id }));
         try {
           const content = await this.urlFetcher.fetchSpec(entry.url);
-          const timestamp = Date.now();
+          const timestamp = this.globalDate.now();
           this.store.dispatch(
             WorkspaceActions.fetchOpenApiUrlSuccess({
               id: entry.id,

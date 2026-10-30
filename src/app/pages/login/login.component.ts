@@ -67,7 +67,6 @@ import { AuthService } from '../../services/auth.service';
 
           <button
             mat-flat-button
-            color="primary"
             class="full-width submit-btn"
             type="submit"
             [disabled]="loginForm.invalid || isSubmitting()"

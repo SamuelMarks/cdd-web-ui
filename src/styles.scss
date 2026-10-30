@@ -130,21 +130,45 @@ a {
 }
 
 .input-field:focus {
-  outline: none;
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 1px var(--primary-color);
 }
 
-.bottom-panel-tabs .mat-mdc-tab-body-wrapper {
+.bottom-panel-tabs .mat-mdc-tab-body-wrapper,
+.openapi-tabs .mat-mdc-tab-body-wrapper {
   flex: 1 1 auto;
   overflow: hidden;
+  height: 100%;
 }
 
 .bottom-panel-tabs .mat-mdc-tab-body,
-.bottom-panel-tabs .mat-mdc-tab-body-content {
+.bottom-panel-tabs .mat-mdc-tab-body-content,
+.openapi-tabs .mat-mdc-tab-body,
+.openapi-tabs .mat-mdc-tab-body-content {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100%;
+}
+
+.language-selector-field.has-error {
+  @include mat.form-field-overrides(
+    (
+      outlined-outline-color: var(--mat-sys-error),
+      outlined-hover-outline-color: var(--mat-sys-error),
+      outlined-focus-outline-color: var(--mat-sys-error),
+      outlined-label-text-color: var(--mat-sys-error),
+      outlined-hover-label-text-color: var(--mat-sys-error),
+      outlined-focus-label-text-color: var(--mat-sys-error),
+    )
+  );
+  @include mat.select-overrides(
+    (
+      enabled-trigger-text-color: var(--mat-sys-error),
+      enabled-arrow-color: var(--mat-sys-error),
+    )
+  );
 }
 
 ngx-monaco-editor,

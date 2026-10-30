@@ -2,7 +2,7 @@
  * Recursive directory tree component for browsing generated SDK and server files.
  * @module app/components/directory-tree/directory-tree.component
  */
-import { Component, input, output, computed, signal, effect } from '@angular/core';
+import { Component, input, output, computed, linkedSignal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -52,7 +52,12 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
         </button>
       </div>
 
-      <div class="tree-wrapper" role="tree" aria-label="Generated Files">
+      <div
+        class="tree-wrapper"
+        role="tree"
+        aria-label="Generated Files"
+        i18n-aria-label="@@generatedFilesTreeAria"
+      >
         @if (isExecuting()) {
           <div class="loading-skeleton">
             <div class="skeleton-line" style="width: 80%"></div>
@@ -84,10 +89,10 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
     <!-- Recursive template definition -->
     <ng-template #treeNodeTemplate let-nodes let-isGroup="isGroup">
       <ul [attr.role]="isGroup ? 'group' : 'presentation'">
-        @for (node of nodes; track node.path) {
+        @for (node of nodes; track node.path; let first = $first) {
           <li
             role="treeitem"
-            tabindex="0"
+            [attr.tabindex]="getTreeItemTabIndex(node, !isGroup && first)"
             [attr.aria-expanded]="node.isDirectory ? node.isExpanded : null"
             [attr.aria-selected]="node.path === activeFilePath()"
             (keydown)="onTreeItemKeydown($event, node)"
@@ -96,8 +101,6 @@ import { GeneratedFile } from '../../services/wasm-worker.service';
               class="node"
               [class.active]="!node.isDirectory && node.path === activeFilePath()"
               (click)="onNodeClick(node)"
-              (keydown.enter)="onNodeClick(node)"
-              (keydown.space)="onNodeClick(node)"
             >
               @if (node.isDirectory) {
                 <mat-icon class="icon folder-icon" aria-hidden="true">
@@ -139,26 +142,24 @@ export class DirectoryTreeComponent {
   /** Emitted when a file is clicked. */
   fileSelected = output<string>();
 
-  /** The nested tree structure built from the flat files. */
-  treeNodes = signal<FileNode[]>([]);
+  /** The nested tree structure linked to the flat files input. */
+  treeNodes = linkedSignal(() => FileTreeUtil.buildTree(this.files().map((f) => f.path)));
 
   /** Computed property determining if there are any files to show. */
   hasFiles = computed(() => this.files().length > 0);
 
   /**
-   * Initializes the tree component, subscribing to files changes to rebuild the tree.
+   * Computes the roving tabindex for a tree item (`0` for the active file or first root node, `-1` otherwise).
+   * @param node The FileNode being rendered.
+   * @param isFirstRoot Whether this node is the first item at the root level.
+   * @returns `0` if focusable in tab order, `-1` otherwise.
    */
-  constructor() {
-    // Rebuild tree when files input changes
-    effect(() => {
-      const currentFiles = this.files();
-      if (currentFiles.length > 0) {
-        const paths = currentFiles.map((f) => f.path);
-        this.treeNodes.set(FileTreeUtil.buildTree(paths));
-      } else {
-        this.treeNodes.set([]);
-      }
-    });
+  getTreeItemTabIndex(node: FileNode, isFirstRoot: boolean): number {
+    const active = this.activeFilePath();
+    if (active) {
+      return node.path === active ? 0 : -1;
+    }
+    return isFirstRoot ? 0 : -1;
   }
 
   /**

@@ -8,9 +8,9 @@ import {
   output,
   signal,
   computed,
+  linkedSignal,
   effect,
   inject,
-  CUSTOM_ELEMENTS_SCHEMA,
 } from '@angular/core';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
@@ -46,8 +46,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     MatInputModule,
     MatProgressSpinnerModule,
   ],
-  /** schemas */
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   /** template */
   template: `
     <div class="openapi-editor-container">
@@ -93,7 +91,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
               <button
                 mat-icon-button
                 (click)="clearEditor()"
-                color="warn"
                 matTooltip="Clear Editor"
                 i18n-matTooltip="@@clearEditorTooltip"
                 aria-label="Clear Editor"
@@ -143,7 +140,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
               <button
                 mat-flat-button
-                color="primary"
                 type="button"
                 class="fetch-all-urls-btn"
                 [disabled]="isFetchingUrls() || !hasNonEmptyUrls()"
@@ -171,7 +167,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
               <button
                 mat-icon-button
-                color="warn"
                 type="button"
                 class="clear-urls-btn"
                 [disabled]="specUrls().length === 0"
@@ -264,7 +259,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
                     <button
                       mat-icon-button
-                      color="warn"
                       type="button"
                       (click)="onRemoveUrl(entry.id)"
                       matTooltip="Remove URL"
@@ -357,8 +351,8 @@ export class OpenApiEditorComponent {
   /** Emitted when the user triggers fetching for all or specific URL entry IDs. */
   fetchUrlsClicked = output<string[] | undefined>();
 
-  /** Internal content state bound to the Monaco editor. */
-  internalContent = signal('');
+  /** Internal content state linked to the external specContent input and bound to the Monaco editor. */
+  internalContent = linkedSignal(() => this.specContent());
 
   /** Current validation errors. */
   validationErrors = signal<string[]>([]);
@@ -422,12 +416,8 @@ export class OpenApiEditorComponent {
     /** effect */
     effect(() => {
       const externalContent = this.specContent();
-      // Only update internal if it's actually different to prevent cursor jumping
-      if (this.internalContent() !== externalContent) {
-        this.internalContent.set(externalContent);
-        this.contentControl.setValue(externalContent, { emitEvent: false });
-        this.validateContent(externalContent);
-      }
+      this.contentControl.setValue(externalContent, { emitEvent: false });
+      this.validateContent(externalContent);
     });
   }
 

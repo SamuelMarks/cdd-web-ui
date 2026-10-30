@@ -17,6 +17,12 @@
   height: 20px;
   color: var(--text-secondary, #757575);
   cursor: help;
+  border-radius: 50%;
+}
+
+.offline-info-icon:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 .language-options {
@@ -52,16 +58,6 @@
 .language-option-trigger {
   display: flex;
   align-items: center;
-}
-
-/* Error state styles using M3 custom properties */
-.language-selector-field.has-error {
-  --mdc-outlined-text-field-outline-color: var(--mat-sys-error);
-  --mdc-outlined-text-field-hover-outline-color: var(--mat-sys-error);
-  --mdc-outlined-text-field-focus-outline-color: var(--mat-sys-error);
-  --mdc-outlined-text-field-label-text-color: var(--mat-sys-error);
-  --mat-select-enabled-trigger-text-color: var(--mat-sys-error);
-  --mat-select-enabled-arrow-color: var(--mat-sys-error);
 }
 
 .error-text {

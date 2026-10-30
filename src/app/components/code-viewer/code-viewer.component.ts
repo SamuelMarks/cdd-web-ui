@@ -36,18 +36,24 @@ import { WINDOW } from '../../tokens';
         aria-label="Code Viewer Actions"
         i18n-aria-label="@@codeViewerActionsAria"
       >
-        <div class="tabs-container" role="tablist" aria-label="Open Files">
-          @for (tab of openTabs(); track tab) {
-            <div class="tab-item" [class.active]="tab === activeFilePath()">
+        <div
+          class="tabs-container"
+          role="tablist"
+          aria-label="Open Files"
+          i18n-aria-label="@@openFilesTablistAria"
+        >
+          @for (tab of openTabs(); track tab; let idx = $index) {
+            <div class="tab-item" role="presentation" [class.active]="tab === activeFilePath()">
               <div
                 class="tab"
                 role="tab"
-                tabindex="0"
+                [id]="'code-tab-' + idx"
+                [attr.tabindex]="tab === activeFilePath() ? 0 : -1"
                 [class.active]="tab === activeFilePath()"
                 [attr.aria-selected]="tab === activeFilePath()"
+                aria-controls="code-viewer-tabpanel"
                 (click)="selectTab(tab)"
-                (keydown.enter)="selectTab(tab, $event)"
-                (keydown.space)="selectTab(tab, $event)"
+                (keydown)="onTabKeydown($event, tab, idx)"
               >
                 <span [title]="tab">{{ getFilename(tab) }}</span>
               </div>
@@ -93,7 +99,12 @@ import { WINDOW } from '../../tokens';
         </div>
       </div>
 
-      <div class="editor-wrapper">
+      <div
+        id="code-viewer-tabpanel"
+        class="editor-wrapper"
+        role="tabpanel"
+        [attr.aria-labelledby]="activeTabElementId()"
+      >
         @if (activeFilePath() && fileContent() !== null) {
           <!-- We use formControl for read-only binding via Angular's standard form integration -->
           <ngx-monaco-editor
@@ -143,6 +154,12 @@ export class CodeViewerComponent {
   private themeService = inject(ThemeService);
   /** Window token. */
   private window = inject(WINDOW);
+
+  /** Computed DOM ID of the currently active tab element for aria-labelledby on the tabpanel. */
+  activeTabElementId = computed(() => {
+    const active = this.activeFilePath();
+    return active ? `code-tab-${this.openTabs().indexOf(active)}` : null;
+  });
 
   /** Computed options for the Monaco editor. */
   editorOptions = computed(() => ({
@@ -209,6 +226,40 @@ export class CodeViewerComponent {
     }
     if (path !== this.activeFilePath()) {
       this.fileSelected.emit(path);
+    }
+  }
+
+  /**
+   * Handles WAI-ARIA keyboard navigation on file tabs (Enter, Space, ArrowLeft, ArrowRight, Home, End).
+   * @param event The keyboard event.
+   * @param path The file path of the current tab.
+   * @param index The 0-based index of the current tab.
+   */
+  onTabKeydown(event: KeyboardEvent, path: string, index: number): void {
+    const tabs = this.openTabs();
+    if (event.key === 'Enter' || event.key === ' ') {
+      this.selectTab(path, event);
+      return;
+    }
+
+    let nextIndex = -1;
+    if (event.key === 'ArrowRight') {
+      nextIndex = (index + 1) % tabs.length;
+    } else if (event.key === 'ArrowLeft') {
+      nextIndex = (index - 1 + tabs.length) % tabs.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = tabs.length - 1;
+    }
+
+    if (nextIndex !== -1) {
+      event.preventDefault();
+      this.selectTab(tabs[nextIndex]);
+      const currentEl = event.currentTarget as HTMLElement | null;
+      const tablist = currentEl?.closest('[role="tablist"]');
+      const tabElements = tablist?.querySelectorAll<HTMLElement>('[role="tab"]');
+      tabElements?.[nextIndex]?.focus();
     }
   }
 

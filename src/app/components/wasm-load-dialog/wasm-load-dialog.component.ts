@@ -16,10 +16,10 @@ import { environment } from '../../../environments/environment';
   selector: 'app-wasm-load-dialog',
   imports: [MatDialogModule, MatButtonModule, MatProgressBarModule],
   template: `
-    <h2 mat-dialog-title>Load WASM Assets</h2>
+    <h2 mat-dialog-title i18n="@@loadWasmAssetsTitle">Load WASM Assets</h2>
     <mat-dialog-content>
       @if (!loading()) {
-        <p>
+        <p i18n="@@cddIntroParagraph">
           Compiler Driven Development (CDD) represents a new&mdash;open-source&mdash;approach to SDK
           generation.
         </p>
@@ -55,7 +55,7 @@ import { environment } from '../../../environments/environment';
             language)
           </p>
         }
-        <p>
+        <p i18n="@@cddWasmSizePrompt">
           Every compiler is compiled to WebAssembly (WASM). Do you want to load
           {{ environment.wasmSizeText }} of WASM
           @if (!environment.singleLanguageMode) {
@@ -63,12 +63,12 @@ import { environment } from '../../../environments/environment';
           }
           ?
         </p>
-        <p>
+        <p i18n="@@cddWasmRequiredPrompt">
           This is required to generate code using the selected language in the browser (with no
           server).
         </p>
       } @else {
-        <p role="status" aria-live="polite">
+        <p role="status" aria-live="polite" i18n="@@downloadingWasmStatus">
           Downloading WASM binaries ({{ loadedCount() }} / {{ totalCount() }})...
         </p>
         <mat-progress-bar
@@ -81,7 +81,7 @@ import { environment } from '../../../environments/environment';
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       @if (!loading()) {
-        <button mat-flat-button color="primary" (click)="loadWasm()">
+        <button mat-flat-button (click)="loadWasm()">
           {{ environment.loadWasmButtonText }}
         </button>
       }

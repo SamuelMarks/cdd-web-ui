@@ -50,27 +50,30 @@ import { WINDOW } from '../../tokens';
         <ng-container *ngTemplateOutlet="leftTemplate() || null"></ng-container>
       </div>
 
-      <!-- Resizer -->
+      <!-- Resizer & Central Action Controls -->
       <div
-        class="resizer"
-        role="separator"
-        tabindex="0"
-        aria-label="Resize Split Panes"
-        i18n-aria-label="@@resizeSplitPanesAria"
-        [attr.aria-orientation]="isMobile() ? 'horizontal' : 'vertical'"
-        [attr.aria-valuenow]="splitPos()"
-        aria-valuemin="20"
-        aria-valuemax="80"
-        [class.resizing]="isDragging()"
+        class="resizer-wrapper"
         [style.left]="isMobile() ? '0' : 'calc(' + splitPos() + '% - 6px)'"
         [style.top]="isMobile() ? 'calc(' + splitPos() + '% - 6px)' : '0'"
-        (mousedown)="onDragStart($event)"
-        (keydown)="onResizerKeydown($event)"
       >
+        <div
+          class="resizer"
+          role="separator"
+          tabindex="0"
+          aria-label="Resize Split Panes"
+          i18n-aria-label="@@resizeSplitPanesAria"
+          [attr.aria-orientation]="isMobile() ? 'horizontal' : 'vertical'"
+          [attr.aria-valuenow]="splitPos()"
+          aria-valuemin="20"
+          aria-valuemax="80"
+          [class.resizing]="isDragging()"
+          (mousedown)="onDragStart($event)"
+          (keydown)="onResizerKeydown($event)"
+        ></div>
+
         <div class="resizer-action-top" (mousedown)="$event.stopPropagation()">
           <button
             mat-flat-button
-            color="primary"
             class="generate-btn"
             (click)="runClicked.emit()"
             [disabled]="isExecuting()"
@@ -97,7 +100,7 @@ import { WINDOW } from '../../tokens';
           aria-label="Swap Panes"
           i18n-aria-label="@@swapPanesAria"
         >
-          <span class="big-swap-icon">⇄</span>
+          <span class="big-swap-icon" aria-hidden="true">⇄</span>
         </button>
       </div>
 
@@ -212,7 +215,7 @@ export class SplitPaneComponent {
   }
 
   /**
-   * Handles keyboard arrow navigation on the split-pane separator.
+   * Handles keyboard arrow, Home, and End navigation on the split-pane separator.
    * @param event Keyboard event.
    */
   onResizerKeydown(event: KeyboardEvent): void {
@@ -223,6 +226,12 @@ export class SplitPaneComponent {
     } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
       event.preventDefault();
       this.splitPos.update((pos) => Math.min(80, pos + step));
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      this.splitPos.set(20);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      this.splitPos.set(80);
     }
   }
 

@@ -3,6 +3,7 @@
  * @module app/pages/dashboard/dashboard.component
  */
 import { Component, inject } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../services/auth.service';
@@ -12,36 +13,66 @@ import { AuthService } from '../../services/auth.service';
  */
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatButtonModule],
+  imports: [NgOptimizedImage, RouterOutlet, RouterLink, RouterLinkActive, MatButtonModule],
   template: `
     <div class="dashboard-layout">
       <!-- Sidebar -->
       <aside class="sidebar">
         <div class="sidebar-header">
-          <h2>CDD Control</h2>
+          <h2 i18n="@@dashboardSidebarTitle">CDD Control</h2>
         </div>
 
-        <nav class="sidebar-nav" aria-label="Dashboard Navigation">
-          <a routerLink="/dashboard/organizations" routerLinkActive="active" class="nav-item">
+        <nav
+          class="sidebar-nav"
+          aria-label="Dashboard Navigation"
+          i18n-aria-label="@@dashboardNavAria"
+        >
+          <a
+            routerLink="/dashboard/organizations"
+            routerLinkActive="active"
+            class="nav-item"
+            i18n="@@navOrganizations"
+          >
             Organizations
           </a>
-          <a routerLink="/dashboard/repositories" routerLinkActive="active" class="nav-item">
+          <a
+            routerLink="/dashboard/repositories"
+            routerLinkActive="active"
+            class="nav-item"
+            i18n="@@navRepositories"
+          >
             Repositories
           </a>
-          <a routerLink="/dashboard/secrets" routerLinkActive="active" class="nav-item">
+          <a
+            routerLink="/dashboard/secrets"
+            routerLinkActive="active"
+            class="nav-item"
+            i18n="@@navSecrets"
+          >
             Secrets & Releases
           </a>
-          <a routerLink="/dashboard/audit-logs" routerLinkActive="active" class="nav-item">
+          <a
+            routerLink="/dashboard/audit-logs"
+            routerLinkActive="active"
+            class="nav-item"
+            i18n="@@navAuditLogs"
+          >
             Audit Logs
           </a>
-          <a routerLink="/" class="nav-item"> Workspace Preview </a>
+          <a routerLink="/" class="nav-item" i18n="@@navWorkspacePreview"> Workspace Preview </a>
         </nav>
 
         <div class="sidebar-footer">
           @if (authService.profile(); as profile) {
             <div class="user-profile">
               @if (profile.avatarUrl) {
-                <img [src]="profile.avatarUrl" [alt]="profile.name" class="avatar" />
+                <img
+                  [ngSrc]="profile.avatarUrl"
+                  [alt]="profile.name"
+                  width="32"
+                  height="32"
+                  class="avatar"
+                />
               }
               <div class="user-info">
                 <span class="user-name">{{ profile.name }}</span>
@@ -49,12 +80,19 @@ import { AuthService } from '../../services/auth.service';
               </div>
             </div>
           }
-          <button mat-stroked-button class="btn-logout" (click)="logout()">Log Out</button>
+          <button mat-stroked-button class="btn-logout" (click)="logout()" i18n="@@logOutBtn">
+            Log Out
+          </button>
         </div>
       </aside>
 
       <!-- Main Content -->
-      <div class="main-content" role="region" aria-label="Dashboard Content">
+      <div
+        class="main-content"
+        role="region"
+        aria-label="Dashboard Content"
+        i18n-aria-label="@@dashboardContentAria"
+      >
         <header class="top-bar">
           <!-- Top bar content can go here -->
         </header>

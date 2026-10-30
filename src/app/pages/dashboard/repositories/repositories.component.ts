@@ -33,28 +33,33 @@ interface Repository {
   template: `
     <div class="page-container">
       <div class="header-actions">
-        <h1>Repositories</h1>
+        <h1 i18n="@@repositoriesTitle">Repositories</h1>
         <button type="button" mat-flat-button class="btn btn-primary" (click)="toggleCreateForm()">
-          {{ showCreateForm() ? 'Cancel' : 'Link Repository' }}
+          @if (showCreateForm()) {
+            <span i18n="@@cancelRepoBtn">Cancel</span>
+          } @else {
+            <span i18n="@@linkRepoBtn">Link Repository</span>
+          }
         </button>
       </div>
 
       @if (showCreateForm()) {
         <div class="card create-repo-card">
-          <h2>Link New Repository</h2>
+          <h2 i18n="@@linkNewRepoHeading">Link New Repository</h2>
           <form [formGroup]="createRepoForm" (ngSubmit)="onCreateRepo()">
             <div class="form-group">
-              <label for="repoName">Repository Name (GitHub path)</label>
+              <label for="repoName" i18n="@@repoNameLabel">Repository Name (GitHub path)</label>
               <input
                 type="text"
                 id="repoName"
                 formControlName="name"
                 class="form-control"
                 placeholder="org/repo-name"
+                i18n-placeholder="@@repoNamePlaceholder"
               />
             </div>
             <div class="form-group">
-              <label for="orgId">Organization</label>
+              <label for="orgId" i18n="@@repoOrgLabel">Organization</label>
               <select id="orgId" formControlName="organization" class="form-control">
                 <option value="Offscale">Offscale</option>
                 <option value="Demo Team">Demo Team</option>
@@ -65,6 +70,7 @@ interface Repository {
               mat-flat-button
               class="btn btn-primary"
               [disabled]="createRepoForm.invalid"
+              i18n="@@linkSubmitBtn"
             >
               Link
             </button>
@@ -82,7 +88,7 @@ interface Repository {
 
             <div class="repo-config">
               <div class="config-section">
-                <h4>OpenAPI Schema</h4>
+                <h4 i18n="@@openApiSchemaHeading">OpenAPI Schema</h4>
                 <div class="schema-info">
                   @if (repo.schemaUrl) {
                     <a
@@ -93,25 +99,37 @@ interface Repository {
                       >{{ repo.schemaUrl }}</a
                     >
                   } @else {
-                    <span class="text-muted">No schema linked</span>
+                    <span class="text-muted" i18n="@@noSchemaLinked">No schema linked</span>
                   }
-                  <button type="button" class="btn btn-link" (click)="openSchemaConfig(repo)">
+                  <button
+                    type="button"
+                    class="btn btn-link"
+                    (click)="openSchemaConfig(repo)"
+                    i18n="@@configureSchemaBtn"
+                  >
                     Configure
                   </button>
                 </div>
               </div>
 
               <div class="config-section">
-                <h4>Configured Languages</h4>
+                <h4 i18n="@@configuredLanguagesHeading">Configured Languages</h4>
                 <div class="languages-list">
                   @if (repo.languages.length) {
                     @for (lang of repo.languages; track lang) {
                       <span class="lang-badge">{{ lang }}</span>
                     }
                   } @else {
-                    <span class="text-muted">No languages configured</span>
+                    <span class="text-muted" i18n="@@noLanguagesConfigured"
+                      >No languages configured</span
+                    >
                   }
-                  <button type="button" class="btn btn-link" (click)="openLangConfig(repo)">
+                  <button
+                    type="button"
+                    class="btn btn-link"
+                    (click)="openLangConfig(repo)"
+                    i18n="@@configureLanguagesBtn"
+                  >
                     Configure
                   </button>
                 </div>
@@ -120,14 +138,19 @@ interface Repository {
           </div>
         } @empty {
           <div class="empty-state">
-            <p>No repositories linked yet.</p>
+            <p i18n="@@noRepositoriesLinkedMsg">No repositories linked yet.</p>
           </div>
         }
       </div>
 
       <!-- Config Modals -->
       @if (selectedRepoForSchema(); as selectedRepo) {
-        <div class="modal-backdrop" (keydown.escape)="closeSchemaConfig()">
+        <div
+          class="modal-backdrop"
+          (click)="closeSchemaConfig()"
+          (keydown.escape)="closeSchemaConfig()"
+          tabindex="-1"
+        >
           <div
             class="modal card"
             role="dialog"
@@ -135,17 +158,22 @@ interface Repository {
             aria-labelledby="schema-dialog-title"
             cdkTrapFocus
             [cdkTrapFocusAutoCapture]="true"
+            (click)="$event.stopPropagation()"
+            (keydown)="$event.stopPropagation()"
           >
-            <h2 id="schema-dialog-title">Configure Schema for {{ selectedRepo.name }}</h2>
+            <h2 id="schema-dialog-title" i18n="@@configureSchemaDialogTitle">
+              Configure Schema for {{ selectedRepo.name }}
+            </h2>
             <form [formGroup]="schemaForm" (ngSubmit)="onSaveSchema()">
               <div class="form-group">
-                <label for="schemaUrl">OpenAPI Schema URL</label>
+                <label for="schemaUrl" i18n="@@schemaUrlLabel">OpenAPI Schema URL</label>
                 <input
                   type="url"
                   id="schemaUrl"
                   formControlName="schemaUrl"
                   class="form-control"
                   placeholder="https://api.example.com/openapi.json"
+                  i18n-placeholder="@@schemaUrlPlaceholder"
                 />
               </div>
               <div class="modal-actions">
@@ -154,10 +182,18 @@ interface Repository {
                   mat-stroked-button
                   class="btn btn-secondary"
                   (click)="closeSchemaConfig()"
+                  i18n="@@cancelSchemaBtn"
                 >
                   Cancel
                 </button>
-                <button type="submit" mat-flat-button class="btn btn-primary">Save Schema</button>
+                <button
+                  type="submit"
+                  mat-flat-button
+                  class="btn btn-primary"
+                  i18n="@@saveSchemaBtn"
+                >
+                  Save Schema
+                </button>
               </div>
             </form>
           </div>
@@ -165,7 +201,12 @@ interface Repository {
       }
 
       @if (selectedRepoForLang(); as selectedLangRepo) {
-        <div class="modal-backdrop" (keydown.escape)="closeLangConfig()">
+        <div
+          class="modal-backdrop"
+          (click)="closeLangConfig()"
+          (keydown.escape)="closeLangConfig()"
+          tabindex="-1"
+        >
           <div
             class="modal card"
             role="dialog"
@@ -173,8 +214,12 @@ interface Repository {
             aria-labelledby="lang-dialog-title"
             cdkTrapFocus
             [cdkTrapFocusAutoCapture]="true"
+            (click)="$event.stopPropagation()"
+            (keydown)="$event.stopPropagation()"
           >
-            <h2 id="lang-dialog-title">Configure Languages for {{ selectedLangRepo.name }}</h2>
+            <h2 id="lang-dialog-title" i18n="@@configureLangDialogTitle">
+              Configure Languages for {{ selectedLangRepo.name }}
+            </h2>
             <div class="lang-options">
               @for (lang of availableLanguages; track lang) {
                 <label class="lang-option">
@@ -193,6 +238,7 @@ interface Repository {
                 mat-stroked-button
                 class="btn btn-secondary"
                 (click)="closeLangConfig()"
+                i18n="@@closeLangBtn"
               >
                 Close
               </button>
@@ -346,9 +392,9 @@ interface Repository {
       background-color: var(--surface-color);
       color: var(--text-primary);
       &:focus {
-        outline: none;
+        outline: 2px solid var(--primary-color);
+        outline-offset: 1px;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
       }
     }
     .modal-backdrop {

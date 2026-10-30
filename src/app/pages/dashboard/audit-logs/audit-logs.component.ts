@@ -39,22 +39,24 @@ export interface AuditEvent {
   template: `
     <div class="page-container">
       <div class="header-actions">
-        <h1>Audit Logs</h1>
-        <p class="subtitle">History of SDK generation and publishing events.</p>
+        <h1 i18n="@@auditLogsTitle">Audit Logs</h1>
+        <p class="subtitle" i18n="@@auditLogsSubtitle">
+          History of SDK generation and publishing events.
+        </p>
       </div>
 
       <div class="card">
         <div class="table-responsive">
-          <table class="table" aria-label="Audit Logs">
+          <table class="table" aria-label="Audit Logs" i18n-aria-label="@@auditLogsTableAria">
             <thead>
               <tr>
-                <th scope="col">Timestamp</th>
-                <th scope="col">Action</th>
-                <th scope="col">Repository</th>
-                <th scope="col">Language</th>
-                <th scope="col">Status</th>
-                <th scope="col">Duration</th>
-                <th scope="col">Details</th>
+                <th scope="col" i18n="@@colTimestamp">Timestamp</th>
+                <th scope="col" i18n="@@colAction">Action</th>
+                <th scope="col" i18n="@@colRepository">Repository</th>
+                <th scope="col" i18n="@@colLanguage">Language</th>
+                <th scope="col" i18n="@@colStatus">Status</th>
+                <th scope="col" i18n="@@colDuration">Duration</th>
+                <th scope="col" i18n="@@colDetails">Details</th>
               </tr>
             </thead>
             <tbody>
@@ -85,7 +87,12 @@ export interface AuditEvent {
                   <td>{{ (event.durationMs / 1000).toFixed(1) }}s</td>
                   <td>
                     @if (event.status === 'Failed' && event.errorMessage) {
-                      <button type="button" class="btn btn-sm btn-error" (click)="viewError(event)">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-error"
+                        (click)="viewError(event)"
+                        i18n="@@viewErrorBtn"
+                      >
                         View Error
                       </button>
                     } @else {
@@ -95,7 +102,9 @@ export interface AuditEvent {
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7" class="empty-state">No audit logs found.</td>
+                  <td colspan="7" class="empty-state" i18n="@@noAuditLogsMsg">
+                    No audit logs found.
+                  </td>
                 </tr>
               }
             </tbody>
@@ -105,7 +114,12 @@ export interface AuditEvent {
 
       <!-- Error Modal -->
       @if (selectedEventError(); as selectedError) {
-        <div class="modal-backdrop" (keydown.escape)="closeError()">
+        <div
+          class="modal-backdrop"
+          (click)="closeError()"
+          (keydown.escape)="closeError()"
+          tabindex="-1"
+        >
           <div
             class="modal card"
             role="dialog"
@@ -113,14 +127,16 @@ export interface AuditEvent {
             aria-labelledby="audit-error-dialog-title"
             cdkTrapFocus
             [cdkTrapFocusAutoCapture]="true"
+            (click)="$event.stopPropagation()"
+            (keydown)="$event.stopPropagation()"
           >
-            <h2 id="audit-error-dialog-title">Error Details</h2>
+            <h2 id="audit-error-dialog-title" i18n="@@errorDetailsDialogTitle">Error Details</h2>
             <div class="error-details">
-              <p>
+              <p i18n="@@errorEventSummary">
                 <strong>Event:</strong> {{ selectedError.action }} for
                 {{ selectedError.repository }} ({{ selectedError.language }})
               </p>
-              <p>
+              <p i18n="@@errorTimeSummary">
                 <strong>Time:</strong>
                 {{ selectedError.timestamp | date: 'medium' }}
               </p>
@@ -136,6 +152,7 @@ export interface AuditEvent {
                 mat-stroked-button
                 class="btn btn-secondary"
                 (click)="closeError()"
+                i18n="@@closeErrorBtn"
               >
                 Close
               </button>
@@ -198,7 +215,7 @@ export interface AuditEvent {
       }
 
       .row-failed {
-        background-color: #fff8c51a;
+        background-color: color-mix(in srgb, var(--error-bg) 30%, transparent);
       }
     }
     .col-time {
@@ -218,12 +235,12 @@ export interface AuditEvent {
     }
     .action-badge {
       &.action-gen {
-        background: #eef2ff;
-        color: #4f46e5;
+        background: var(--primary-hover);
+        color: var(--mat-sys-on-primary-container, var(--primary-color));
       }
       &.action-pub {
-        background: #fdf4ff;
-        color: #c026d3;
+        background: var(--mat-sys-tertiary-container, var(--primary-hover));
+        color: var(--mat-sys-on-tertiary-container, var(--primary-color));
       }
     }
     .status-badge {
@@ -236,16 +253,16 @@ export interface AuditEvent {
       font-weight: 600;
 
       &.status-success {
-        background: #dcffe4;
-        color: #1a7f37;
+        background: var(--primary-hover);
+        color: var(--mat-sys-on-primary-container, var(--primary-color));
       }
       &.status-failed {
-        background: #ffebe9;
-        color: #cf222e;
+        background: var(--error-bg);
+        color: var(--error-text);
       }
       &.status-progress {
-        background: #ddf4ff;
-        color: #0969da;
+        background: var(--mat-sys-secondary-container, var(--bg-color));
+        color: var(--mat-sys-on-secondary-container, var(--text-primary));
       }
     }
     .text-muted {

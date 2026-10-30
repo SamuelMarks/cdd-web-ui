@@ -136,9 +136,7 @@ export const workspaceReducer = createReducer(
       ...(isFileArray
         ? {
             docsJsonFiles: hasDocsFiles ? docsFiles : undefined,
-            docsJsonLanguageId: hasDocsFiles
-              ? (languageId ?? state.selectedLanguageId)
-              : undefined,
+            docsJsonLanguageId: hasDocsFiles ? (languageId ?? state.selectedLanguageId) : undefined,
           }
         : {}),
     };

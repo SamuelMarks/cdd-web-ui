@@ -47,7 +47,7 @@ import { environment } from '../environments/environment';
             Local Mode
           </div>
         }
-        <mat-toolbar color="primary" class="app-header" role="banner">
+        <mat-toolbar class="app-header" role="banner">
           <div class="logo">
             <mat-icon class="app-logo-icon" aria-hidden="true">code</mat-icon>
             <h1 i18n="@@appTitle">

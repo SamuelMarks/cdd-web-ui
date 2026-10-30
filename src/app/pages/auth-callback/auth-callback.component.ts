@@ -15,7 +15,7 @@ import { AuthService } from '../../services/auth.service';
   template: `
     <div class="callback-container" role="status" aria-live="polite">
       <div class="spinner" aria-hidden="true"></div>
-      <p>Completing sign in...</p>
+      <p i18n="@@completingSignInMsg">Completing sign in...</p>
     </div>
   `,
   styles: `

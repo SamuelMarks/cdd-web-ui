@@ -220,7 +220,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       <button
         mat-fab
         extended
-        color="primary"
         class="online-mode-fab"
         (click)="onGoOnline()"
         aria-label="Go Online"

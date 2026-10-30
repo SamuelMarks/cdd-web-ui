@@ -3,6 +3,7 @@
  * @module app/services/docs-sync.service
  */
 import { Injectable, inject, OnDestroy, ApplicationRef } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { AppState } from '../store/state';
 import { selectOpenApiSpecContent, selectOpenApiValidationErrors } from '../store/selectors';
@@ -20,6 +21,8 @@ import { WINDOW } from '../tokens';
 export class DocsSyncService implements OnDestroy {
   /** The global window reference. */
   private readonly window = inject(WINDOW);
+  /** The injected DOM document reference. */
+  private readonly document = inject(DOCUMENT);
 
   /** The NgRx store. */
   private store = inject(Store<AppState>);
@@ -145,7 +148,7 @@ export class DocsSyncService implements OnDestroy {
     payload: string;
   }): void {
     // Find the iframe and post
-    const iframe = document.querySelector(
+    const iframe = this.document.querySelector(
       'iframe[title="API Documentation Preview"]',
     ) as HTMLIFrameElement;
     if (iframe && iframe.contentWindow) {

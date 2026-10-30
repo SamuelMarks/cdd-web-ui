@@ -149,6 +149,68 @@ describe('CodeViewerComponent', () => {
     expect(mockEvent.preventDefault).toHaveBeenCalled();
   });
 
+  it('should compute activeTabElementId and support keyboard navigation on tabs', () => {
+    expect(component.activeTabElementId()).toBeNull();
+
+    component.openTabs.set(['src/a.ts', 'src/b.ts', 'src/c.ts']);
+    hostComponent.activeFilePath.set('src/not-open.ts');
+    expect(component.activeTabElementId()).toBeNull();
+
+    hostComponent.activeFilePath.set('src/a.ts');
+    hostFixture.detectChanges();
+    expect(component.activeTabElementId()).toBe('code-tab-0');
+
+    const tabs = hostFixture.debugElement.queryAll(By.css('.tab'));
+    expect(tabs.length).toBe(3);
+
+    // Enter selects tab
+    tabs[1].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
+    );
+    expect(hostComponent.lastSelected).toBe('src/b.ts');
+
+    // Space selects tab
+    tabs[2].nativeElement.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    expect(hostComponent.lastSelected).toBe('src/c.ts');
+
+    // ArrowRight wraps or advances
+    const focusSpy1 = vi.spyOn(tabs[1].nativeElement, 'focus');
+    tabs[0].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+    );
+    expect(focusSpy1).toHaveBeenCalled();
+    expect(hostComponent.lastSelected).toBe('src/b.ts');
+
+    // ArrowLeft moves back
+    const focusSpy2 = vi.spyOn(tabs[2].nativeElement, 'focus');
+    tabs[0].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }),
+    );
+    expect(focusSpy2).toHaveBeenCalled();
+    expect(hostComponent.lastSelected).toBe('src/c.ts');
+
+    // Home jumps to index 0
+    const focusSpy0 = vi.spyOn(tabs[0].nativeElement, 'focus');
+    tabs[2].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Home', bubbles: true }),
+    );
+    expect(focusSpy0).toHaveBeenCalled();
+
+    // End jumps to last index
+    tabs[0].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'End', bubbles: true }),
+    );
+    expect(focusSpy2).toHaveBeenCalled();
+
+    // Unhandled key
+    tabs[0].nativeElement.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }),
+    );
+
+    // Direct call without currentTarget element
+    component.onTabKeydown(new KeyboardEvent('keydown', { key: 'ArrowRight' }), 'src/a.ts', 0);
+  });
+
   it('should remove tab and select the last available tab on close', () => {
     component.openTabs.set(['src/test1.ts', 'src/test2.ts']);
     hostComponent.activeFilePath.set('src/test2.ts');

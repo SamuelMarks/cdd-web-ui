@@ -31,28 +31,42 @@ interface Organization {
   template: `
     <div class="page-container">
       <div class="header-actions">
-        <h1>Organizations</h1>
+        <h1 i18n="@@organizationsTitle">Organizations</h1>
         <button type="button" mat-flat-button class="btn btn-primary" (click)="toggleCreateForm()">
-          {{ showCreateForm() ? 'Cancel' : 'Create Organization' }}
+          @if (showCreateForm()) {
+            <span i18n="@@cancelBtn">Cancel</span>
+          } @else {
+            <span i18n="@@createOrgBtn">Create Organization</span>
+          }
         </button>
       </div>
 
       @if (showCreateForm()) {
         <div class="card create-org-card">
-          <h2>Create New Organization</h2>
+          <h2 i18n="@@createNewOrgHeading">Create New Organization</h2>
           <form [formGroup]="createOrgForm" (ngSubmit)="onCreateOrg()">
             <div class="form-group">
-              <label for="orgName">Organization Name</label>
+              <label for="orgName" i18n="@@orgNameLabel">Organization Name</label>
               <input
                 type="text"
                 id="orgName"
                 formControlName="name"
                 class="form-control"
                 placeholder="e.g. Acme Corp"
-                aria-describedby="orgNameError"
+                i18n-placeholder="@@orgNamePlaceholder"
+                [attr.aria-invalid]="
+                  createOrgForm.get('name')?.invalid && createOrgForm.get('name')?.touched
+                    ? 'true'
+                    : null
+                "
+                [attr.aria-describedby]="
+                  createOrgForm.get('name')?.invalid && createOrgForm.get('name')?.touched
+                    ? 'orgNameError'
+                    : null
+                "
               />
               @if (createOrgForm.get('name')?.invalid && createOrgForm.get('name')?.touched) {
-                <span id="orgNameError" class="error-text" role="alert">
+                <span id="orgNameError" class="error-text" role="alert" i18n="@@orgNameRequiredErr">
                   Organization name is required.
                 </span>
               }
@@ -62,6 +76,7 @@ interface Organization {
               mat-flat-button
               class="btn btn-primary"
               [disabled]="createOrgForm.invalid"
+              i18n="@@createSubmitBtn"
             >
               Create
             </button>
@@ -77,7 +92,7 @@ interface Organization {
               <span class="badge">{{ org.role }}</span>
             </div>
             <div class="org-stats">
-              <span>{{ org.members }} Members</span>
+              <span i18n="@@orgMembersCount">{{ org.members }} Members</span>
             </div>
             <div class="org-actions">
               <button
@@ -85,21 +100,34 @@ interface Organization {
                 mat-stroked-button
                 class="btn btn-secondary"
                 (click)="openInvite(org)"
+                i18n="@@inviteUsersBtn"
               >
                 Invite Users
               </button>
-              <button type="button" mat-stroked-button class="btn btn-secondary">Settings</button>
+              <button
+                type="button"
+                mat-stroked-button
+                class="btn btn-secondary"
+                i18n="@@orgSettingsBtn"
+              >
+                Settings
+              </button>
             </div>
           </div>
         } @empty {
           <div class="empty-state">
-            <p>You don't belong to any organizations yet.</p>
+            <p i18n="@@noOrganizationsMsg">You don't belong to any organizations yet.</p>
           </div>
         }
       </div>
 
       @if (selectedOrgForInvite(); as selectedOrg) {
-        <div class="modal-backdrop" (keydown.escape)="closeInvite()">
+        <div
+          class="modal-backdrop"
+          (click)="closeInvite()"
+          (keydown.escape)="closeInvite()"
+          tabindex="-1"
+        >
           <div
             class="modal card"
             role="dialog"
@@ -107,24 +135,29 @@ interface Organization {
             aria-labelledby="invite-dialog-title"
             cdkTrapFocus
             [cdkTrapFocusAutoCapture]="true"
+            (click)="$event.stopPropagation()"
+            (keydown)="$event.stopPropagation()"
           >
-            <h2 id="invite-dialog-title">Invite to {{ selectedOrg.name }}</h2>
+            <h2 id="invite-dialog-title" i18n="@@inviteDialogTitle">
+              Invite to {{ selectedOrg.name }}
+            </h2>
             <form [formGroup]="inviteForm" (ngSubmit)="onInvite()">
               <div class="form-group">
-                <label for="email">User Email</label>
+                <label for="email" i18n="@@userEmailLabel">User Email</label>
                 <input
                   type="email"
                   id="email"
                   formControlName="email"
                   class="form-control"
                   placeholder="user@example.com"
+                  i18n-placeholder="@@userEmailPlaceholder"
                 />
               </div>
               <div class="form-group">
-                <label for="role">Role</label>
+                <label for="role" i18n="@@userRoleLabel">Role</label>
                 <select id="role" formControlName="role" class="form-control">
-                  <option value="Admin">Admin</option>
-                  <option value="Member">Member</option>
+                  <option value="Admin" i18n="@@roleAdminOption">Admin</option>
+                  <option value="Member" i18n="@@roleMemberOption">Member</option>
                 </select>
               </div>
               <div class="modal-actions">
@@ -133,6 +166,7 @@ interface Organization {
                   mat-stroked-button
                   class="btn btn-secondary"
                   (click)="closeInvite()"
+                  i18n="@@cancelModalBtn"
                 >
                   Cancel
                 </button>
@@ -141,6 +175,7 @@ interface Organization {
                   mat-flat-button
                   class="btn btn-primary"
                   [disabled]="inviteForm.invalid"
+                  i18n="@@sendInviteBtn"
                 >
                   Send Invite
                 </button>
@@ -250,9 +285,9 @@ interface Organization {
       background-color: var(--surface-color);
       color: var(--text-primary);
       &:focus {
-        outline: none;
+        outline: 2px solid var(--primary-color);
+        outline-offset: 1px;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
       }
     }
     .error-text {
