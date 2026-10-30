@@ -1,3 +1,9 @@
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
 .directory-tree-container {
   display: flex;
   flex-direction: column;
@@ -5,6 +11,7 @@
   width: 100%;
   background-color: var(--surface-color);
   border-right: 1px solid var(--border-color);
+  overflow: hidden;
 }
 
 .toolbar {
@@ -24,6 +31,12 @@
   font-weight: 500;
   color: var(--text-primary);
   margin-right: auto;
+}
+
+@media (max-width: 768px) {
+  .toolbar-title {
+    margin-left: 0;
+  }
 }
 
 .tree-wrapper {

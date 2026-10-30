@@ -1,9 +1,16 @@
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
 .code-viewer-container {
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
   background-color: var(--surface-color);
+  overflow: hidden;
 }
 
 .toolbar {

@@ -198,7 +198,6 @@ test.describe('App E2E Tests', () => {
 
     test(`Complete workflow & Docs UI for ${lang.name}: edit OpenAPI, generate SDK, verify docs, swap, generate OpenAPI`, async ({
       page,
-      isMobile,
     }) => {
       await page.goto('/');
       const loadWasmBtn = page.getByRole('button', { name: 'Load ~72MB of WASM' });
@@ -248,12 +247,8 @@ test.describe('App E2E Tests', () => {
 
       const leftPaneCodeViewer = page
         .locator('.pane-left')
-        .locator('.code-viewer-container, .directory-tree');
-      if (!isMobile) {
-        await expect(leftPaneCodeViewer.first()).toBeVisible();
-      } else {
-        await expect(leftPaneCodeViewer.first()).toBeAttached();
-      }
+        .locator('.code-viewer-container, .directory-tree-container');
+      await expect(leftPaneCodeViewer.first()).toBeVisible();
 
       await generateBtn.click({ force: true });
 

@@ -87,11 +87,16 @@
 .directory-tree-pane {
   flex: 0 0 200px;
   max-width: 40%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   border-right: 1px solid var(--border-color);
 }
 
 .code-viewer-pane {
   flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -212,15 +217,9 @@
     align-items: stretch;
   }
 
-  .code-directory-wrapper {
-    flex-direction: column;
-  }
-
   .directory-tree-pane {
-    max-width: 100%;
-    flex: 0 0 200px;
-    border-right: none;
-    border-bottom: 1px solid var(--border-color);
+    flex: 0 0 140px;
+    max-width: 40%;
   }
 }
 
