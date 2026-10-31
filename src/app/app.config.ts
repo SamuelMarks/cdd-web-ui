@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideHttpClient, withXhr } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
@@ -24,6 +24,7 @@ import { routes } from './app.routes';
 import { LanguageService } from './services/language.service';
 import { reducers } from './store';
 import { WorkspaceEffects } from './store/effects';
+import { authInterceptor } from './interceptors/auth.interceptor';
 
 /**
  * Configuration options for the Monaco editor.
@@ -61,7 +62,7 @@ export const appConfig: ApplicationConfig = {
     /** provideAnimationsAsync */
     provideAnimationsAsync(),
     /** provideHttpClient */
-    provideHttpClient(withXhr()),
+    provideHttpClient(withXhr(), withInterceptors([authInterceptor])),
     /** importProvidersFrom */
     importProvidersFrom(MonacoEditorModule.forRoot(monacoConfig)),
     /** provideStore */

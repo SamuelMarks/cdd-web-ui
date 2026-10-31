@@ -527,6 +527,17 @@ export const handleMessage = async (event: MessageEvent): Promise<void> => {
         }
         if (languageOptions.framework) {
           additionalArgs.push('--framework', languageOptions.framework as string);
+          if (
+            ecosystem === 'cdd-ts' &&
+            (target === 'to_sdk' || target === 'to_sdk_cli' || !target)
+          ) {
+            additionalArgs.push(
+              '--implementation',
+              languageOptions.framework === 'angular' ? 'angular' : 'fetch',
+              '--platform',
+              'browser',
+            );
+          }
         }
         if (languageOptions.serverFramework) {
           additionalArgs.push('--serverFramework', languageOptions.serverFramework as string);

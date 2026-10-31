@@ -1,19 +1,29 @@
 /**
- * Dashboard shell layout component with navigation sidebar and router outlet.
+ * Dashboard shell layout component with navigation sidebar, backend server status bar, and router outlet.
  * @module app/pages/dashboard/dashboard.component
  */
 import { Component, inject } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AuthService } from '../../services/auth.service';
+import { BackendConfigService } from '../../services/backend-config.service';
+import { OnlineSettingsComponent } from '../../components/online-settings.component';
 
 /**
  * Component for rendering the main dashboard layout, including the sidebar and top navigation.
  */
 @Component({
   selector: 'app-dashboard',
-  imports: [NgOptimizedImage, RouterOutlet, RouterLink, RouterLinkActive, MatButtonModule],
+  imports: [
+    NgOptimizedImage,
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    MatButtonModule,
+    MatDialogModule,
+  ],
   template: `
     <div class="dashboard-layout">
       <!-- Sidebar -->
@@ -64,7 +74,7 @@ import { AuthService } from '../../services/auth.service';
 
         <div class="sidebar-footer">
           @if (authService.profile(); as profile) {
-            <div class="user-profile">
+            <div class="user-profile" aria-label="User Profile">
               @if (profile.avatarUrl) {
                 <img
                   [ngSrc]="profile.avatarUrl"
@@ -80,9 +90,21 @@ import { AuthService } from '../../services/auth.service';
               </div>
             </div>
           }
-          <button mat-stroked-button class="btn-logout" (click)="logout()" i18n="@@logOutBtn">
-            Log Out
-          </button>
+          <div class="footer-actions">
+            <button mat-stroked-button class="btn-logout" (click)="logout()" i18n="@@logOutBtn">
+              Log Out
+            </button>
+            <button
+              mat-button
+              class="btn-delete-account"
+              type="button"
+              aria-label="Delete Account"
+              (click)="onDeleteAccount()"
+              i18n="@@deleteAccountBtn"
+            >
+              Delete Account
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -94,7 +116,27 @@ import { AuthService } from '../../services/auth.service';
         i18n-aria-label="@@dashboardContentAria"
       >
         <header class="top-bar">
-          <!-- Top bar content can go here -->
+          <div class="backend-indicator">
+            <span class="status-dot" [class.online]="config.isOnline()"></span>
+            @if (config.isOnline()) {
+              <span class="backend-url-text" i18n="@@dashboardBackendUrlText">
+                Backend: {{ config.backendUrl() }}
+              </span>
+            } @else {
+              <span class="backend-url-text" i18n="@@dashboardOfflineModeText">
+                Offline Demo Mode
+              </span>
+            }
+          </div>
+          <button
+            mat-stroked-button
+            type="button"
+            class="btn-configure-backend"
+            (click)="openBackendSettings()"
+            i18n="@@configureBackendBtn"
+          >
+            Backend Settings
+          </button>
         </header>
         <div class="content-area">
           <router-outlet></router-outlet>
@@ -202,8 +244,20 @@ import { AuthService } from '../../services/auth.service';
       text-overflow: ellipsis;
     }
 
+    .footer-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
     .btn-logout {
       width: 100%;
+    }
+
+    .btn-delete-account {
+      width: 100%;
+      color: var(--error-text);
+      font-size: 0.75rem;
     }
 
     /* Main Content Styles */
@@ -220,7 +274,26 @@ import { AuthService } from '../../services/auth.service';
       border-bottom: 1px solid var(--border-color);
       display: flex;
       align-items: center;
-      padding: 0 1.5rem;
+      justify-content: space-between;
+      padding: 0 2rem;
+    }
+
+    .backend-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--text-secondary);
+      &.online {
+        background-color: #2e7d32;
+      }
     }
 
     .content-area {
@@ -231,15 +304,31 @@ import { AuthService } from '../../services/auth.service';
   `,
 })
 export class DashboardComponent {
-  /**
-   * Authentication service instance
-   */
-  authService = inject(AuthService);
+  /** Authentication service instance. */
+  readonly authService = inject(AuthService);
+  /** Backend configuration service instance. */
+  readonly config = inject(BackendConfigService);
+  /** Material dialog service instance. */
+  private readonly dialog = inject(MatDialog);
 
   /**
-   * Logs out the user
+   * Opens the Online Settings dialog to configure or switch the backend server URL.
+   */
+  openBackendSettings(): void {
+    this.dialog.open(OnlineSettingsComponent, { width: '440px' });
+  }
+
+  /**
+   * Logs out the user.
    */
   logout(): void {
     this.authService.logout();
+  }
+
+  /**
+   * Deletes the current user account and logs out.
+   */
+  async onDeleteAccount(): Promise<void> {
+    await this.authService.deleteAccount();
   }
 }

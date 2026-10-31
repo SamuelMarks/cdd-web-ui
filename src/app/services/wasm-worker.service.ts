@@ -1,13 +1,16 @@
 /**
- * Web Worker orchestration service for executing WASM compilers off the main thread.
+ * Web Worker and remote MCP/RPC orchestration service for executing compilers off the main thread.
  * @module app/services/wasm-worker.service
  */
 import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { WasmLoaderService } from './wasm-loader.service';
 import { LoggingService } from './logging.service';
+import { BackendConfigService } from './backend-config.service';
+import { McpRpcService } from './mcp-rpc.service';
 
 /**
- * Interface representing a generated file from WASM.
+ * Interface representing a generated file from WASM or remote MCP execution.
  */
 export interface GeneratedFile {
   /** File path */
@@ -17,7 +20,7 @@ export interface GeneratedFile {
 }
 
 /**
- * Service to communicate with the WASM Web Worker, ensuring main thread UI is not blocked.
+ * Service to communicate with the WASM Web Worker or remote `cdd-gateway` / `cdd-engine` MCP/RPC endpoints.
  */
 @Injectable({
   providedIn: 'root',
@@ -28,6 +31,10 @@ export class WasmWorkerService {
   private loaderService = inject(WasmLoaderService);
   /** The LoggingService to log messages from worker. */
   private loggingService = inject(LoggingService);
+  /** Optional BackendConfigService for checking online execution mode. */
+  private config = inject(BackendConfigService, { optional: true });
+  /** Optional McpRpcService for remote JSON-RPC and MCP compiler execution. */
+  private mcpRpc = inject(McpRpcService, { optional: true });
   /** The worker instance. */
   private worker: Worker | null = null;
   /** Error captured if the Web Worker fails during initial script/module loading. */
@@ -54,7 +61,53 @@ export class WasmWorkerService {
   }
 
   /**
-   * Generates code from OpenAPI using WASM in a worker thread.
+   * Generates code remotely via `cdd-gateway` JSON-RPC (`/rpc`) or MCP (`/mcp/message`) endpoints.
+   * @param ecosystem Target ecosystem (e.g. `'cdd-rust'`).
+   * @param specContent The OpenAPI specification content.
+   * @param target The target generation type (`to_sdk`, `to_server`, `to_sdk_cli`, `to_docs_json`).
+   * @param languageOptions The language specific options.
+   * @returns Promise resolving to the array of generated files.
+   */
+  async generateCodeRemote(
+    ecosystem: string,
+    specContent: string,
+    target: string = 'to_sdk',
+    languageOptions: Record<string, unknown> = {},
+  ): Promise<GeneratedFile[]> {
+    if (!this.mcpRpc) {
+      throw new Error('McpRpcService is not available.');
+    }
+
+    const encoder = new TextEncoder();
+    if (target === 'to_docs_json') {
+      const targetLang = ecosystem.replace(/^cdd-/, '').replace(/-all$/, '');
+      const result = await firstValueFrom(
+        this.mcpRpc.rpcToDocsJson({
+          target_language: targetLang,
+          input: specContent,
+          no_imports: Boolean(languageOptions['noImports']),
+          no_wrapping: Boolean(languageOptions['noWrapping']),
+        }),
+      );
+      const text = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+      return [{ path: 'docs.json', content: encoder.encode(text) }];
+    }
+
+    const toolRes = await firstValueFrom(
+      this.mcpRpc.mcpCallTool(ecosystem, {
+        target,
+        spec: specContent,
+        options: languageOptions,
+      }),
+    );
+
+    const firstBlock = toolRes.content?.[0]?.text ?? '';
+    return [{ path: `${ecosystem}/output.txt`, content: encoder.encode(firstBlock) }];
+  }
+
+  /**
+   * Generates code from OpenAPI using remote MCP/RPC when online in `cdd-engine` mode,
+   * or using WASM in a browser Web Worker thread.
    * @param ecosystem Target ecosystem (e.g. 'cdd-python-all')
    * @param specContent The OpenAPI specification content
    * @param target The target generation type (to_sdk, to_server, to_sdk_cli, to_docs_json)
@@ -71,6 +124,19 @@ export class WasmWorkerService {
     /** languageOptions */
     languageOptions: Record<string, unknown> = {},
   ): Promise<GeneratedFile[]> {
+    const mode = this.config?.runMode?.();
+    if (
+      this.config?.isOnline?.() &&
+      this.mcpRpc &&
+      (mode === 'local_cdd_ctl_wasm' || mode === 'local_cdd_ctl_native')
+    ) {
+      try {
+        return await this.generateCodeRemote(ecosystem, specContent, target, languageOptions);
+      } catch {
+        // Fall back to local Web Worker WASM if remote execution fails
+      }
+    }
+
     if (!this.worker) {
       throw new Error('Web Worker not initialized.');
     }
@@ -129,8 +195,6 @@ export class WasmWorkerService {
       this.worker!.addEventListener('message', handleMessage);
       this.worker!.addEventListener('error', handleError);
 
-      // We clone the ArrayBuffer so we can transfer it to the worker
-      // Actually passing it by reference is fine for small WASMs unless we transfer list
       this.worker!.postMessage({
         action: 'generateSdk',
         jobId,

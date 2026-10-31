@@ -1,4 +1,4 @@
-.PHONY: build_docker run_docker test_docker clean_docker build_production_docs docs build_production_c_only deploy_c_only build_wasm_local build_local serve_local test_local e2e_local
+.PHONY: build_docker run_docker test_docker clean_docker build_production_docs docs build_production_c_only deploy_c_only build_wasm_local build_local serve_local serve_backend_and_frontend unserve_backend_and_frontend test_local e2e_local
 
 build_docker:
 	docker build -f alpine.Dockerfile -t cdd-web-alpine .
@@ -55,6 +55,12 @@ build_local: build_wasm_local
 
 serve_local: build_wasm_local
 	npx ng serve --port 8083
+
+serve_backend_and_frontend:
+	node scripts/serve-backend-and-frontend.mjs
+
+unserve_backend_and_frontend:
+	node scripts/serve-backend-and-frontend.mjs --unserve
 
 test_local: build_wasm_local
 	npm test

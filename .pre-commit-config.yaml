@@ -23,9 +23,17 @@ repos:
         types: [ts]
         pass_filenames: false
 
+      - id: backend-conformance
+        name: Backend Contract & cdd-ts Conformance
+        description: Verify 100% alignment between cdd-web-ui, ../cdd-ops backend microservices, and ../cdd-ts OpenAPI/Arazzo contracts.
+        entry: npm run contracts:check
+        language: system
+        types_or: [ts, json]
+        pass_filenames: false
+
       - id: npm-doc-coverage
         name: npm doc:coverage
-        description: Verify 100% AST and Compodoc documentation coverage and strong typing.
+        description: Verify 100% AST and Compodoc documentation coverage, strong typing, and Angular v20+ best practices.
         entry: npm run doc:coverage
         language: system
         types: [ts]

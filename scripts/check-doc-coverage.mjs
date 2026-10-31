@@ -103,6 +103,16 @@ for (const filePath of files) {
   if (/v8 ignore|c8 ignore|istanbul ignore/.test(content)) {
     bannedDirectives.push(`${relPath}: contains forbidden coverage ignore directive`);
   }
+  if (/\*ngIf\b|\*ngFor\b|\*ngSwitch\b/.test(content)) {
+    bannedDirectives.push(
+      `${relPath}: contains legacy structural directive (*ngIf/*ngFor/*ngSwitch); use @if/@for/@switch`,
+    );
+  }
+  if (/\[ngClass\]|\bngClass=|\[ngStyle\]|\bngStyle=/.test(content)) {
+    bannedDirectives.push(
+      `${relPath}: contains legacy [ngClass]/[ngStyle]; use [class]/[style] bindings`,
+    );
+  }
 
   // 1. Check file/module-level docblock
   totalItems++;
@@ -118,7 +128,7 @@ for (const filePath of files) {
   }
 
   /**
-   * Visits AST nodes recursively to verify JSDoc coverage.
+   * Visits AST nodes recursively to verify JSDoc coverage and Angular best practices.
    * @param {ts.Node} node The current AST node.
    */
   function visit(node) {
@@ -130,6 +140,45 @@ for (const filePath of files) {
       bannedDirectives.push(`${relPath}:${line} - contains forbidden 'object' type annotation`);
     } else if (ts.isTypeReferenceNode(node) && node.typeName.getText(sourceFile) === 'Any') {
       bannedDirectives.push(`${relPath}:${line} - contains forbidden 'Any' type annotation`);
+    } else if (ts.isDecorator(node)) {
+      const expr = node.expression;
+      const decName = ts.isCallExpression(expr)
+        ? expr.expression.getText(sourceFile)
+        : expr.getText(sourceFile);
+      if (
+        decName === 'HostBinding' ||
+        decName === 'HostListener' ||
+        decName === 'Input' ||
+        decName === 'Output' ||
+        decName === 'NgModule' ||
+        decName === 'Inject'
+      ) {
+        bannedDirectives.push(
+          `${relPath}:${line} - contains forbidden Angular decorator '@${decName}'`,
+        );
+      }
+      if (
+        (decName === 'Component' || decName === 'Directive' || decName === 'Pipe') &&
+        ts.isCallExpression(expr) &&
+        expr.arguments.length > 0 &&
+        ts.isObjectLiteralExpression(expr.arguments[0])
+      ) {
+        for (const prop of expr.arguments[0].properties) {
+          if (ts.isPropertyAssignment(prop) && prop.name.getText(sourceFile) === 'standalone') {
+            bannedDirectives.push(
+              `${relPath}:${line} - must NOT set 'standalone' inside @${decName} (default in Angular v20+)`,
+            );
+          }
+        }
+      }
+    } else if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.name.text === 'mutate'
+    ) {
+      bannedDirectives.push(
+        `${relPath}:${line} - must NOT use '.mutate()' on signals; use '.update()' or '.set()'`,
+      );
     }
 
     if (

@@ -26,6 +26,9 @@
     "doc": "compodoc -p tsconfig.json",
     "doc:coverage": "node scripts/check-doc-coverage.mjs && compodoc -p tsconfig.json --coverageTest 100",
     "test:coverage": "vitest run --coverage",
+    "contracts:extract": "node scripts/extract-backend-openapi.mjs",
+    "contracts:sync": "node scripts/sync-backend-client.mjs",
+    "contracts:check": "node scripts/check-backend-conformance.mjs",
     "build:wasm": "node scripts/build-wasm.mjs",
     "build:wasm:local": "node scripts/build-wasm.mjs --local",
     "deploy:gh": "npx angular-cli-ghpages --dir=dist/cdd-web-ui/browser"

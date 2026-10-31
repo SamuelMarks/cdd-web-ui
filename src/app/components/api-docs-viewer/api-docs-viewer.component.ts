@@ -107,20 +107,28 @@ export interface MappedSdkExample {
       :host {
         display: flex;
         flex-direction: column;
+        flex: 1 1 0;
         height: 100%;
+        min-height: 0;
         width: 100%;
         background: var(--surface-color, #fff);
         overflow: hidden;
       }
       .api-docs-content {
-        flex: 1;
+        flex: 1 1 0;
         height: 100%;
+        min-height: 0;
         width: 100%;
+        overflow: hidden;
+        position: relative;
       }
       cdd-api-docs {
         width: 100%;
         height: 100%;
+        max-height: 100%;
+        min-height: 0;
         display: block;
+        overflow: hidden;
       }
     `,
   ],

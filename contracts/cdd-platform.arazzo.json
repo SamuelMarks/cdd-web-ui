@@ -1,0 +1,133 @@
+{
+  "arazzo": "1.0.1",
+  "info": {
+    "title": "CDD Platform End-to-End Lifecycle Workflow",
+    "version": "0.1.0",
+    "description": "Multi-step workflow orchestrating cdd-gateway, cdd-control-plane, cdd-engine, cdd-storage, cdd-publisher, and cdd-docs-ui."
+  },
+  "sourceDescriptions": [
+    {
+      "name": "cddBackend",
+      "url": "./cdd-backend.openapi.json",
+      "type": "openapi"
+    }
+  ],
+  "workflows": [
+    {
+      "workflowId": "fullPlatformLifecycle",
+      "summary": "Register, create org/repo, store tokens, publish docs, release SDK, inspect audit, and clean up",
+      "inputs": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "orgLogin": {
+            "type": "string"
+          },
+          "repoName": {
+            "type": "string"
+          }
+        }
+      },
+      "steps": [
+        {
+          "stepId": "registerUser",
+          "operationId": "register",
+          "successCriteria": [
+            {
+              "condition": "$statusCode == 201"
+            }
+          ],
+          "outputs": {
+            "token": "$response.body#/token"
+          }
+        },
+        {
+          "stepId": "createOrganization",
+          "operationId": "createOrg",
+          "successCriteria": [
+            {
+              "condition": "$statusCode == 201"
+            }
+          ],
+          "outputs": {
+            "orgId": "$response.body#/id"
+          }
+        },
+        {
+          "stepId": "createRepository",
+          "operationId": "createOrgRepo",
+          "successCriteria": [
+            {
+              "condition": "$statusCode == 201"
+            }
+          ],
+          "outputs": {
+            "repoId": "$response.body#/id"
+          }
+        },
+        {
+          "stepId": "storeRegistryToken",
+          "operationId": "storeToken",
+          "successCriteria": [
+            {
+              "condition": "$statusCode == 200"
+            }
+          ]
+        },
+        {
+          "stepId": "uploadDocsArtifact",
+          "operationId": "uploadFileArtifact",
+          "successCriteria": [
+            {
+              "condition": "$statusCode == 201"
+            }
+          ]
+        },
+        {
+          "stepId": "triggerSdkRelease",
+          "operationId": "createOrgRelease",
+          "successCriteria": [
+            {
+              "condition": "$statusCode == 201"
+            }
+          ]
+        },
+        {
+          "stepId": "verifyAuditTrail",
+          "operationId": "listAuditLogs",
+          "successCriteria": [
+            {
+              "condition": "$statusCode == 200"
+            }
+          ]
+        },
+        {
+          "stepId": "deleteDocsArtifact",
+          "operationId": "deleteArtifact",
+          "successCriteria": [
+            {
+              "condition": "$statusCode == 204"
+            }
+          ]
+        },
+        {
+          "stepId": "deleteUserAccount",
+          "operationId": "deleteAccount",
+          "successCriteria": [
+            {
+              "condition": "$statusCode == 204"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

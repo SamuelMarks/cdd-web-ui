@@ -298,6 +298,59 @@ describe('wasm-worker.worker.ts', () => {
       expect(args).toContain('--no-wrapping');
       expect(args).toContain('--upgrade-openapi-3.2.0');
     }
+
+    vi.mocked(CddWasmSdk.fromOpenApi).mockClear();
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'ts-angular-job',
+        payload: {
+          ecosystem: 'cdd-ts',
+          specContent: '{}',
+          target: 'to_sdk',
+          languageOptions: {
+            framework: 'angular',
+          },
+        },
+      },
+    });
+    const tsAngularCall = vi
+      .mocked(CddWasmSdk.fromOpenApi)
+      .mock.calls.find((c: [Record<string, unknown>]) => c[0].ecosystem === 'cdd-ts');
+    expect(tsAngularCall?.[0].additionalArgs).toEqual([
+      '--framework',
+      'angular',
+      '--implementation',
+      'angular',
+      '--platform',
+      'browser',
+    ]);
+
+    vi.mocked(CddWasmSdk.fromOpenApi).mockClear();
+    await handleMessage({
+      data: {
+        action: 'generateSdk',
+        jobId: 'ts-react-job',
+        payload: {
+          ecosystem: 'cdd-ts',
+          specContent: '{}',
+          languageOptions: {
+            framework: 'react',
+          },
+        },
+      },
+    });
+    const tsReactCall = vi
+      .mocked(CddWasmSdk.fromOpenApi)
+      .mock.calls.find((c: [Record<string, unknown>]) => c[0].ecosystem === 'cdd-ts');
+    expect(tsReactCall?.[0].additionalArgs).toEqual([
+      '--framework',
+      'react',
+      '--implementation',
+      'fetch',
+      '--platform',
+      'browser',
+    ]);
   });
 
   it('should handle unknown action', async () => {

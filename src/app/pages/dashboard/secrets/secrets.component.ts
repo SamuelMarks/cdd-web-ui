@@ -2,11 +2,14 @@
  * Dashboard secrets and manual release trigger page component.
  * @module app/pages/dashboard/secrets/secrets.component
  */
-import { Component, inject, signal } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { forkJoin, Observable } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
+import { ApiService } from '../../../services/api.service';
+import { BackendConfigService } from '../../../services/backend-config.service';
+import { TokenProvider } from '../../../models/types';
 
 /**
  * Represents the execution state of an action or task.
@@ -19,7 +22,7 @@ interface ActionState {
 }
 
 /**
- * Component to manage registry tokens and manually trigger generation or publishing tasks.
+ * Component to manage registry tokens, GitHub Actions secrets, and manually trigger generation or publishing tasks.
  */
 @Component({
   selector: 'app-secrets',
@@ -41,7 +44,40 @@ interface ActionState {
             These tokens are securely stored in the CDD Control Plane Vault.
           </p>
 
+          @if (configuredProviders().length) {
+            <div class="configured-tokens" role="region" aria-label="Configured Vault Tokens">
+              <span class="configured-label" i18n="@@configuredVaultTokensLabel"
+                >Active Vault Tokens:</span
+              >
+              @for (prov of configuredProviders(); track prov) {
+                <span class="token-chip">
+                  {{ prov }}
+                  <button
+                    type="button"
+                    class="revoke-btn"
+                    [attr.aria-label]="'Revoke ' + prov + ' token'"
+                    (click)="onDeleteToken(prov)"
+                  >
+                    &times;
+                  </button>
+                </span>
+              }
+            </div>
+          }
+
           <form [formGroup]="tokensForm" (ngSubmit)="onSaveTokens()">
+            <div class="form-group">
+              <label for="githubToken" i18n="@@githubTokenLabel">GitHub Token</label>
+              <input
+                type="password"
+                id="githubToken"
+                formControlName="github"
+                class="form-control"
+                placeholder="ghp_..."
+                i18n-placeholder="@@githubTokenPlaceholder"
+              />
+            </div>
+
             <div class="form-group">
               <label for="npmToken" i18n="@@npmTokenLabel">npm Token</label>
               <input
@@ -108,7 +144,7 @@ interface ActionState {
           </form>
         </div>
 
-        <!-- Manual Actions -->
+        <!-- Manual Actions & GitHub Secrets -->
         <div class="card actions-card">
           <h2 i18n="@@manualTriggersHeading">Manual Triggers</h2>
           <p class="section-desc" i18n="@@manualTriggersDesc">
@@ -182,6 +218,72 @@ interface ActionState {
               {{ publishState().message }}
             </div>
           }
+
+          <hr class="divider" />
+
+          <h3 i18n="@@githubActionsSecretsHeading">Push Secret to GitHub Actions</h3>
+          <form [formGroup]="githubSecretForm" (ngSubmit)="onUploadGithubSecret()">
+            <div class="form-group">
+              <label for="ghSecretOwner" i18n="@@ghSecretOwnerLabel">Owner</label>
+              <input
+                type="text"
+                id="ghSecretOwner"
+                formControlName="owner"
+                class="form-control"
+                placeholder="offscale"
+              />
+            </div>
+            <div class="form-group">
+              <label for="ghSecretRepo" i18n="@@ghSecretRepoLabel">Repository</label>
+              <input
+                type="text"
+                id="ghSecretRepo"
+                formControlName="repo"
+                class="form-control"
+                placeholder="cdd-ctl"
+              />
+            </div>
+            <div class="form-group">
+              <label for="ghSecretName" i18n="@@ghSecretNameLabel">Secret Name</label>
+              <input
+                type="text"
+                id="ghSecretName"
+                formControlName="secret_name"
+                class="form-control"
+                placeholder="NPM_TOKEN"
+              />
+            </div>
+            <div class="form-group">
+              <label for="ghSecretVal" i18n="@@ghSecretValLabel">Secret Value</label>
+              <input
+                type="password"
+                id="ghSecretVal"
+                formControlName="secret_value"
+                class="form-control"
+                placeholder="secret..."
+              />
+            </div>
+            <button
+              type="submit"
+              mat-stroked-button
+              class="btn btn-secondary"
+              [disabled]="githubSecretForm.invalid"
+              i18n="@@pushGithubSecretBtn"
+            >
+              Push GitHub Secret
+            </button>
+            @if (githubSecretState().message) {
+              <div
+                class="alert"
+                role="status"
+                aria-live="polite"
+                [class.alert-success]="githubSecretState().status === 'success'"
+                [class.alert-error]="githubSecretState().status === 'error'"
+              >
+                {{ githubSecretState().message }}
+              </div>
+            }
+          </form>
         </div>
       </div>
     </div>
@@ -225,6 +327,38 @@ interface ActionState {
       color: var(--text-secondary);
       font-size: 0.875rem;
       margin-bottom: 1.5rem;
+    }
+    .configured-tokens {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .configured-label {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .token-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: var(--primary-hover);
+      color: var(--primary-color);
+      padding: 0.2rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .revoke-btn {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-size: 0.875rem;
+      line-height: 1;
+      padding: 0 2px;
     }
     .form-group {
       margin-bottom: 1.25rem;
@@ -336,11 +470,16 @@ interface ActionState {
 /**
  * Component to manage registry tokens and manually trigger generation or publishing tasks.
  */
-export class SecretsComponent {
-  /** HTTP client for making API requests */
-  private readonly http = inject(HttpClient);
+export class SecretsComponent implements OnInit {
   /** Service to manage authentication and user sessions */
   private readonly authService = inject(AuthService);
+  /** Backend API service */
+  private readonly api = inject(ApiService);
+  /** Backend configuration service */
+  private readonly config = inject(BackendConfigService);
+
+  /** Providers that currently have encrypted tokens stored in the Control Plane vault. */
+  readonly configuredProviders = signal<TokenProvider[]>([]);
 
   /**
    * State of the save tokens action
@@ -354,39 +493,226 @@ export class SecretsComponent {
    * State of the publish action
    */
   publishState = signal<ActionState>({ status: 'idle' });
+  /**
+   * State of the GitHub Actions secret push action
+   */
+  githubSecretState = signal<ActionState>({ status: 'idle' });
 
   /**
-   * Form group for managing tokens
+   * Form group for registry tokens
    */
   tokensForm = new FormGroup({
+    github: new FormControl(''),
     npm: new FormControl(''),
     pypi: new FormControl(''),
     cargo: new FormControl(''),
   });
 
   /**
-   * Handles saving the tokens to the vault
+   * Form group for pushing a GitHub Actions secret
+   */
+  githubSecretForm = new FormGroup({
+    owner: new FormControl('', Validators.required),
+    repo: new FormControl('', Validators.required),
+    secret_name: new FormControl('', Validators.required),
+    secret_value: new FormControl('', Validators.required),
+  });
+
+  /**
+   * Initializes the component and fetches configured vault token providers when online.
+   */
+  ngOnInit(): void {
+    if (this.config.isOnline()) {
+      this.loadVaultTokens();
+    }
+  }
+
+  /**
+   * Queries `GET /api/v1/tokens` for stored token providers.
+   */
+  loadVaultTokens(): void {
+    this.api.listTokens().subscribe({
+      next: (providers) => {
+        this.configuredProviders.set(providers);
+      },
+      error: () => {
+        // Ignore error if unauthenticated
+      },
+    });
+  }
+
+  /**
+   * Handles saving the registry tokens to the Control Plane vault (`POST /api/v1/tokens`).
    */
   onSaveTokens(): void {
     this.tokensState.set({ status: 'loading' });
 
-    // Fake delay
+    if (this.config.isOnline()) {
+      const raw = this.tokensForm.getRawValue();
+      const providers: TokenProvider[] = ['github', 'npm', 'pypi', 'cargo'];
+      const calls: Observable<{
+        /** Status string returned by the control plane. */
+        status: string;
+      }>[] = [];
+
+      for (const provider of providers) {
+        const val = raw[provider]?.trim();
+        if (val) {
+          calls.push(this.api.storeToken({ provider, token: val }));
+        }
+      }
+
+      if (calls.length === 0) {
+        this.tokensState.set({ status: 'success' });
+        this.tokensForm.markAsPristine();
+        return;
+      }
+
+      forkJoin(calls).subscribe({
+        next: () => {
+          this.tokensState.set({ status: 'success' });
+          this.tokensForm.markAsPristine();
+          this.loadVaultTokens();
+        },
+        error: () => {
+          this.tokensState.set({
+            status: 'error',
+            message: 'Failed to store tokens in Control Plane vault.',
+          });
+        },
+      });
+      return;
+    }
+
     setTimeout(() => {
       this.tokensState.set({ status: 'success' });
       this.tokensForm.markAsPristine();
-      setTimeout(() => this.tokensState.set({ status: 'idle' }), 3000);
+
+      setTimeout(() => {
+        this.tokensState.set({ status: 'idle' });
+      }, 3000);
     }, 1000);
   }
 
   /**
-   * Triggers a manual action
-   * @param action The action to trigger
+   * Deletes/revokes a stored token for the specified provider (`DELETE /api/v1/tokens/{provider}`).
+   * @param provider The provider whose token should be deleted.
+   */
+  onDeleteToken(provider: TokenProvider): void {
+    if (this.config.isOnline()) {
+      this.api.deleteToken(provider).subscribe({
+        next: () => {
+          this.configuredProviders.update((list) => list.filter((p) => p !== provider));
+        },
+        error: () => {
+          this.tokensState.set({
+            status: 'error',
+            message: `Failed to revoke ${provider} token.`,
+          });
+        },
+      });
+      return;
+    }
+    this.configuredProviders.update((list) => list.filter((p) => p !== provider));
+  }
+
+  /**
+   * Uploads a secret to a GitHub repository's Actions secrets (`POST /github/actions/secrets`).
+   */
+  onUploadGithubSecret(): void {
+    if (this.githubSecretForm.invalid) {
+      return;
+    }
+    const val = this.githubSecretForm.getRawValue();
+    const payload = {
+      owner: val.owner || '',
+      repo: val.repo || '',
+      secret_name: val.secret_name || '',
+      secret_value: val.secret_value || '',
+    };
+
+    if (this.config.isOnline()) {
+      this.githubSecretState.set({ status: 'loading' });
+      this.api.createGithubSecret(payload).subscribe({
+        next: (res) => {
+          this.githubSecretState.set({
+            status: 'success',
+            message: res.message || 'GitHub Actions secret saved.',
+          });
+          this.githubSecretForm.reset();
+        },
+        error: () => {
+          this.githubSecretState.set({
+            status: 'error',
+            message: 'Failed to push GitHub Actions secret.',
+          });
+        },
+      });
+      return;
+    }
+
+    this.githubSecretState.set({
+      status: 'success',
+      message: 'GitHub Actions secret queued (Offline Mode).',
+    });
+  }
+
+  /**
+   * Triggers a manual action (generate or publish)
+   * @param action The type of action to trigger
    */
   triggerAction(action: 'generate' | 'publish'): void {
     const state = action === 'generate' ? this.generateState : this.publishState;
-    state.set({ status: 'loading' });
+    state.set({ status: 'loading', message: undefined });
 
-    // Simulating POST to trigger actions
+    if (this.config.isOnline()) {
+      if (action === 'generate') {
+        this.api
+          .triggerGithubWorkflow({
+            owner: 'offscale',
+            repo: 'cdd-ctl',
+            workflow_id: 'sdk-generate.yml',
+            ref_branch: 'main',
+          })
+          .subscribe({
+            next: (res) => {
+              state.set({
+                status: 'success',
+                message: res.message || 'Generate completed successfully.',
+              });
+            },
+            error: () => {
+              state.set({
+                status: 'error',
+                message: 'Failed to trigger remote SDK generation.',
+              });
+            },
+          });
+      } else {
+        this.api
+          .createOrgRelease(1, 1, {
+            tag_name: 'v1.0.0',
+            name: 'Manual SDK Release',
+            body: 'Triggered from CDD Web UI',
+          })
+          .subscribe({
+            next: (rel) => {
+              state.set({
+                status: 'success',
+                message: `Publish queued for release ${rel.tag_name}.`,
+              });
+            },
+            error: () => {
+              state.set({
+                status: 'error',
+                message: 'Failed to enqueue SDK publishing job.',
+              });
+            },
+          });
+      }
+      return;
+    }
+
     setTimeout(() => {
       state.set({
         status: 'success',

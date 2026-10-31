@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+/** Base URL for Playwright E2E test execution. */
+const E2E_URL = process.env['CI'] ? 'http://localhost:4200' : 'http://localhost:8083';
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
@@ -8,7 +11,7 @@ export default defineConfig({
   workers: 1,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://localhost:4200',
+    baseURL: E2E_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -31,7 +34,7 @@ export default defineConfig({
   ],
   webServer: {
     command: process.env['CI'] ? 'npx --yes serve -s dist/cdd-web-ui/browser -p 4200' : 'npm start',
-    url: 'http://localhost:4200',
+    url: E2E_URL,
     reuseExistingServer: !process.env['CI'],
     timeout: 300000,
   },

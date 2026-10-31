@@ -2,6 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { WasmWorkerService } from './wasm-worker.service';
 import { WasmLoaderService } from './wasm-loader.service';
 import { LoggingService } from './logging.service';
+import { BackendConfigService } from './backend-config.service';
+import { McpRpcService } from './mcp-rpc.service';
+import { signal } from '@angular/core';
+import { of, throwError } from 'rxjs';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 class MockWorker {
@@ -65,15 +69,21 @@ class MockWorker {
       this.onmessage = null;
     }
   }
-  terminate(): void {
-    // Add logic here if needed for testing
-  }
+  terminate(): void {}
 }
 
 describe('WasmWorkerService', () => {
   let service: WasmWorkerService;
   let mockLoaderService: Partial<WasmLoaderService>;
   let mockLoggingService: Partial<LoggingService>;
+  let mockConfig: {
+    isOnline: ReturnType<typeof signal<boolean>>;
+    runMode: ReturnType<typeof signal<string>>;
+  };
+  let mockMcpRpc: {
+    rpcToDocsJson: ReturnType<typeof vi.fn>;
+    mcpCallTool: ReturnType<typeof vi.fn>;
+  };
   let originalWorker: typeof Worker;
 
   beforeEach(() => {
@@ -90,6 +100,14 @@ describe('WasmWorkerService', () => {
       warn: vi.fn(),
       error: vi.fn(),
     };
+    mockConfig = {
+      isOnline: signal(false),
+      runMode: signal('local_relative'),
+    };
+    mockMcpRpc = {
+      rpcToDocsJson: vi.fn(),
+      mcpCallTool: vi.fn(),
+    };
 
     originalWorker = globalThis.Worker;
     globalThis.Worker = MockWorker as unknown as typeof Worker;
@@ -98,6 +116,8 @@ describe('WasmWorkerService', () => {
       providers: [
         { provide: WasmLoaderService, useValue: mockLoaderService },
         { provide: LoggingService, useValue: mockLoggingService },
+        { provide: BackendConfigService, useValue: mockConfig },
+        { provide: McpRpcService, useValue: mockMcpRpc },
       ],
     });
     service = TestBed.inject(WasmWorkerService);
@@ -110,6 +130,53 @@ describe('WasmWorkerService', () => {
 
   it('should be created', () => {
     expect(service).toBeTruthy();
+  });
+
+  it('should execute generateCodeRemote for to_docs_json and mcpCallTool when online in cdd-engine mode, or fall back to worker on failure', async () => {
+    mockConfig.isOnline.set(true);
+    mockConfig.runMode.set('local_cdd_ctl_wasm');
+
+    // Object result from rpcToDocsJson
+    mockMcpRpc.rpcToDocsJson.mockReturnValue(of({ endpoints: [] }));
+    const docsFiles1 = await service.generateCode('cdd-python-all', '{}', 'to_docs_json', {
+      noImports: true,
+    });
+    expect(docsFiles1[0].path).toBe('docs.json');
+
+    // String result from rpcToDocsJson
+    mockMcpRpc.rpcToDocsJson.mockReturnValue(of('{"raw":true}'));
+    const docsFiles2 = await service.generateCode('cdd-rust', '{}', 'to_docs_json');
+    expect(docsFiles2[0].path).toBe('docs.json');
+
+    // MCP tool call for to_sdk in local_cdd_ctl_native mode
+    mockConfig.runMode.set('local_cdd_ctl_native');
+    mockMcpRpc.mcpCallTool.mockReturnValue(
+      of({ content: [{ type: 'text', text: 'pub fn sdk() {}' }] }),
+    );
+    const sdkFiles = await service.generateCode('cdd-rust', '{}', 'to_sdk');
+    expect(sdkFiles[0].path).toBe('cdd-rust/output.txt');
+
+    // Online with local_relative mode uses local worker directly
+    mockConfig.runMode.set('local_relative');
+    const localRelFiles = await service.generateCode('cdd-rust', '{}', 'to_sdk');
+    expect(localRelFiles[0].path).toBe('test.ts');
+    mockConfig.runMode.set('local_cdd_ctl_wasm');
+
+    // Empty content array from mcpCallTool
+    mockMcpRpc.mcpCallTool.mockReturnValue(of({ content: [] }));
+    const emptyFiles = await service.generateCodeRemote('cdd-rust', '{}');
+    expect(emptyFiles[0].content.byteLength).toBe(0);
+
+    // Fallback to local WASM worker when remote call fails
+    mockMcpRpc.mcpCallTool.mockReturnValue(throwError(() => new Error('Remote failed')));
+    const fallbackFiles = await service.generateCode('cdd-rust', '{}', 'to_sdk');
+    expect(fallbackFiles[0].path).toBe('test.ts');
+
+    // Missing mcpRpc throws in generateCodeRemote
+    (service as unknown as { mcpRpc: McpRpcService | null }).mcpRpc = null;
+    await expect(service.generateCodeRemote('cdd-rust', '{}')).rejects.toThrow(
+      'McpRpcService is not available.',
+    );
   });
 
   it('should return generated files on success', async () => {
@@ -190,7 +257,6 @@ describe('WasmWorkerService', () => {
       payload?: { specContent?: string };
     }) {
       if (this.onmessage) {
-        // Send a message with a wrong jobId first
         this.onmessage(
           new MessageEvent('message', {
             data: {
@@ -200,7 +266,6 @@ describe('WasmWorkerService', () => {
             },
           }),
         );
-        // Send the correct one
         this.onmessage(
           new MessageEvent('message', {
             data: {
@@ -253,10 +318,13 @@ describe('WasmWorkerService', () => {
   });
 
   it('should explicitly inject -o docs.json and handle to_docs_json target', async () => {
-    const capturedPayloads: unknown[] = [];
+    const capturedPayloads: { target: string; languageOptions: { noImports?: boolean } }[] = [];
     const originalPostMessage = MockWorker.prototype.postMessage;
-    MockWorker.prototype.postMessage = function (data: unknown) {
-      if (data.action === 'generateSdk') {
+    MockWorker.prototype.postMessage = function (data: {
+      action?: string;
+      payload?: { target: string; languageOptions: { noImports?: boolean } };
+    }) {
+      if (data.action === 'generateSdk' && data.payload) {
         capturedPayloads.push(data.payload);
       }
       originalPostMessage.call(this, data);
@@ -272,9 +340,12 @@ describe('WasmWorkerService', () => {
 
   it('should pass options to generateCode when target is to_docs_json', async () => {
     const mockWorker = new MockWorker();
-    let capturedPayload: unknown = null;
-    mockWorker.postMessage = function (data) {
-      capturedPayload = data.payload;
+    let capturedPayload: { target?: string; languageOptions?: unknown } | null = null;
+    mockWorker.postMessage = function (data: {
+      jobId?: string;
+      payload?: { target?: string; languageOptions?: unknown };
+    }) {
+      capturedPayload = data.payload ?? null;
       setTimeout(() => {
         if (this.onmessage) {
           this.onmessage(
@@ -293,21 +364,19 @@ describe('WasmWorkerService', () => {
     const options = { noImports: true, noWrapping: true };
     const files = await service.generateCode('cdd-ruby', '{}', 'to_docs_json', options);
     expect(files.length).toBe(1);
-    expect(capturedPayload.target).toBe('to_docs_json');
-    expect(capturedPayload.languageOptions).toBe(options);
+    expect(capturedPayload?.target).toBe('to_docs_json');
+    expect(capturedPayload?.languageOptions).toBe(options);
   });
 
   it('should ignore messages from other jobs', async () => {
     const ignoreWorker = new MockWorker();
     ignoreWorker.postMessage = function (data: { jobId?: string }) {
       if (this.onmessage) {
-        // Send unrelated job ID first
         this.onmessage(
           new MessageEvent('message', {
             data: { status: 'success', jobId: 'unrelated-job-id', data: [] },
           }),
         );
-        // Then send correct job ID
         this.onmessage(
           new MessageEvent('message', {
             data: { status: 'success', jobId: data.jobId, data: [{ path: 'test.ts' }] },
@@ -357,7 +426,6 @@ describe('WasmWorkerService', () => {
       'Web Worker error',
     );
 
-    // Concurrent jobs: only the primary active job should log to LoggingService
     listeners.message = [];
     listeners.error = [];
     const jobIds: string[] = [];

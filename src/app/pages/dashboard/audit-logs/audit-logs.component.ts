@@ -2,11 +2,14 @@
  * Dashboard audit logs page component displaying SDK generation and publishing history.
  * @module app/pages/dashboard/audit-logs/audit-logs.component
  */
-import { Component, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
 import { MatButtonModule } from '@angular/material/button';
 import { GLOBAL_DATE } from '../../../tokens';
+import { ApiService } from '../../../services/api.service';
+import { BackendConfigService } from '../../../services/backend-config.service';
+import { AuditLogRecord } from '../../../models/types';
 
 /**
  * Interface representing an audit event.
@@ -39,11 +42,46 @@ export interface AuditEvent {
   template: `
     <div class="page-container">
       <div class="header-actions">
-        <h1 i18n="@@auditLogsTitle">Audit Logs</h1>
-        <p class="subtitle" i18n="@@auditLogsSubtitle">
-          History of SDK generation and publishing events.
-        </p>
+        <div>
+          <h1 i18n="@@auditLogsTitle">Audit Logs</h1>
+          <p class="subtitle" i18n="@@auditLogsSubtitle">
+            History of SDK generation and publishing events.
+          </p>
+        </div>
+
+        <div class="filter-bar">
+          <label for="auditOrgSelect" class="sr-only" i18n="@@auditOrgSelectLabel"
+            >Organization</label
+          >
+          <select
+            id="auditOrgSelect"
+            class="org-select"
+            [value]="selectedOrgId()"
+            (change)="onOrgChange($event)"
+            aria-label="Select organization for audit logs"
+          >
+            @for (org of organizations(); track org.id) {
+              <option [value]="org.id">{{ org.name }}</option>
+            }
+          </select>
+
+          <button
+            type="button"
+            mat-stroked-button
+            class="btn btn-secondary"
+            (click)="refreshLogs()"
+            i18n="@@refreshAuditLogsBtn"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
+
+      @if (errorMessage()) {
+        <div class="error-banner" role="alert">
+          {{ errorMessage() }}
+        </div>
+      }
 
       <div class="card">
         <div class="table-responsive">
@@ -110,6 +148,30 @@ export interface AuditEvent {
             </tbody>
           </table>
         </div>
+        <div class="pagination-bar">
+          <button
+            type="button"
+            mat-stroked-button
+            class="btn btn-sm btn-secondary"
+            [disabled]="offset() === 0"
+            (click)="prevPage()"
+            i18n="@@auditPrevPageBtn"
+          >
+            Previous
+          </button>
+          <span class="page-info" i18n="@@auditPageInfo">
+            Offset {{ offset() }} (Limit {{ limit() }})
+          </span>
+          <button
+            type="button"
+            mat-stroked-button
+            class="btn btn-sm btn-secondary"
+            (click)="nextPage()"
+            i18n="@@auditNextPageBtn"
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       <!-- Error Modal -->
@@ -168,6 +230,11 @@ export interface AuditEvent {
       margin: 0 auto;
     }
     .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 1rem;
       margin-bottom: 2rem;
       h1 {
         margin: 0 0 0.5rem 0;
@@ -178,6 +245,37 @@ export interface AuditEvent {
         color: var(--text-secondary);
         font-size: 1rem;
       }
+    }
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .org-select {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--surface-color);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+    .error-banner {
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      border-radius: 6px;
+      background: var(--error-bg);
+      color: var(--error-text);
+      font-size: 0.875rem;
     }
     .card {
       background: var(--surface-color);
@@ -269,6 +367,19 @@ export interface AuditEvent {
       color: var(--text-secondary);
     }
 
+    .pagination-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-color);
+    }
+    .page-info {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+    }
+
     .btn {
       padding: 0.5rem 1rem;
       border-radius: 6px;
@@ -348,7 +459,6 @@ export interface AuditEvent {
         font-family: monospace;
         font-size: 0.8125rem;
         color: var(--error-text);
-        white-space: pre-wrap;
       }
     }
     .modal-actions {
@@ -358,63 +468,220 @@ export interface AuditEvent {
     }
   `,
 })
-export class AuditLogsComponent {
+export class AuditLogsComponent implements OnInit {
   /** Global Date constructor. */
   private readonly globalDate = inject(GLOBAL_DATE);
+  /** Backend API service. */
+  private readonly api = inject(ApiService);
+  /** Backend configuration service. */
+  private readonly config = inject(BackendConfigService);
+
+  /** Available organizations for filtering audit logs. */
+  readonly organizations = signal<
+    {
+      /** Numeric organization ID. */
+      id: number;
+      /** Display name of the organization. */
+      name: string;
+    }[]
+  >([
+    { id: 1, name: 'Offscale' },
+    { id: 2, name: 'Demo Team' },
+  ]);
+
+  /** Currently selected organization ID. */
+  readonly selectedOrgId = signal<number>(1);
+  /** Pagination page size (`1..=100`). */
+  readonly limit = signal<number>(25);
+  /** Pagination offset (`>= 0`). */
+  readonly offset = signal<number>(0);
+  /** Error message signal if loading audit logs fails. */
+  readonly errorMessage = signal<string | null>(null);
 
   /**
-   * Mock data for audit logs
+   * List of audit events
    */
   logs = signal<AuditEvent[]>([
     {
-      id: 'log-1',
-      timestamp: new this.globalDate(this.globalDate.now() - 1000 * 60 * 5), // 5 mins ago
+      id: 'evt-1',
+      timestamp: new this.globalDate(this.globalDate.now() - 1000 * 60 * 5),
       action: 'Publishing',
-      repository: 'offscale/acme-api',
+      repository: 'offscale/cdd-ctl',
       language: 'TypeScript',
       status: 'Success',
-      durationMs: 4500,
+      durationMs: 12400,
     },
     {
-      id: 'log-2',
-      timestamp: new this.globalDate(this.globalDate.now() - 1000 * 60 * 15), // 15 mins ago
-      action: 'Generation',
-      repository: 'offscale/acme-api',
+      id: 'evt-2',
+      timestamp: new this.globalDate(this.globalDate.now() - 1000 * 60 * 6),
+      action: 'Publishing',
+      repository: 'offscale/cdd-ctl',
       language: 'Rust',
       status: 'Failed',
-      errorMessage:
-        'Error during AST generation: Schema reference "#/components/schemas/InvalidRef" not found.\n  at SchemaParser.resolveRefs (parser.js:142:9)\n  at CodeGen.generateModels (codegen.js:55:12)',
-      durationMs: 1200,
+      errorMessage: `error: failed to publish to crates.io
+Caused by:
+  the remote server responded with an error: 403 Forbidden - invalid token`,
+      durationMs: 4200,
     },
     {
-      id: 'log-3',
-      timestamp: new this.globalDate(this.globalDate.now() - 1000 * 60 * 60), // 1 hour ago
-      action: 'Publishing',
-      repository: 'demo-team/core-services',
+      id: 'evt-3',
+      timestamp: new this.globalDate(this.globalDate.now() - 1000 * 60 * 10),
+      action: 'Generation',
+      repository: 'offscale/cdd-ctl',
+      language: 'Rust',
+      status: 'Success',
+      durationMs: 8100,
+    },
+    {
+      id: 'evt-4',
+      timestamp: new this.globalDate(this.globalDate.now() - 1000 * 60 * 10),
+      action: 'Generation',
+      repository: 'offscale/cdd-ctl',
+      language: 'TypeScript',
+      status: 'Success',
+      durationMs: 3500,
+    },
+    {
+      id: 'evt-5',
+      timestamp: new this.globalDate(this.globalDate.now() - 1000 * 60 * 60 * 2),
+      action: 'Generation',
+      repository: 'demo/payment-service',
       language: 'Go',
       status: 'Failed',
       errorMessage:
-        'Authentication error: Invalid or expired registry token for index.golang.org.\nVerify your registry tokens in the Secrets & Releases settings.',
-      durationMs: 3400,
-    },
-    {
-      id: 'log-4',
-      timestamp: new this.globalDate(this.globalDate.now() - 1000 * 60 * 120), // 2 hours ago
-      action: 'Generation',
-      repository: 'demo-team/core-services',
-      language: 'Go',
-      status: 'Success',
-      durationMs: 2800,
+        'OpenAPI parsing error at line 45: paths./payments.post.responses.200.content.application/json.schema.$ref: Could not resolve reference: #/components/schemas/PaymentResponse',
+      durationMs: 1200,
     },
   ]);
 
   /**
-   * Selected event for showing errors
+   * Currently selected event to view error details
    */
   selectedEventError = signal<AuditEvent | null>(null);
 
   /**
-   * Sets the selected event error to view
+   * Initializes the component and loads remote audit logs when online.
+   */
+  ngOnInit(): void {
+    if (this.config.isOnline()) {
+      this.loadOrganizationsAndLogs();
+    }
+  }
+
+  /**
+   * Loads organizations from `GET /api/v1/orgs` and then fetches audit logs for the selected organization.
+   */
+  loadOrganizationsAndLogs(): void {
+    this.api.listOrgs().subscribe({
+      next: (orgs) => {
+        if (orgs.length > 0) {
+          const mapped = orgs.map((o) => ({ id: Number(o.id), name: o.name || o.login }));
+          this.organizations.set(mapped);
+          this.selectedOrgId.set(mapped[0].id);
+          this.refreshLogs();
+        } else {
+          this.organizations.set([]);
+          this.logs.set([]);
+          this.errorMessage.set(null);
+        }
+      },
+      error: () => {
+        this.refreshLogs();
+      },
+    });
+  }
+
+  /**
+   * Fetches paginated audit logs (`GET /api/v1/orgs/{org_id}/audit`) when online.
+   */
+  refreshLogs(): void {
+    if (!this.config.isOnline()) {
+      return;
+    }
+    this.api
+      .listAuditLogs(this.selectedOrgId(), {
+        limit: this.limit(),
+        offset: this.offset(),
+      })
+      .subscribe({
+        next: (records) => {
+          this.logs.set(records.map((rec) => this.mapRecordToEvent(rec)));
+          this.errorMessage.set(null);
+        },
+        error: () => {
+          this.errorMessage.set('Failed to load audit logs from backend.');
+        },
+      });
+  }
+
+  /**
+   * Maps a backend `AuditLogRecord` into a display `AuditEvent`.
+   * @param rec The raw audit log record from `cdd-control-plane`.
+   * @returns The mapped `AuditEvent`.
+   */
+  mapRecordToEvent(rec: AuditLogRecord): AuditEvent {
+    const meta = rec.metadata_json ?? {};
+    const isPublish =
+      rec.action === 'release_created' ||
+      rec.action === 'sdk_published' ||
+      rec.action.includes('publish');
+    const repo =
+      typeof meta['repository'] === 'string'
+        ? meta['repository']
+        : rec.repo_id !== null
+          ? `repo-${rec.repo_id}`
+          : `org-${rec.org_id}`;
+    const language = typeof meta['language'] === 'string' ? meta['language'] : 'All';
+    const errorMsg =
+      typeof meta['error'] === 'string'
+        ? meta['error']
+        : typeof meta['error_message'] === 'string'
+          ? meta['error_message']
+          : undefined;
+    const status = errorMsg || rec.action === 'publish_failed' ? 'Failed' : 'Success';
+    const durationMs = typeof meta['durationMs'] === 'number' ? meta['durationMs'] : 1000;
+
+    return {
+      id: String(rec.id),
+      timestamp: new this.globalDate(rec.timestamp),
+      action: isPublish ? 'Publishing' : 'Generation',
+      repository: repo,
+      language,
+      status,
+      errorMessage: errorMsg,
+      durationMs,
+    };
+  }
+
+  /**
+   * Handles changing the selected organization in the dropdown.
+   * @param event DOM change event from the select element.
+   */
+  onOrgChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.selectedOrgId.set(Number(target.value) || 1);
+    this.offset.set(0);
+    this.refreshLogs();
+  }
+
+  /**
+   * Advances pagination to the next page of audit logs.
+   */
+  nextPage(): void {
+    this.offset.update((o) => o + this.limit());
+    this.refreshLogs();
+  }
+
+  /**
+   * Moves pagination to the previous page of audit logs.
+   */
+  prevPage(): void {
+    this.offset.update((o) => Math.max(0, o - this.limit()));
+    this.refreshLogs();
+  }
+
+  /**
+   * Opens the error view for a specific audit event
    * @param event The event to view
    */
   viewError(event: AuditEvent): void {

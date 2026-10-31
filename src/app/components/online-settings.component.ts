@@ -16,7 +16,8 @@ import { RunMode } from '../models/types';
 import { ApiService } from '../services/api.service';
 
 /**
- * Dialog for configuring online mode.
+ * Dialog for configuring online mode, backend server URL, service endpoint overrides,
+ * and authentication.
  */
 @Component({
   selector: 'app-online-settings',
@@ -59,11 +60,35 @@ import { ApiService } from '../services/api.service';
         </mat-form-field>
       </div>
 
-      @if (config.isOnline()) {
-        <p i18n="@@currentlyOnline">Currently Online: {{ config.backendUrl() }}</p>
-        <button mat-flat-button color="warn" (click)="goOffline()" i18n="@@goOffline">
-          Go Offline
-        </button>
+      @if (config.isOnline() && !showEditUrl()) {
+        <div class="online-status-banner">
+          <p i18n="@@currentlyOnline">Currently Online: {{ config.backendUrl() }}</p>
+          @if (config.gatewayVersion()) {
+            <p class="version-badge" i18n="@@gatewayVersionBadge">
+              Gateway Version: {{ config.gatewayVersion() }}
+            </p>
+          }
+          <div class="actions">
+            <button
+              mat-stroked-button
+              type="button"
+              class="change-url-btn"
+              (click)="toggleEditUrl()"
+              i18n="@@changeBackendUrlBtn"
+            >
+              Change URL
+            </button>
+            <button
+              mat-flat-button
+              color="warn"
+              type="button"
+              (click)="goOffline()"
+              i18n="@@goOffline"
+            >
+              Go Offline
+            </button>
+          </div>
+        </div>
       } @else {
         <form
           [formGroup]="urlForm"
@@ -76,24 +101,97 @@ import { ApiService } from '../services/api.service';
             <input
               matInput
               formControlName="url"
-              placeholder="http://localhost:8080"
+              placeholder="http://localhost:8086"
               i18n-placeholder="@@backendUrlPlaceholder"
             />
             @if (urlForm.get('url')?.hasError('required')) {
               <mat-error i18n="@@urlRequiredError">URL is required</mat-error>
             }
           </mat-form-field>
-          <button
-            mat-flat-button
-            color="primary"
-            type="submit"
-            [disabled]="urlForm.invalid"
-            i18n="@@connectBtn"
-          >
-            Connect
-          </button>
+          <div class="preset-chips" role="group" aria-label="Backend URL presets">
+            <button
+              type="button"
+              class="preset-chip"
+              (click)="selectPresetUrl('http://localhost:8086')"
+            >
+              Gateway (:8086)
+            </button>
+            <button
+              type="button"
+              class="preset-chip"
+              (click)="selectPresetUrl('http://localhost:8081')"
+            >
+              Control Plane (:8081)
+            </button>
+            <button
+              type="button"
+              class="preset-chip"
+              (click)="selectPresetUrl('http://localhost:8080')"
+            >
+              Proxy (:8080)
+            </button>
+          </div>
+          <div class="actions">
+            <button
+              mat-flat-button
+              color="primary"
+              type="submit"
+              [disabled]="urlForm.invalid"
+              i18n="@@connectBtn"
+            >
+              Connect
+            </button>
+            @if (config.isOnline()) {
+              <button mat-button type="button" (click)="toggleEditUrl()" i18n="@@cancelUrlEditBtn">
+                Cancel
+              </button>
+            }
+          </div>
         </form>
       }
+
+      <div class="advanced-section">
+        <button
+          mat-button
+          type="button"
+          class="advanced-toggle-btn"
+          (click)="toggleAdvanced()"
+          [attr.aria-expanded]="showAdvanced()"
+          i18n="@@advancedEndpointsToggle"
+        >
+          Advanced Service Endpoints
+        </button>
+        @if (showAdvanced()) {
+          <form
+            [formGroup]="overridesForm"
+            (ngSubmit)="onSaveOverrides()"
+            class="overrides-form"
+            aria-label="Advanced Service Endpoints"
+          >
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label i18n="@@controlPlaneUrlOverrideLabel"
+                >Control Plane URL Override</mat-label
+              >
+              <input
+                matInput
+                formControlName="controlPlaneUrl"
+                placeholder="http://localhost:8081/api/v1"
+              />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label i18n="@@storageUrlOverrideLabel">Artifact Storage URL Override</mat-label>
+              <input matInput formControlName="storageUrl" placeholder="http://localhost:8085" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label i18n="@@docsUiUrlOverrideLabel">Docs UI URL Override</mat-label>
+              <input matInput formControlName="docsUiUrl" placeholder="http://localhost:8082" />
+            </mat-form-field>
+            <button mat-stroked-button color="primary" type="submit" i18n="@@saveOverridesBtn">
+              Save Endpoint Overrides
+            </button>
+          </form>
+        }
+      </div>
 
       @if (config.isOnline()) {
         <div class="auth-section">
@@ -139,20 +237,24 @@ import { ApiService } from '../services/api.service';
             <div class="divider">
               <span i18n="@@orDivider">OR</span>
             </div>
-            <button mat-flat-button class="github-btn full-width" (click)="onGithubLogin()">
-              <!-- Using standard text icon if SVG isn't immediately available, or we could just use a mat-icon text fallback. -->
+            <button
+              mat-flat-button
+              type="button"
+              class="github-btn full-width"
+              (click)="onGithubLogin()"
+            >
               <mat-icon class="github-icon" aria-hidden="true">code</mat-icon>
               <span i18n="@@loginWithGithubBtn">Login with GitHub</span>
             </button>
           </div>
-
-          @if (errorMsg()) {
-            <p class="error" role="alert" aria-live="assertive">{{ errorMsg() }}</p>
-          }
-          @if (successMsg()) {
-            <p class="success" role="status" aria-live="polite">{{ successMsg() }}</p>
-          }
         </div>
+      }
+
+      @if (errorMsg()) {
+        <p class="error" role="alert" aria-live="assertive">{{ errorMsg() }}</p>
+      }
+      @if (successMsg()) {
+        <p class="success" role="status" aria-live="polite">{{ successMsg() }}</p>
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -166,10 +268,39 @@ import { ApiService } from '../services/api.service';
         width: 100%;
       }
       .run-mode-section {
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
+      }
+      .preset-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      .preset-chip {
+        background: var(--bg-color, #f1f3f4);
+        color: var(--text-primary, #202124);
+        border: 1px solid var(--border-color, #dadce0);
+        border-radius: 16px;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+      }
+      .preset-chip:hover {
+        background: var(--primary-hover, #e8f0fe);
+      }
+      .version-badge {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
+      }
+      .advanced-section {
+        margin-top: 1rem;
+      }
+      .overrides-form {
+        margin-top: 0.75rem;
       }
       .auth-section {
-        margin-top: 2rem;
+        margin-top: 1.5rem;
         border-top: 1px solid var(--border-color, #ccc);
         padding-top: 1rem;
       }
@@ -243,11 +374,25 @@ export class OnlineSettingsComponent {
   readonly errorMsg = signal<string>('');
   /** Signal for success message. */
   readonly successMsg = signal<string>('');
+  /** Signal tracking whether the URL editor is open while online. */
+  readonly showEditUrl = signal<boolean>(false);
+  /** Signal tracking whether the advanced service endpoint overrides section is expanded. */
+  readonly showAdvanced = signal<boolean>(false);
 
   /** Form for setting backend URL. */
   urlForm = this.fb.group({
     /** url */
     url: [this.config.backendUrl() || '', Validators.required],
+  });
+
+  /** Form for optional per-service endpoint URL overrides. */
+  overridesForm = this.fb.group({
+    /** controlPlaneUrl */
+    controlPlaneUrl: [this.config.serviceOverrides().controlPlaneUrl || ''],
+    /** storageUrl */
+    storageUrl: [this.config.serviceOverrides().storageUrl || ''],
+    /** docsUiUrl */
+    docsUiUrl: [this.config.serviceOverrides().docsUiUrl || ''],
   });
 
   /** Form for authentication. */
@@ -268,13 +413,60 @@ export class OnlineSettingsComponent {
     this.errorMsg.set('');
   }
 
-  /** Sets the backend URL. */
+  /**
+   * Populates the URL form with a preset local development endpoint.
+   * @param presetUrl The preset URL string to populate.
+   */
+  selectPresetUrl(presetUrl: string): void {
+    this.urlForm.patchValue({ url: presetUrl });
+  }
+
+  /**
+   * Toggles the URL edit form when already connected.
+   */
+  toggleEditUrl(): void {
+    this.showEditUrl.update((v) => !v);
+    if (this.showEditUrl()) {
+      this.urlForm.patchValue({ url: this.config.backendUrl() || '' });
+    }
+  }
+
+  /**
+   * Toggles the expandable advanced service endpoint overrides panel.
+   */
+  toggleAdvanced(): void {
+    this.showAdvanced.update((v) => !v);
+  }
+
+  /**
+   * Saves optional per-service endpoint URL overrides (`controlPlaneUrl`, `storageUrl`, `docsUiUrl`).
+   */
+  onSaveOverrides(): void {
+    try {
+      const val = this.overridesForm.getRawValue();
+      this.config.setServiceOverrides({
+        controlPlaneUrl: val.controlPlaneUrl || null,
+        storageUrl: val.storageUrl || null,
+        docsUiUrl: val.docsUiUrl || null,
+      });
+      this.errorMsg.set('');
+      this.successMsg.set('Service endpoint overrides saved.');
+    } catch (err) {
+      const error = err as Error;
+      this.errorMsg.set(error.message);
+      this.successMsg.set('');
+    }
+  }
+
+  /** Sets the backend URL and optionally probes `/version` in the background. */
   onSetUrl(): void {
     if (this.urlForm.valid && this.urlForm.value.url) {
       try {
         this.config.setOnlineMode(this.urlForm.value.url);
+        this.showEditUrl.set(false);
         this.errorMsg.set('');
         this.successMsg.set('Connected!');
+        this.probeBackendVersion();
       } catch (err) {
         const error = err as Error;
         this.errorMsg.set(error.message);
@@ -282,9 +474,28 @@ export class OnlineSettingsComponent {
     }
   }
 
+  /**
+   * Queries `GET /version` on the connected backend if available to populate gateway version metadata.
+   */
+  private probeBackendVersion(): void {
+    try {
+      this.api.getVersion().subscribe({
+        next: (ver) => {
+          this.config.setVersionInfo(ver);
+        },
+        error: () => {
+          // Non-fatal if /version is not exposed on custom backend
+        },
+      });
+    } catch {
+      // Ignore synchronous errors in test doubles
+    }
+  }
+
   /** Switches back to offline mode. */
   goOffline(): void {
     this.config.setOfflineMode();
+    this.showEditUrl.set(false);
     this.successMsg.set('Now offline.');
     this.errorMsg.set('');
   }
@@ -318,9 +529,11 @@ export class OnlineSettingsComponent {
   /** Registers a new user. */
   onRegister(): void {
     if (this.authForm.valid) {
+      const rawUsername = this.authForm.value.username || '';
+      const email = rawUsername.includes('@') ? rawUsername : `${rawUsername}@example.com`;
       const payload = {
         ...this.authForm.value,
-        email: `${this.authForm.value.username}@example.com`,
+        email,
       };
       this.api
         .register(
@@ -349,12 +562,6 @@ export class OnlineSettingsComponent {
 
   /** Initiates GitHub OAuth Flow */
   onGithubLogin(): void {
-    // In a real application, this would redirect to GitHub's OAuth authorize endpoint.
-    // GitHub redirects back with a ?code=xxx parameter.
-    // The frontend then extracts the code and sends it to the backend via `this.api.loginGithub()`.
-
-    // For this prototype, we simulate a successful OAuth return flow
-    // by immediately calling the endpoint with a mock code.
     const mockCode = 'mock_oauth_code_' + Math.floor(Math.random() * 10000);
 
     this.api.loginGithub({ code: mockCode }).subscribe({

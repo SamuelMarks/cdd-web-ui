@@ -15,6 +15,7 @@ export default tseslint.config(
             'e2e/app.spec.ts',
             'e2e/wasm.spec.ts',
             'e2e/docs-ui.spec.ts',
+            'e2e/online-backend.spec.ts',
           ],
         },
         tsconfigRootDir: import.meta.dirname,

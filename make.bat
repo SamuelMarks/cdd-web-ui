@@ -13,6 +13,8 @@ IF "%1"=="deploy_c_only" GOTO deploy_c_only
 IF "%1"=="build_wasm_local" GOTO build_wasm_local
 IF "%1"=="build_local" GOTO build_local
 IF "%1"=="serve_local" GOTO serve_local
+IF "%1"=="serve_backend_and_frontend" GOTO serve_backend_and_frontend
+IF "%1"=="unserve_backend_and_frontend" GOTO unserve_backend_and_frontend
 IF "%1"=="test_local" GOTO test_local
 IF "%1"=="e2e_local" GOTO e2e_local
 IF "%1"=="docs" GOTO docs
@@ -127,6 +129,14 @@ GOTO :EOF
 :serve_local
 CALL make.bat build_wasm_local
 call npx ng serve --port 8083
+GOTO :EOF
+
+:serve_backend_and_frontend
+call node scripts/serve-backend-and-frontend.mjs
+GOTO :EOF
+
+:unserve_backend_and_frontend
+call node scripts/serve-backend-and-frontend.mjs --unserve
 GOTO :EOF
 
 :test_local

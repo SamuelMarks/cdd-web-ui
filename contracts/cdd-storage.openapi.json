@@ -1,0 +1,721 @@
+{
+  "openapi": "3.2.0",
+  "info": {
+    "title": "CDD Artifact Storage (cdd-storage)",
+    "version": "0.1.0",
+    "description": "OpenAPI 3.2.0 specification for cdd-storage artifact upload, ETag download, and deletion endpoints."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8086",
+      "description": "CDD Unified Ingress (cdd-ops)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "api",
+      "description": "ApiService HTTP client operations"
+    },
+    {
+      "name": "artifactStorage",
+      "description": "ArtifactStorageService HTTP client operations"
+    },
+    {
+      "name": "mcpRpc",
+      "description": "McpRpcService JSON-RPC 2.0 and MCP HTTP client operations"
+    }
+  ],
+  "paths": {
+    "/storage/health": {
+      "get": {
+        "tags": ["api"],
+        "operationId": "checkStorageHealth",
+        "summary": "Check Artifact Storage health",
+        "responses": {
+          "200": {
+            "description": "Storage service is healthy",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "OK"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/storage/upload/{org_id}/{repo_id}/{version}": {
+      "post": {
+        "tags": ["artifactStorage"],
+        "operationId": "uploadVersionArtifact",
+        "summary": "Upload default version artifact bundle",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "repo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Artifact uploaded"
+          }
+        }
+      }
+    },
+    "/storage/upload/{org_id}/{repo_id}/{version}/{file_path}": {
+      "post": {
+        "tags": ["artifactStorage"],
+        "operationId": "uploadFileArtifact",
+        "summary": "Upload named file artifact (e.g. docs.json) under a version",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "repo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "file_path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Named file artifact uploaded"
+          }
+        }
+      }
+    },
+    "/storage/artifact/{org_id}/{repo_id}/{file_path}": {
+      "get": {
+        "tags": ["artifactStorage"],
+        "operationId": "downloadArtifact",
+        "summary": "Download stored artifact with ETag and If-None-Match support",
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "repo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "file_path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Artifact binary stream",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["artifactStorage"],
+        "operationId": "deleteArtifact",
+        "summary": "Delete stored artifact",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "repo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "file_path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Artifact deleted"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer_auth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          }
+        }
+      },
+      "VersionResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "gateway": {
+            "type": "string"
+          },
+          "ecosystem": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RegisterPayload": {
+        "type": "object",
+        "required": ["username", "email"],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginPayload": {
+        "type": "object",
+        "required": ["username"],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "OAuthPayload": {
+        "type": "object",
+        "required": ["code"],
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "required": ["token"],
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "OrgRole": {
+        "type": "string",
+        "enum": ["owner", "admin", "member"]
+      },
+      "Organization": {
+        "type": "object",
+        "required": ["id", "login"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "github_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "login": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CreateOrgPayload": {
+        "type": "object",
+        "required": ["login"],
+        "properties": {
+          "login": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "InviteMemberPayload": {
+        "type": "object",
+        "required": ["email", "role"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "role": {
+            "$ref": "#/components/schemas/OrgRole"
+          }
+        }
+      },
+      "Repository": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "organization_id": {
+            "type": "integer"
+          },
+          "github_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CreateRepoPayload": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "organization_id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "Release": {
+        "type": "object",
+        "required": ["id", "repository_id", "tag_name"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "repository_id": {
+            "type": "integer"
+          },
+          "github_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "tag_name": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CreateReleasePayload": {
+        "type": "object",
+        "required": ["tag_name"],
+        "properties": {
+          "tag_name": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        }
+      },
+      "TokenProvider": {
+        "type": "string",
+        "enum": ["github", "npm", "pypi", "cargo"]
+      },
+      "StoreTokenPayload": {
+        "type": "object",
+        "required": ["provider", "token"],
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/TokenProvider"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "AuditActionType": {
+        "type": "string",
+        "enum": [
+          "org_created",
+          "member_added",
+          "repo_created",
+          "release_created",
+          "token_stored",
+          "token_deleted",
+          "sdk_generated",
+          "sdk_published",
+          "publish_failed"
+        ]
+      },
+      "AuditLogRecord": {
+        "type": "object",
+        "required": ["id", "org_id", "user_id", "action", "timestamp"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "org_id": {
+            "type": "integer"
+          },
+          "repo_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "action": {
+            "$ref": "#/components/schemas/AuditActionType"
+          },
+          "metadata_json": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PublishAuditPayload": {
+        "type": "object",
+        "required": ["artifact_id", "registry", "success"],
+        "properties": {
+          "artifact_id": {
+            "type": "string"
+          },
+          "registry": {
+            "type": "string",
+            "enum": ["npm", "pypi", "cargo"]
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "error_message": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SyncStatus": {
+        "type": "object",
+        "required": ["success", "message"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "WebhookResponse": {
+        "type": "object",
+        "required": ["success"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GithubReleasePayload": {
+        "type": "object",
+        "required": ["owner", "repo", "tag_name"],
+        "properties": {
+          "owner": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "tag_name": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        }
+      },
+      "TriggerWorkflowPayload": {
+        "type": "object",
+        "required": ["owner", "repo", "workflow_id", "ref_branch"],
+        "properties": {
+          "owner": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "workflow_id": {
+            "type": "string"
+          },
+          "ref_branch": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateGithubSecretPayload": {
+        "type": "object",
+        "required": ["owner", "repo", "secret_name", "secret_value"],
+        "properties": {
+          "owner": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "secret_name": {
+            "type": "string"
+          },
+          "secret_value": {
+            "type": "string"
+          }
+        }
+      },
+      "JsonRpcRequest": {
+        "type": "object",
+        "required": ["jsonrpc", "id", "method"],
+        "properties": {
+          "jsonrpc": {
+            "type": "string",
+            "enum": ["2.0"]
+          },
+          "id": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "method": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "JsonRpcError": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "JsonRpcResponse": {
+        "type": "object",
+        "required": ["jsonrpc", "id"],
+        "properties": {
+          "jsonrpc": {
+            "type": "string",
+            "enum": ["2.0"]
+          },
+          "id": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "nullable": true
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "error": {
+            "$ref": "#/components/schemas/JsonRpcError"
+          }
+        }
+      },
+      "McpGenerateSdkArguments": {
+        "type": "object",
+        "required": ["target_language"],
+        "properties": {
+          "target_language": {
+            "type": "string"
+          },
+          "input": {
+            "type": "string"
+          },
+          "output": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

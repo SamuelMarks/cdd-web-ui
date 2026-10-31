@@ -1,0 +1,1388 @@
+#!/usr/bin/env node
+/**
+ * @file Extracts and consolidates OpenAPI 3.2.0 and Arazzo 1.1.0 specifications
+ * for all CDD backend services (`cdd-gateway`, `cdd-control-plane`, `cdd-engine`,
+ * `cdd-storage`, `cdd-publisher`, and `cdd-docs-ui` from `../cdd-ops`).
+ * @module scripts/extract-backend-openapi
+ */
+
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT = path.resolve(__dirname, '..');
+const CONTRACTS_DIR = path.join(ROOT, 'contracts');
+
+/**
+ * Shared JSON Schema components across `cdd-gateway`, `cdd-control-plane`, `cdd-engine`,
+ * `cdd-storage`, and `cdd-publisher`.
+ */
+export const SHARED_SCHEMAS = {
+  HealthResponse: {
+    type: 'object',
+    required: ['status'],
+    properties: {
+      status: { type: 'string', example: 'ok' },
+    },
+  },
+  VersionResponse: {
+    type: 'object',
+    properties: {
+      version: { type: 'string' },
+      gateway: { type: 'string' },
+      ecosystem: {
+        type: 'object',
+        additionalProperties: { type: 'string' },
+      },
+    },
+  },
+  RegisterPayload: {
+    type: 'object',
+    required: ['username', 'email'],
+    properties: {
+      username: { type: 'string' },
+      email: { type: 'string', format: 'email' },
+      password: { type: 'string' },
+    },
+  },
+  LoginPayload: {
+    type: 'object',
+    required: ['username'],
+    properties: {
+      username: { type: 'string' },
+      password: { type: 'string' },
+    },
+  },
+  OAuthPayload: {
+    type: 'object',
+    required: ['code'],
+    properties: {
+      code: { type: 'string' },
+    },
+  },
+  AuthResponse: {
+    type: 'object',
+    required: ['token'],
+    properties: {
+      token: { type: 'string' },
+    },
+  },
+  OrgRole: {
+    type: 'string',
+    enum: ['owner', 'admin', 'member'],
+  },
+  Organization: {
+    type: 'object',
+    required: ['id', 'login'],
+    properties: {
+      id: { type: 'integer' },
+      github_id: { type: 'integer', nullable: true },
+      login: { type: 'string' },
+      description: { type: 'string', nullable: true },
+    },
+  },
+  CreateOrgPayload: {
+    type: 'object',
+    required: ['login'],
+    properties: {
+      login: { type: 'string' },
+      description: { type: 'string' },
+    },
+  },
+  InviteMemberPayload: {
+    type: 'object',
+    required: ['email', 'role'],
+    properties: {
+      email: { type: 'string', format: 'email' },
+      role: { $ref: '#/components/schemas/OrgRole' },
+    },
+  },
+  Repository: {
+    type: 'object',
+    required: ['id', 'name'],
+    properties: {
+      id: { type: 'integer' },
+      organization_id: { type: 'integer' },
+      github_id: { type: 'integer', nullable: true },
+      name: { type: 'string' },
+      description: { type: 'string', nullable: true },
+    },
+  },
+  CreateRepoPayload: {
+    type: 'object',
+    required: ['name'],
+    properties: {
+      organization_id: { type: 'integer' },
+      name: { type: 'string' },
+      description: { type: 'string' },
+    },
+  },
+  Release: {
+    type: 'object',
+    required: ['id', 'repository_id', 'tag_name'],
+    properties: {
+      id: { type: 'integer' },
+      repository_id: { type: 'integer' },
+      github_id: { type: 'integer', nullable: true },
+      tag_name: { type: 'string' },
+      name: { type: 'string', nullable: true },
+      body: { type: 'string', nullable: true },
+    },
+  },
+  CreateReleasePayload: {
+    type: 'object',
+    required: ['tag_name'],
+    properties: {
+      tag_name: { type: 'string' },
+      name: { type: 'string' },
+      body: { type: 'string' },
+    },
+  },
+  TokenProvider: {
+    type: 'string',
+    enum: ['github', 'npm', 'pypi', 'cargo'],
+  },
+  StoreTokenPayload: {
+    type: 'object',
+    required: ['provider', 'token'],
+    properties: {
+      provider: { $ref: '#/components/schemas/TokenProvider' },
+      token: { type: 'string' },
+    },
+  },
+  AuditActionType: {
+    type: 'string',
+    enum: [
+      'org_created',
+      'member_added',
+      'repo_created',
+      'release_created',
+      'token_stored',
+      'token_deleted',
+      'sdk_generated',
+      'sdk_published',
+      'publish_failed',
+    ],
+  },
+  AuditLogRecord: {
+    type: 'object',
+    required: ['id', 'org_id', 'user_id', 'action', 'timestamp'],
+    properties: {
+      id: { type: 'integer' },
+      org_id: { type: 'integer' },
+      repo_id: { type: 'integer', nullable: true },
+      user_id: { type: 'integer' },
+      action: { $ref: '#/components/schemas/AuditActionType' },
+      metadata_json: {
+        type: 'object',
+        nullable: true,
+        additionalProperties: true,
+      },
+      timestamp: { type: 'string', format: 'date-time' },
+    },
+  },
+  PublishAuditPayload: {
+    type: 'object',
+    required: ['artifact_id', 'registry', 'success'],
+    properties: {
+      artifact_id: { type: 'string' },
+      registry: { type: 'string', enum: ['npm', 'pypi', 'cargo'] },
+      success: { type: 'boolean' },
+      error_message: { type: 'string', nullable: true },
+    },
+  },
+  SyncStatus: {
+    type: 'object',
+    required: ['success', 'message'],
+    properties: {
+      success: { type: 'boolean' },
+      message: { type: 'string' },
+    },
+  },
+  WebhookResponse: {
+    type: 'object',
+    required: ['success'],
+    properties: {
+      success: { type: 'boolean' },
+    },
+  },
+  GithubReleasePayload: {
+    type: 'object',
+    required: ['owner', 'repo', 'tag_name'],
+    properties: {
+      owner: { type: 'string' },
+      repo: { type: 'string' },
+      tag_name: { type: 'string' },
+      name: { type: 'string' },
+      body: { type: 'string' },
+    },
+  },
+  TriggerWorkflowPayload: {
+    type: 'object',
+    required: ['owner', 'repo', 'workflow_id', 'ref_branch'],
+    properties: {
+      owner: { type: 'string' },
+      repo: { type: 'string' },
+      workflow_id: { type: 'string' },
+      ref_branch: { type: 'string' },
+    },
+  },
+  CreateGithubSecretPayload: {
+    type: 'object',
+    required: ['owner', 'repo', 'secret_name', 'secret_value'],
+    properties: {
+      owner: { type: 'string' },
+      repo: { type: 'string' },
+      secret_name: { type: 'string' },
+      secret_value: { type: 'string' },
+    },
+  },
+  JsonRpcRequest: {
+    type: 'object',
+    required: ['jsonrpc', 'id', 'method'],
+    properties: {
+      jsonrpc: { type: 'string', enum: ['2.0'] },
+      id: { oneOf: [{ type: 'integer' }, { type: 'string' }] },
+      method: { type: 'string' },
+      params: { type: 'object', additionalProperties: true },
+    },
+  },
+  JsonRpcError: {
+    type: 'object',
+    required: ['code', 'message'],
+    properties: {
+      code: { type: 'integer' },
+      message: { type: 'string' },
+      data: { type: 'object', additionalProperties: true },
+    },
+  },
+  JsonRpcResponse: {
+    type: 'object',
+    required: ['jsonrpc', 'id'],
+    properties: {
+      jsonrpc: { type: 'string', enum: ['2.0'] },
+      id: { oneOf: [{ type: 'integer' }, { type: 'string' }], nullable: true },
+      result: { type: 'object', additionalProperties: true },
+      error: { $ref: '#/components/schemas/JsonRpcError' },
+    },
+  },
+  McpGenerateSdkArguments: {
+    type: 'object',
+    required: ['target_language'],
+    properties: {
+      target_language: { type: 'string' },
+      input: { type: 'string' },
+      output: { type: 'string' },
+    },
+  },
+};
+
+/**
+ * Gateway paths exposed by `cdd-gateway`.
+ */
+export const GATEWAY_PATHS = {
+  '/health': {
+    get: {
+      operationId: 'checkGatewayHealth',
+      summary: 'Check API Gateway health',
+      responses: {
+        200: {
+          description: 'Gateway is healthy',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/HealthResponse' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/version': {
+    get: {
+      operationId: 'getVersion',
+      summary: 'Retrieve gateway and ecosystem compiler versions',
+      responses: {
+        200: {
+          description: 'Version details',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/VersionResponse' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/auth/register': {
+    post: {
+      operationId: 'register',
+      summary: 'Register a new user via API Gateway',
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/RegisterPayload' },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'User registered',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AuthResponse' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/auth/login': {
+    post: {
+      operationId: 'login',
+      summary: 'Authenticate user with password via API Gateway',
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/LoginPayload' },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Authenticated',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AuthResponse' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/auth/github': {
+    post: {
+      operationId: 'loginGithub',
+      summary: 'Exchange GitHub OAuth code for JWT',
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/OAuthPayload' },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Authenticated via GitHub OAuth',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AuthResponse' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/orgs': {
+    post: {
+      operationId: 'createOrg',
+      summary: 'Create organization via API Gateway',
+      security: [{ bearer_auth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/CreateOrgPayload' },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Organization created',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Organization' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/repos': {
+    post: {
+      operationId: 'createRepo',
+      summary: 'Create repository via API Gateway',
+      security: [{ bearer_auth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/CreateRepoPayload' },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Repository created',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Repository' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/github/sync': {
+    post: {
+      operationId: 'syncGithub',
+      summary: 'Synchronize GitHub organizations and repositories',
+      security: [{ bearer_auth: [] }],
+      responses: {
+        200: {
+          description: 'Synchronization status',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/SyncStatus' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/github/webhook': {
+    post: {
+      operationId: 'sendGithubWebhook',
+      summary: 'Receive HMAC-verified GitHub webhook payload',
+      parameters: [
+        {
+          name: 'x-hub-signature-256',
+          in: 'header',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { type: 'string' },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Webhook verified',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/WebhookResponse' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/github/releases': {
+    post: {
+      operationId: 'createGithubRelease',
+      summary: 'Create a GitHub release',
+      security: [{ bearer_auth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/GithubReleasePayload' },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Release created',
+        },
+      },
+    },
+  },
+  '/github/actions/dispatch': {
+    post: {
+      operationId: 'dispatchGithubWorkflow',
+      summary: 'Dispatch a GitHub Actions workflow run',
+      security: [{ bearer_auth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/TriggerWorkflowPayload' },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Workflow dispatched',
+        },
+      },
+    },
+  },
+  '/github/actions/workflows/trigger': {
+    post: {
+      operationId: 'triggerGithubWorkflow',
+      summary: 'Trigger a GitHub Actions workflow run (alias)',
+      security: [{ bearer_auth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/TriggerWorkflowPayload' },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Workflow triggered',
+        },
+      },
+    },
+  },
+  '/github/secrets': {
+    post: {
+      operationId: 'storeGithubSecret',
+      summary: 'Encrypt and upload a GitHub Actions repository secret',
+      security: [{ bearer_auth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/CreateGithubSecretPayload' },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Secret stored',
+        },
+      },
+    },
+  },
+  '/github/actions/secrets': {
+    post: {
+      operationId: 'createGithubSecret',
+      summary: 'Encrypt and upload a GitHub Actions repository secret (alias)',
+      security: [{ bearer_auth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/CreateGithubSecretPayload' },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Secret created',
+        },
+      },
+    },
+  },
+  '/rpc': {
+    post: {
+      operationId: 'callRpc',
+      summary: 'Execute a JSON-RPC 2.0 method on cdd-gateway / cdd-engine',
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/JsonRpcRequest' },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'JSON-RPC 2.0 response envelope',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/JsonRpcResponse' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/mcp/sse': {
+    get: {
+      operationId: 'connectMcpSse',
+      summary: 'Initiate Model Context Protocol (MCP) SSE stream',
+      responses: {
+        200: {
+          description: 'SSE stream yielding endpoint event',
+          content: {
+            'text/event-stream': {
+              schema: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/mcp/message': {
+    post: {
+      operationId: 'callMcp',
+      summary: 'Send an MCP JSON-RPC 2.0 message to cdd-engine',
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/JsonRpcRequest' },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'MCP JSON-RPC 2.0 response',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/JsonRpcResponse' },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+/**
+ * Control Plane paths exposed by `cdd-control-plane` under `/api/v1`.
+ */
+export const CONTROL_PLANE_PATHS = {
+  '/api/v1/health': {
+    get: {
+      operationId: 'checkControlPlaneHealth',
+      summary: 'Check Control Plane health',
+      responses: {
+        200: {
+          description: 'Control Plane is healthy',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/HealthResponse' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/api/v1/auth/register': {
+    post: {
+      operationId: 'registerControlPlane',
+      summary: 'Register a new user in Control Plane',
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/RegisterPayload' },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'User registered',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AuthResponse' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/api/v1/auth/login': {
+    post: {
+      operationId: 'loginControlPlane',
+      summary: 'Authenticate user in Control Plane',
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/LoginPayload' },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Authenticated',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AuthResponse' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/api/v1/auth/me': {
+    delete: {
+      operationId: 'deleteAccount',
+      summary: 'Delete authenticated user account',
+      security: [{ bearer_auth: [] }],
+      responses: {
+        204: { description: 'Account deleted' },
+      },
+    },
+  },
+  '/api/v1/orgs': {
+    get: {
+      operationId: 'listOrgs',
+      summary: 'List organizations for authenticated user',
+      security: [{ bearer_auth: [] }],
+      responses: {
+        200: {
+          description: 'List of organizations',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/Organization' },
+              },
+            },
+          },
+        },
+      },
+    },
+    post: {
+      operationId: 'createControlPlaneOrg',
+      summary: 'Create organization in Control Plane',
+      security: [{ bearer_auth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/CreateOrgPayload' },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Organization created',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Organization' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/api/v1/orgs/{id}': {
+    get: {
+      operationId: 'getOrg',
+      summary: 'Get organization by ID',
+      security: [{ bearer_auth: [] }],
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+      responses: {
+        200: {
+          description: 'Organization details',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Organization' },
+            },
+          },
+        },
+      },
+    },
+    delete: {
+      operationId: 'deleteOrg',
+      summary: 'Delete organization by ID',
+      security: [{ bearer_auth: [] }],
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+      responses: {
+        204: { description: 'Organization deleted' },
+      },
+    },
+  },
+  '/api/v1/orgs/{id}/members': {
+    post: {
+      operationId: 'inviteOrgMember',
+      summary: 'Invite a user to an organization with RBAC role',
+      security: [{ bearer_auth: [] }],
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/InviteMemberPayload' },
+          },
+        },
+      },
+      responses: {
+        200: { description: 'Member invited' },
+      },
+    },
+  },
+  '/api/v1/orgs/{org_id}/repos': {
+    get: {
+      operationId: 'listRepos',
+      summary: 'List repositories in an organization',
+      security: [{ bearer_auth: [] }],
+      parameters: [{ name: 'org_id', in: 'path', required: true, schema: { type: 'integer' } }],
+      responses: {
+        200: {
+          description: 'List of repositories',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/Repository' },
+              },
+            },
+          },
+        },
+      },
+    },
+    post: {
+      operationId: 'createOrgRepo',
+      summary: 'Create a repository in an organization',
+      security: [{ bearer_auth: [] }],
+      parameters: [{ name: 'org_id', in: 'path', required: true, schema: { type: 'integer' } }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/CreateRepoPayload' },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Repository created',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Repository' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/api/v1/orgs/{org_id}/repos/{repo_id}': {
+    get: {
+      operationId: 'getRepo',
+      summary: 'Get repository by ID',
+      security: [{ bearer_auth: [] }],
+      parameters: [
+        { name: 'org_id', in: 'path', required: true, schema: { type: 'integer' } },
+        { name: 'repo_id', in: 'path', required: true, schema: { type: 'integer' } },
+      ],
+      responses: {
+        200: {
+          description: 'Repository details',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Repository' },
+            },
+          },
+        },
+      },
+    },
+    delete: {
+      operationId: 'deleteRepo',
+      summary: 'Delete repository by ID',
+      security: [{ bearer_auth: [] }],
+      parameters: [
+        { name: 'org_id', in: 'path', required: true, schema: { type: 'integer' } },
+        { name: 'repo_id', in: 'path', required: true, schema: { type: 'integer' } },
+      ],
+      responses: {
+        204: { description: 'Repository deleted' },
+      },
+    },
+  },
+  '/api/v1/orgs/{org_id}/repos/{repo_id}/releases': {
+    get: {
+      operationId: 'listReleases',
+      summary: 'List SDK releases for a repository',
+      security: [{ bearer_auth: [] }],
+      parameters: [
+        { name: 'org_id', in: 'path', required: true, schema: { type: 'integer' } },
+        { name: 'repo_id', in: 'path', required: true, schema: { type: 'integer' } },
+      ],
+      responses: {
+        200: {
+          description: 'List of releases',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/Release' },
+              },
+            },
+          },
+        },
+      },
+    },
+    post: {
+      operationId: 'createOrgRelease',
+      summary: 'Create an SDK release and enqueue ReleaseSdkJob for cdd-publisher',
+      security: [{ bearer_auth: [] }],
+      parameters: [
+        { name: 'org_id', in: 'path', required: true, schema: { type: 'integer' } },
+        { name: 'repo_id', in: 'path', required: true, schema: { type: 'integer' } },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/CreateReleasePayload' },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: 'Release created and queued',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Release' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/api/v1/tokens': {
+    get: {
+      operationId: 'listTokens',
+      summary: 'List configured encrypted token providers',
+      security: [{ bearer_auth: [] }],
+      responses: {
+        200: {
+          description: 'Configured token providers',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/TokenProvider' },
+              },
+            },
+          },
+        },
+      },
+    },
+    post: {
+      operationId: 'storeToken',
+      summary: 'Encrypt and store a provider token with AES-256-GCM',
+      security: [{ bearer_auth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/StoreTokenPayload' },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'Token stored',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/HealthResponse' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/api/v1/tokens/{provider}': {
+    delete: {
+      operationId: 'deleteToken',
+      summary: 'Delete stored token for provider',
+      security: [{ bearer_auth: [] }],
+      parameters: [
+        {
+          name: 'provider',
+          in: 'path',
+          required: true,
+          schema: { $ref: '#/components/schemas/TokenProvider' },
+        },
+      ],
+      responses: {
+        204: { description: 'Token deleted' },
+      },
+    },
+  },
+  '/api/v1/orgs/{org_id}/audit': {
+    get: {
+      operationId: 'listAuditLogs',
+      summary: 'List paginated audit logs for an organization',
+      security: [{ bearer_auth: [] }],
+      parameters: [
+        { name: 'org_id', in: 'path', required: true, schema: { type: 'integer' } },
+        { name: 'limit', in: 'query', required: false, schema: { type: 'integer' } },
+        { name: 'offset', in: 'query', required: false, schema: { type: 'integer' } },
+      ],
+      responses: {
+        200: {
+          description: 'Paginated audit log records',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/AuditLogRecord' },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/api/v1/audit/publish': {
+    post: {
+      operationId: 'reportPublishAudit',
+      summary: 'Record SDK package publishing telemetry from cdd-publisher',
+      security: [{ bearer_auth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/PublishAuditPayload' },
+          },
+        },
+      },
+      responses: {
+        200: { description: 'Publish audit telemetry recorded' },
+      },
+    },
+  },
+};
+
+/**
+ * Artifact Storage paths exposed by `cdd-storage` under `/storage`.
+ */
+export const STORAGE_PATHS = {
+  '/storage/health': {
+    get: {
+      operationId: 'checkStorageHealth',
+      summary: 'Check Artifact Storage health',
+      responses: {
+        200: {
+          description: 'Storage service is healthy',
+          content: {
+            'text/plain': {
+              schema: { type: 'string', example: 'OK' },
+            },
+          },
+        },
+      },
+    },
+  },
+  '/storage/upload/{org_id}/{repo_id}/{version}': {
+    post: {
+      operationId: 'uploadVersionArtifact',
+      summary: 'Upload default version artifact bundle',
+      security: [{ bearer_auth: [] }],
+      parameters: [
+        { name: 'org_id', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'repo_id', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'version', in: 'path', required: true, schema: { type: 'string' } },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/octet-stream': {
+            schema: { type: 'string', format: 'binary' },
+          },
+        },
+      },
+      responses: {
+        201: { description: 'Artifact uploaded' },
+      },
+    },
+  },
+  '/storage/upload/{org_id}/{repo_id}/{version}/{file_path}': {
+    post: {
+      operationId: 'uploadFileArtifact',
+      summary: 'Upload named file artifact (e.g. docs.json) under a version',
+      security: [{ bearer_auth: [] }],
+      parameters: [
+        { name: 'org_id', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'repo_id', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'version', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'file_path', in: 'path', required: true, schema: { type: 'string' } },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { type: 'string' },
+          },
+        },
+      },
+      responses: {
+        201: { description: 'Named file artifact uploaded' },
+      },
+    },
+  },
+  '/storage/artifact/{org_id}/{repo_id}/{file_path}': {
+    get: {
+      operationId: 'downloadArtifact',
+      summary: 'Download stored artifact with ETag and If-None-Match support',
+      parameters: [
+        { name: 'org_id', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'repo_id', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'file_path', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'If-None-Match', in: 'header', required: false, schema: { type: 'string' } },
+      ],
+      responses: {
+        200: {
+          description: 'Artifact binary stream',
+          content: {
+            'application/octet-stream': {
+              schema: { type: 'string', format: 'binary' },
+            },
+          },
+        },
+        304: { description: 'Not Modified' },
+      },
+    },
+    delete: {
+      operationId: 'deleteArtifact',
+      summary: 'Delete stored artifact',
+      security: [{ bearer_auth: [] }],
+      parameters: [
+        { name: 'org_id', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'repo_id', in: 'path', required: true, schema: { type: 'string' } },
+        { name: 'file_path', in: 'path', required: true, schema: { type: 'string' } },
+      ],
+      responses: {
+        204: { description: 'Artifact deleted' },
+      },
+    },
+  },
+};
+
+const ARTIFACT_STORAGE_OPS = new Set([
+  'uploadVersionArtifact',
+  'uploadFileArtifact',
+  'downloadArtifact',
+  'deleteArtifact',
+]);
+
+const MCP_RPC_OPS = new Set(['callRpc', 'connectMcpSse', 'callMcp']);
+
+/**
+ * Builds an OpenAPI 3.2.0 document from title, version, and paths, tagging each operation
+ * with its canonical Angular client service (`api`, `artifactStorage`, or `mcpRpc`).
+ * @param {string} title Specification title.
+ * @param {string} description Specification description.
+ * @param {Record<string, unknown>} paths OpenAPI paths object.
+ * @returns {Record<string, unknown>} Complete OpenAPI 3.2.0 object.
+ */
+export function buildOpenApiDocument(title, description, paths) {
+  const taggedPaths = {};
+  for (const [routePath, pathItem] of Object.entries(paths)) {
+    const taggedItem = {};
+    for (const [httpMethod, operation] of Object.entries(pathItem)) {
+      const opId = operation.operationId;
+      let serviceTag = 'api';
+      if (ARTIFACT_STORAGE_OPS.has(opId)) {
+        serviceTag = 'artifactStorage';
+      } else if (MCP_RPC_OPS.has(opId)) {
+        serviceTag = 'mcpRpc';
+      }
+      taggedItem[httpMethod] = {
+        tags: [serviceTag],
+        ...operation,
+      };
+    }
+    taggedPaths[routePath] = taggedItem;
+  }
+
+  return {
+    openapi: '3.2.0',
+    info: {
+      title,
+      version: '0.1.0',
+      description,
+    },
+    servers: [{ url: 'http://localhost:8086', description: 'CDD Unified Ingress (cdd-ops)' }],
+    tags: [
+      { name: 'api', description: 'ApiService HTTP client operations' },
+      { name: 'artifactStorage', description: 'ArtifactStorageService HTTP client operations' },
+      { name: 'mcpRpc', description: 'McpRpcService JSON-RPC 2.0 and MCP HTTP client operations' },
+    ],
+    paths: taggedPaths,
+    components: {
+      securitySchemes: {
+        bearer_auth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+      schemas: SHARED_SCHEMAS,
+    },
+  };
+}
+
+/**
+ * Builds the canonical Arazzo 1.1.0 workflow specification covering the end-to-end CDD platform lifecycle.
+ * @returns {Record<string, unknown>} Complete Arazzo 1.1.0 specification object.
+ */
+export function buildArazzoDocument() {
+  return {
+    arazzo: '1.0.1',
+    info: {
+      title: 'CDD Platform End-to-End Lifecycle Workflow',
+      version: '0.1.0',
+      description:
+        'Multi-step workflow orchestrating cdd-gateway, cdd-control-plane, cdd-engine, cdd-storage, cdd-publisher, and cdd-docs-ui.',
+    },
+    sourceDescriptions: [
+      {
+        name: 'cddBackend',
+        url: './cdd-backend.openapi.json',
+        type: 'openapi',
+      },
+    ],
+    workflows: [
+      {
+        workflowId: 'fullPlatformLifecycle',
+        summary:
+          'Register, create org/repo, store tokens, publish docs, release SDK, inspect audit, and clean up',
+        inputs: {
+          type: 'object',
+          properties: {
+            username: { type: 'string' },
+            email: { type: 'string' },
+            password: { type: 'string' },
+            orgLogin: { type: 'string' },
+            repoName: { type: 'string' },
+          },
+        },
+        steps: [
+          {
+            stepId: 'registerUser',
+            operationId: 'register',
+            successCriteria: [{ condition: '$statusCode == 201' }],
+            outputs: {
+              token: '$response.body#/token',
+            },
+          },
+          {
+            stepId: 'createOrganization',
+            operationId: 'createOrg',
+            successCriteria: [{ condition: '$statusCode == 201' }],
+            outputs: {
+              orgId: '$response.body#/id',
+            },
+          },
+          {
+            stepId: 'createRepository',
+            operationId: 'createOrgRepo',
+            successCriteria: [{ condition: '$statusCode == 201' }],
+            outputs: {
+              repoId: '$response.body#/id',
+            },
+          },
+          {
+            stepId: 'storeRegistryToken',
+            operationId: 'storeToken',
+            successCriteria: [{ condition: '$statusCode == 200' }],
+          },
+          {
+            stepId: 'uploadDocsArtifact',
+            operationId: 'uploadFileArtifact',
+            successCriteria: [{ condition: '$statusCode == 201' }],
+          },
+          {
+            stepId: 'triggerSdkRelease',
+            operationId: 'createOrgRelease',
+            successCriteria: [{ condition: '$statusCode == 201' }],
+          },
+          {
+            stepId: 'verifyAuditTrail',
+            operationId: 'listAuditLogs',
+            successCriteria: [{ condition: '$statusCode == 200' }],
+          },
+          {
+            stepId: 'deleteDocsArtifact',
+            operationId: 'deleteArtifact',
+            successCriteria: [{ condition: '$statusCode == 204' }],
+          },
+          {
+            stepId: 'deleteUserAccount',
+            operationId: 'deleteAccount',
+            successCriteria: [{ condition: '$statusCode == 204' }],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/**
+ * Writes all canonical OpenAPI and Arazzo contract files to `contracts/`.
+ */
+export function extractBackendOpenApi() {
+  fs.mkdirSync(CONTRACTS_DIR, { recursive: true });
+
+  const gatewayDoc = buildOpenApiDocument(
+    'CDD API Gateway (cdd-gateway)',
+    'OpenAPI 3.2.0 specification for cdd-gateway HTTP, JSON-RPC 2.0, and MCP endpoints.',
+    GATEWAY_PATHS,
+  );
+  const controlPlaneDoc = buildOpenApiDocument(
+    'CDD Control Plane (cdd-control-plane)',
+    'OpenAPI 3.2.0 specification for cdd-control-plane /api/v1 endpoints.',
+    CONTROL_PLANE_PATHS,
+  );
+  const storageDoc = buildOpenApiDocument(
+    'CDD Artifact Storage (cdd-storage)',
+    'OpenAPI 3.2.0 specification for cdd-storage artifact upload, ETag download, and deletion endpoints.',
+    STORAGE_PATHS,
+  );
+  const unifiedDoc = buildOpenApiDocument(
+    'CDD Unified Backend Platform (cdd-ops)',
+    'Consolidated OpenAPI 3.2.0 contract spanning cdd-gateway, cdd-control-plane, cdd-engine, cdd-storage, and cdd-publisher.',
+    {
+      ...GATEWAY_PATHS,
+      ...CONTROL_PLANE_PATHS,
+      ...STORAGE_PATHS,
+    },
+  );
+  const arazzoDoc = buildArazzoDocument();
+
+  const nl = String.fromCharCode(10);
+  fs.writeFileSync(
+    path.join(CONTRACTS_DIR, 'cdd-gateway.openapi.json'),
+    JSON.stringify(gatewayDoc, null, 2) + nl,
+  );
+  fs.writeFileSync(
+    path.join(CONTRACTS_DIR, 'cdd-control-plane.openapi.json'),
+    JSON.stringify(controlPlaneDoc, null, 2) + nl,
+  );
+  fs.writeFileSync(
+    path.join(CONTRACTS_DIR, 'cdd-storage.openapi.json'),
+    JSON.stringify(storageDoc, null, 2) + nl,
+  );
+  fs.writeFileSync(
+    path.join(CONTRACTS_DIR, 'cdd-backend.openapi.json'),
+    JSON.stringify(unifiedDoc, null, 2) + nl,
+  );
+  fs.writeFileSync(
+    path.join(CONTRACTS_DIR, 'cdd-platform.arazzo.json'),
+    JSON.stringify(arazzoDoc, null, 2) + nl,
+  );
+
+  execFileSync('npx', ['prettier', '--write', '--log-level', 'silent', CONTRACTS_DIR], {
+    cwd: ROOT,
+  });
+
+  console.log(
+    'Extracted canonical backend OpenAPI 3.2.0 and Arazzo specifications into contracts/.',
+  );
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  extractBackendOpenApi();
+}

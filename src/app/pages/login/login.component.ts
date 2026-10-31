@@ -1,5 +1,5 @@
 /**
- * Login page component supporting email/password and OAuth authentication.
+ * Login page component supporting backend server URL configuration, email/password, registration, and OAuth authentication.
  * @module app/pages/login/login.component
  */
 import { Component, inject, signal } from '@angular/core';
@@ -11,9 +11,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../services/auth.service';
+import { BackendConfigService } from '../../services/backend-config.service';
 
 /**
- * Component that displays the login page with OAuth options and Email/Password.
+ * Component that displays the login page with Backend URL configuration, OAuth options, and Email/Password/Registration.
  */
 @Component({
   selector: 'app-login',
@@ -33,6 +34,45 @@ import { AuthService } from '../../services/auth.service';
           Sign in to manage your organizations, repositories, and secrets.
         </p>
 
+        <form
+          [formGroup]="backendUrlForm"
+          (ngSubmit)="onConnectBackend()"
+          class="backend-url-form"
+          aria-label="Backend Server Configuration"
+        >
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label i18n="@@loginBackendUrlLabel">Backend Server URL</mat-label>
+            <input
+              matInput
+              type="url"
+              formControlName="url"
+              placeholder="http://localhost:8086"
+              i18n-placeholder="@@loginBackendUrlPlaceholder"
+            />
+          </mat-form-field>
+          <div class="backend-url-actions">
+            <button
+              mat-stroked-button
+              type="submit"
+              class="connect-backend-btn"
+              [disabled]="backendUrlForm.invalid"
+              i18n="@@loginConnectBackendBtn"
+            >
+              Connect Backend
+            </button>
+            @if (config.isOnline()) {
+              <span class="online-pill" role="status" i18n="@@loginOnlinePill">
+                Online: {{ config.backendUrl() }}
+              </span>
+            }
+          </div>
+          @if (backendStatusMessage()) {
+            <p class="backend-status" role="status" aria-live="polite">
+              {{ backendStatusMessage() }}
+            </p>
+          }
+        </form>
+
         @if (errorMessage()) {
           <div class="error-message" role="alert">
             {{ errorMessage() }}
@@ -40,6 +80,13 @@ import { AuthService } from '../../services/auth.service';
         }
 
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+          @if (isRegisterMode()) {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label i18n="@@loginUsernameLabel">Username</mat-label>
+              <input matInput type="text" formControlName="username" autocomplete="username" />
+            </mat-form-field>
+          }
+
           <mat-form-field appearance="outline" class="full-width">
             <mat-label i18n>Email address</mat-label>
             <input matInput type="email" formControlName="email" autocomplete="email" required />
@@ -73,8 +120,18 @@ import { AuthService } from '../../services/auth.service';
           >
             @if (isSubmitting()) {
               <mat-spinner diameter="20" class="spinner"></mat-spinner>
+            } @else if (isRegisterMode()) {
+              <span i18n="@@createAccountBtn">Create account</span>
             } @else {
               <span i18n>Sign in</span>
+            }
+          </button>
+
+          <button mat-button type="button" class="toggle-mode-btn" (click)="toggleRegisterMode()">
+            @if (isRegisterMode()) {
+              <span i18n="@@switchToSignIn">Already have an account? Sign in</span>
+            } @else {
+              <span i18n="@@switchToRegister">Need an account? Register</span>
             }
           </button>
         </form>
@@ -98,11 +155,18 @@ import { AuthService } from '../../services/auth.service';
     </div>
   `,
   styles: `
+    :host {
+      display: block;
+      height: 100%;
+      overflow-y: auto;
+    }
     .login-container {
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
+      min-height: 100%;
+      padding: 1.5rem 1rem;
+      box-sizing: border-box;
       background-color: var(--bg-color);
       font-family:
         system-ui,
@@ -111,12 +175,13 @@ import { AuthService } from '../../services/auth.service';
     }
     .login-card {
       background-color: var(--surface-color);
-      padding: 2.5rem;
+      padding: 2rem;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 400px;
       text-align: center;
+      margin: auto;
     }
     h1 {
       margin-top: 0;
@@ -126,6 +191,29 @@ import { AuthService } from '../../services/auth.service';
     p {
       color: var(--text-secondary);
       margin-bottom: 1.5rem;
+    }
+    .backend-url-form {
+      margin-bottom: 1.25rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      text-align: left;
+    }
+    .backend-url-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .online-pill {
+      font-size: 0.75rem;
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+    .backend-status {
+      margin: 0.5rem 0 0;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
     }
     .error-message {
       background-color: var(--error-bg);
@@ -145,7 +233,7 @@ import { AuthService } from '../../services/auth.service';
       width: 100%;
     }
     .submit-btn {
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
       padding: 1.25rem 0;
     }
     .spinner {
@@ -208,6 +296,8 @@ import { AuthService } from '../../services/auth.service';
 export class LoginComponent {
   /** The authentication service used to initiate login. */
   private readonly authService = inject(AuthService);
+  /** The backend configuration service for setting the server URL. */
+  readonly config = inject(BackendConfigService);
   /** The form builder. */
   private readonly fb = inject(FormBuilder);
   /** The router to navigate after login. */
@@ -217,15 +307,86 @@ export class LoginComponent {
   readonly isSubmitting = signal(false);
   /** Signal to track error messages. */
   readonly errorMessage = signal<string | null>(null);
+  /** Signal to track whether registration mode is active. */
+  readonly isRegisterMode = signal(false);
+  /** Signal to track backend URL connection feedback. */
+  readonly backendStatusMessage = signal<string | null>(null);
 
-  /** The login form group. */
+  /** Form group for configuring the backend server URL on the login page. */
+  readonly backendUrlForm = this.fb.nonNullable.group({
+    url: [this.config.backendUrl() || 'http://localhost:8080', [Validators.required]],
+  });
+
+  /** The login/registration form group. */
   readonly loginForm = this.fb.nonNullable.group({
+    username: [''],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
   });
 
   /**
-   * Handles the submission of the email/password form.
+   * Connects to the specified backend server URL and enables online mode.
+   */
+  onConnectBackend(): void {
+    const rawUrl = this.backendUrlForm.controls.url.value;
+    if (!rawUrl) {
+      return;
+    }
+    try {
+      this.config.setOnlineMode(rawUrl);
+      this.errorMessage.set(null);
+      this.backendStatusMessage.set('Connected!');
+    } catch (err) {
+      const error = err as Error;
+      this.errorMessage.set(error.message);
+      this.backendStatusMessage.set(null);
+    }
+  }
+
+  /**
+   * Toggles between Sign In and Create Account (Register) mode.
+   */
+  toggleRegisterMode(): void {
+    this.isRegisterMode.update((v) => !v);
+    this.errorMessage.set(null);
+  }
+
+  /**
+   * Extracts a human-readable error message from an `Error`, `HttpErrorResponse`, or backend error payload.
+   * @param error The caught rejection value.
+   * @returns Human-readable error message string.
+   */
+  extractErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (error && typeof error === 'object') {
+      const record = error as Record<string, unknown>;
+      if (record['status'] === 0) {
+        return 'Unable to reach backend server. Ensure the backend is running or switch to Offline Mode.';
+      }
+      const nested = record['error'];
+      if (typeof nested === 'string' && nested.trim().length > 0) {
+        return nested;
+      }
+      if (nested && typeof nested === 'object') {
+        const nestedRec = nested as Record<string, unknown>;
+        if (typeof nestedRec['error'] === 'string' && nestedRec['error'].trim().length > 0) {
+          return nestedRec['error'];
+        }
+        if (typeof nestedRec['message'] === 'string' && nestedRec['message'].trim().length > 0) {
+          return nestedRec['message'];
+        }
+      }
+      if (typeof record['message'] === 'string' && record['message'].trim().length > 0) {
+        return record['message'];
+      }
+    }
+    return 'An unknown error occurred during login.';
+  }
+
+  /**
+   * Handles the submission of the email/password login or registration form.
    */
   async onSubmit(): Promise<void> {
     if (this.loginForm.invalid) {
@@ -235,17 +396,18 @@ export class LoginComponent {
     this.isSubmitting.set(true);
     this.errorMessage.set(null);
 
-    const { email, password } = this.loginForm.getRawValue();
+    const { username, email, password } = this.loginForm.getRawValue();
 
     try {
-      await this.authService.loginWithEmail(email, password);
+      if (this.isRegisterMode()) {
+        const derivedUsername = username.trim() || email.split('@')[0];
+        await this.authService.register(derivedUsername, email, password);
+      } else {
+        await this.authService.loginWithEmail(email, password);
+      }
       void this.router.navigate(['/dashboard']);
     } catch (error) {
-      if (error instanceof Error) {
-        this.errorMessage.set(error.message);
-      } else {
-        this.errorMessage.set('An unknown error occurred during login.');
-      }
+      this.errorMessage.set(this.extractErrorMessage(error));
     } finally {
       this.isSubmitting.set(false);
     }

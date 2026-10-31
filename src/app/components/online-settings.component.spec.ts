@@ -9,6 +9,7 @@ import { BackendConfigService } from '../services/backend-config.service';
 import { ApiService } from '../services/api.service';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
+import { ServiceEndpointOverrides } from '../models/types';
 
 describe('OnlineSettingsComponent', () => {
   let component: OnlineSettingsComponent;
@@ -17,14 +18,19 @@ describe('OnlineSettingsComponent', () => {
     login: ReturnType<typeof vi.fn>;
     register: ReturnType<typeof vi.fn>;
     loginGithub: ReturnType<typeof vi.fn>;
+    getVersion: ReturnType<typeof vi.fn>;
   };
   let configSpy: {
     isOnline: import('@angular/core').WritableSignal<boolean>;
     backendUrl: import('@angular/core').WritableSignal<string | null>;
     runMode: import('@angular/core').WritableSignal<string>;
+    gatewayVersion: import('@angular/core').WritableSignal<string | null>;
+    serviceOverrides: import('@angular/core').WritableSignal<ServiceEndpointOverrides>;
     setOnlineMode: ReturnType<typeof vi.fn>;
     setOfflineMode: ReturnType<typeof vi.fn>;
     setRunMode: ReturnType<typeof vi.fn>;
+    setServiceOverrides: ReturnType<typeof vi.fn>;
+    setVersionInfo: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -32,15 +38,20 @@ describe('OnlineSettingsComponent', () => {
       login: vi.fn(),
       register: vi.fn(),
       loginGithub: vi.fn(),
+      getVersion: vi.fn().mockReturnValue(of({ gateway: '0.1.0' })),
     };
 
     configSpy = {
       isOnline: signal(false),
       backendUrl: signal(null),
       runMode: signal('local_cdd_ctl_wasm'),
+      gatewayVersion: signal<string | null>(null),
+      serviceOverrides: signal<ServiceEndpointOverrides>({}),
       setOnlineMode: vi.fn(),
       setOfflineMode: vi.fn(),
       setRunMode: vi.fn(),
+      setServiceOverrides: vi.fn(),
+      setVersionInfo: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -73,22 +84,95 @@ describe('OnlineSettingsComponent', () => {
     expect(compiled.querySelector('.url-form')).toBeTruthy();
   });
 
-  it('should render auth section when online', () => {
+  it('should render auth section and optional gateway version when online', () => {
     configSpy.isOnline.set(true);
     configSpy.backendUrl.set('http://localhost:8080');
+    configSpy.gatewayVersion.set('0.2.0');
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.auth-form')).toBeTruthy();
+    expect(compiled.querySelector('.version-badge')?.textContent).toContain('0.2.0');
   });
 
-  it('should call setOnlineMode on valid URL submit', () => {
+  it('should call setOnlineMode and probeBackendVersion on valid URL submit', () => {
     component.urlForm.setValue({ url: 'http://test.com' });
     fixture.debugElement.nativeElement
       .querySelector('form.url-form')
       .dispatchEvent(new Event('submit'));
     expect(configSpy.setOnlineMode).toHaveBeenCalledWith('http://test.com');
+    expect(apiSpy.getVersion).toHaveBeenCalled();
+    expect(configSpy.setVersionInfo).toHaveBeenCalledWith({ gateway: '0.1.0' });
     fixture.detectChanges();
     expect(component.successMsg()).toBe('Connected!');
+  });
+
+  it('should handle getVersion failure or synchronous error gracefully on connect', () => {
+    apiSpy.getVersion.mockReturnValue(throwError(() => new Error('No version endpoint')));
+    component.urlForm.setValue({ url: 'http://test.com' });
+    component.onSetUrl();
+    expect(component.successMsg()).toBe('Connected!');
+
+    apiSpy.getVersion.mockImplementation(() => {
+      throw new Error('Sync error');
+    });
+    component.onSetUrl();
+    expect(component.successMsg()).toBe('Connected!');
+  });
+
+  it('should select preset URL, toggle URL edit when online, and save service overrides', () => {
+    component.selectPresetUrl('http://localhost:8086');
+    expect(component.urlForm.value.url).toBe('http://localhost:8086');
+
+    configSpy.isOnline.set(true);
+    configSpy.backendUrl.set('http://localhost:8086');
+    fixture.detectChanges();
+
+    component.toggleEditUrl();
+    expect(component.showEditUrl()).toBe(true);
+    expect(component.urlForm.value.url).toBe('http://localhost:8086');
+
+    component.toggleEditUrl();
+    expect(component.showEditUrl()).toBe(false);
+
+    configSpy.backendUrl.set(null);
+    component.toggleEditUrl();
+    expect(component.urlForm.value.url).toBe('');
+    component.toggleEditUrl();
+
+    component.toggleAdvanced();
+    expect(component.showAdvanced()).toBe(true);
+    fixture.detectChanges();
+
+    component.overridesForm.setValue({
+      controlPlaneUrl: 'http://localhost:8081/api/v1',
+      storageUrl: 'http://localhost:8085',
+      docsUiUrl: 'http://localhost:8082',
+    });
+    component.onSaveOverrides();
+    expect(configSpy.setServiceOverrides).toHaveBeenCalledWith({
+      controlPlaneUrl: 'http://localhost:8081/api/v1',
+      storageUrl: 'http://localhost:8085',
+      docsUiUrl: 'http://localhost:8082',
+    });
+    expect(component.successMsg()).toBe('Service endpoint overrides saved.');
+
+    component.overridesForm.setValue({
+      controlPlaneUrl: '',
+      storageUrl: '',
+      docsUiUrl: '',
+    });
+    component.onSaveOverrides();
+    expect(configSpy.setServiceOverrides).toHaveBeenCalledWith({
+      controlPlaneUrl: null,
+      storageUrl: null,
+      docsUiUrl: null,
+    });
+
+    configSpy.setServiceOverrides.mockImplementation(() => {
+      throw new Error('Invalid override URL');
+    });
+    component.onSaveOverrides();
+    expect(component.errorMsg()).toBe('Invalid override URL');
   });
 
   it('should display error if setOnlineMode fails', () => {
@@ -162,10 +246,33 @@ describe('OnlineSettingsComponent', () => {
     component.authForm.setValue({ username: 'user', password: 'password' });
     apiSpy.register.mockReturnValue(of({ token: 'test-token' }));
     component.onRegister();
-    expect(apiSpy.register).toHaveBeenCalled();
+    expect(apiSpy.register).toHaveBeenCalledWith({
+      username: 'user',
+      password: 'password',
+      email: 'user@example.com',
+    });
     expect(localStorage.getItem('cdd_auth_token')).toBe('test-token');
     fixture.detectChanges();
     expect(component.successMsg()).toBe('Registered successfully!');
+
+    component.authForm.setValue({ username: 'user@domain.com', password: 'password' });
+    component.onRegister();
+    expect(apiSpy.register).toHaveBeenLastCalledWith({
+      username: 'user@domain.com',
+      password: 'password',
+      email: 'user@domain.com',
+    });
+
+    (component.authForm as unknown as { value: Record<string, string> }).value = {
+      username: '',
+      password: 'password',
+    };
+    component.onRegister();
+    expect(apiSpy.register).toHaveBeenLastCalledWith({
+      username: '',
+      password: 'password',
+      email: '@example.com',
+    });
   });
 
   it('should display error on register failure', () => {

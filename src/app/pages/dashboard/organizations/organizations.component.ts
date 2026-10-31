@@ -2,11 +2,14 @@
  * Dashboard organizations management page component.
  * @module app/pages/dashboard/organizations/organizations.component
  */
-import { Component, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
 import { MatButtonModule } from '@angular/material/button';
 import { GLOBAL_DATE } from '../../../tokens';
+import { ApiService } from '../../../services/api.service';
+import { BackendConfigService } from '../../../services/backend-config.service';
+import { OrgRole } from '../../../models/types';
 
 /**
  * Represents an organization containing members and roles.
@@ -23,7 +26,7 @@ interface Organization {
 }
 
 /**
- * Component to manage user organizations, including creation and inviting members.
+ * Component to manage user organizations, including creation, GitHub synchronization, deletion, and inviting members.
  */
 @Component({
   selector: 'app-organizations',
@@ -32,14 +35,41 @@ interface Organization {
     <div class="page-container">
       <div class="header-actions">
         <h1 i18n="@@organizationsTitle">Organizations</h1>
-        <button type="button" mat-flat-button class="btn btn-primary" (click)="toggleCreateForm()">
-          @if (showCreateForm()) {
-            <span i18n="@@cancelBtn">Cancel</span>
-          } @else {
-            <span i18n="@@createOrgBtn">Create Organization</span>
-          }
-        </button>
+        <div class="header-btns">
+          <button
+            type="button"
+            mat-stroked-button
+            class="btn btn-secondary sync-github-btn"
+            (click)="onSyncGithub()"
+            i18n="@@syncGithubOrgsBtn"
+          >
+            Sync with GitHub
+          </button>
+          <button
+            type="button"
+            mat-flat-button
+            class="btn btn-primary"
+            (click)="toggleCreateForm()"
+          >
+            @if (showCreateForm()) {
+              <span i18n="@@cancelBtn">Cancel</span>
+            } @else {
+              <span i18n="@@createOrgBtn">Create Organization</span>
+            }
+          </button>
+        </div>
       </div>
+
+      @if (statusMessage()) {
+        <div class="status-banner" role="status" aria-live="polite">
+          {{ statusMessage() }}
+        </div>
+      }
+      @if (errorMessage()) {
+        <div class="error-banner" role="alert">
+          {{ errorMessage() }}
+        </div>
+      }
 
       @if (showCreateForm()) {
         <div class="card create-org-card">
@@ -107,10 +137,12 @@ interface Organization {
               <button
                 type="button"
                 mat-stroked-button
-                class="btn btn-secondary"
-                i18n="@@orgSettingsBtn"
+                class="btn btn-secondary delete-org-btn"
+                aria-label="Delete organization"
+                (click)="onDeleteOrg(org)"
+                i18n="@@deleteOrgBtn"
               >
-                Settings
+                Delete Organization
               </button>
             </div>
           </div>
@@ -200,6 +232,26 @@ interface Organization {
         margin: 0;
         color: var(--text-primary);
       }
+    }
+    .header-btns {
+      display: flex;
+      gap: 0.75rem;
+    }
+    .status-banner {
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      border-radius: 6px;
+      background: var(--primary-hover);
+      color: var(--primary-color);
+      font-size: 0.875rem;
+    }
+    .error-banner {
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      border-radius: 6px;
+      background: var(--error-bg);
+      color: var(--error-text);
+      font-size: 0.875rem;
     }
     .card {
       background: var(--surface-color);
@@ -334,9 +386,13 @@ interface Organization {
 /**
  * Component to manage user organizations, including creation and inviting members.
  */
-export class OrganizationsComponent {
+export class OrganizationsComponent implements OnInit {
   /** Global Date constructor. */
   private readonly globalDate = inject(GLOBAL_DATE);
+  /** Backend API service. */
+  private readonly api = inject(ApiService);
+  /** Backend configuration service. */
+  private readonly config = inject(BackendConfigService);
 
   /**
    * List of organizations
@@ -356,6 +412,11 @@ export class OrganizationsComponent {
    */
   selectedOrgForInvite = signal<Organization | null>(null);
 
+  /** Status message signal for backend actions. */
+  readonly statusMessage = signal<string | null>(null);
+  /** Error message signal for backend actions. */
+  readonly errorMessage = signal<string | null>(null);
+
   /**
    * Form group for creating a new organization
    */
@@ -372,6 +433,41 @@ export class OrganizationsComponent {
   });
 
   /**
+   * Initializes the component and fetches organizations from the backend when online.
+   */
+  ngOnInit(): void {
+    if (this.config.isOnline()) {
+      this.loadOrganizations();
+    }
+  }
+
+  /**
+   * Loads organizations from `GET /api/v1/orgs`.
+   */
+  loadOrganizations(): void {
+    this.api.listOrgs().subscribe({
+      next: (remoteOrgs) => {
+        this.organizations.set(
+          remoteOrgs.map((o) => ({
+            id: String(o.id),
+            name: o.name || o.login,
+            role:
+              o.role === 'admin' || o.role === 'Admin'
+                ? 'Admin'
+                : o.role === 'member' || o.role === 'Member'
+                  ? 'Member'
+                  : 'Owner',
+            members: o.members ?? 1,
+          })),
+        );
+      },
+      error: () => {
+        this.errorMessage.set('Failed to load organizations from backend.');
+      },
+    });
+  }
+
+  /**
    * Toggles the visibility of the create form
    */
   toggleCreateForm(): void {
@@ -386,15 +482,77 @@ export class OrganizationsComponent {
    */
   onCreateOrg(): void {
     if (this.createOrgForm.valid) {
+      const orgName = this.createOrgForm.value.name || '';
+      if (this.config.isOnline()) {
+        this.api.createOrg({ login: orgName }).subscribe({
+          next: (created) => {
+            const newOrg: Organization = {
+              id: String(created.id),
+              name: created.name || created.login,
+              role: 'Owner',
+              members: created.members ?? 1,
+            };
+            this.organizations.update((orgs) => [...orgs, newOrg]);
+            this.errorMessage.set(null);
+            this.toggleCreateForm();
+          },
+          error: () => {
+            this.errorMessage.set('Failed to create organization on backend.');
+          },
+        });
+        return;
+      }
+
       const newOrg: Organization = {
         id: `org-${this.globalDate.now()}`,
-        name: this.createOrgForm.value.name || '',
+        name: orgName,
         role: 'Owner',
         members: 1,
       };
       this.organizations.update((orgs) => [...orgs, newOrg]);
       this.toggleCreateForm();
     }
+  }
+
+  /**
+   * Deletes an organization on the backend (when online) and removes it from the list.
+   * @param org The organization to delete.
+   */
+  onDeleteOrg(org: Organization): void {
+    if (this.config.isOnline()) {
+      this.api.deleteOrg(org.id).subscribe({
+        next: () => {
+          this.organizations.update((orgs) => orgs.filter((o) => o.id !== org.id));
+          this.statusMessage.set(`Deleted organization ${org.name}.`);
+          this.errorMessage.set(null);
+        },
+        error: () => {
+          this.errorMessage.set(`Failed to delete organization ${org.name}.`);
+        },
+      });
+      return;
+    }
+    this.organizations.update((orgs) => orgs.filter((o) => o.id !== org.id));
+  }
+
+  /**
+   * Triggers GitHub organization and repository synchronization (`POST /github/sync`).
+   */
+  onSyncGithub(): void {
+    if (!this.config.isOnline()) {
+      this.statusMessage.set('GitHub synchronization requires Online Mode.');
+      return;
+    }
+    this.api.syncGithub().subscribe({
+      next: (res) => {
+        this.statusMessage.set(res.message || 'Synchronized with GitHub.');
+        this.errorMessage.set(null);
+        this.loadOrganizations();
+      },
+      error: () => {
+        this.errorMessage.set('Failed to synchronize with GitHub.');
+      },
+    });
   }
 
   /**
@@ -418,9 +576,25 @@ export class OrganizationsComponent {
    */
   onInvite(): void {
     if (this.inviteForm.valid) {
-      // In a real app, send API request here
       const org = this.selectedOrgForInvite();
       if (org) {
+        const email = this.inviteForm.value.email || '';
+        const role = (this.inviteForm.value.role || 'Member').toLowerCase() as OrgRole;
+        if (this.config.isOnline()) {
+          this.api.inviteOrgMember(org.id, { email, role }).subscribe({
+            next: () => {
+              this.organizations.update((orgs) =>
+                orgs.map((o) => (o.id === org.id ? { ...o, members: o.members + 1 } : o)),
+              );
+              this.closeInvite();
+            },
+            error: () => {
+              this.errorMessage.set('Failed to send organization invitation.');
+            },
+          });
+          return;
+        }
+
         this.organizations.update((orgs) =>
           orgs.map((o) => {
             if (o.id === org.id) {

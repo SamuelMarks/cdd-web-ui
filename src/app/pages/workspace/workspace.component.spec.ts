@@ -11,13 +11,16 @@ import {
 import * as Selectors from '../../store/selectors';
 import * as Actions from '../../store/actions';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Component, input, TemplateRef, output } from '@angular/core';
+import { Component, input, TemplateRef, output, signal } from '@angular/core';
+import { of, throwError } from 'rxjs';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { ThemeService } from '../../services/theme.service';
 import { NotificationService } from '../../services/notification.service';
 import { LanguageService } from '../../services/language.service';
 import { OfflineService } from '../../services/offline.service';
 import { StorageService } from '../../services/storage.service';
+import { BackendConfigService } from '../../services/backend-config.service';
+import { ArtifactStorageService } from '../../services/artifact-storage.service';
 import { SplitPaneComponent } from '../../components/split-pane/split-pane.component';
 import { OpenApiEditorComponent } from '../../components/openapi-editor/openapi-editor.component';
 import { DirectoryTreeComponent } from '../../components/directory-tree/directory-tree.component';
@@ -74,8 +77,25 @@ describe('WorkspaceComponent', () => {
   let component: WorkspaceComponent;
   let fixture: ComponentFixture<WorkspaceComponent>;
   let store: MockStore;
+  let mockConfig: {
+    isOnline: ReturnType<typeof signal<boolean>>;
+  };
+  let mockArtifactStorage: {
+    uploadFileArtifact: ReturnType<typeof vi.fn>;
+    getHostedDocsUrl: ReturnType<typeof vi.fn>;
+    deleteArtifact: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
+    mockConfig = {
+      isOnline: signal(false),
+    };
+    mockArtifactStorage = {
+      uploadFileArtifact: vi.fn(),
+      getHostedDocsUrl: vi.fn().mockReturnValue('http://localhost:8086/docs/?spec=...'),
+      deleteArtifact: vi.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [WorkspaceComponent, NoopAnimationsModule],
       providers: [
@@ -106,6 +126,8 @@ describe('WorkspaceComponent', () => {
         { provide: LanguageService, useValue: { languages: () => [] } },
         { provide: OfflineService, useValue: { isOnline: () => true } },
         { provide: StorageService, useValue: { getItem: () => null, setItem: () => {} } },
+        { provide: BackendConfigService, useValue: mockConfig },
+        { provide: ArtifactStorageService, useValue: mockArtifactStorage },
       ],
     })
       .overrideComponent(WorkspaceComponent, {
@@ -147,6 +169,45 @@ describe('WorkspaceComponent', () => {
     const spy = vi.spyOn(router, 'navigate');
     component.onGoOnline();
     expect(spy).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('should publish docs, delete docs, and clean generation when online', () => {
+    mockConfig.isOnline.set(true);
+    fixture.detectChanges();
+
+    mockArtifactStorage.uploadFileArtifact.mockReturnValue(of(undefined));
+    component.onPublishDocs();
+    expect(mockArtifactStorage.uploadFileArtifact).toHaveBeenCalledWith(
+      'default',
+      'workspace',
+      'latest',
+      'docs.json',
+      'spec',
+    );
+    expect(component.publishedDocsUrl()).toBe('http://localhost:8086/docs/?spec=...');
+
+    // Also test empty specContent fallback and error branch on publish
+    store.overrideSelector(Selectors.selectOpenApiSpecContent, '');
+    store.refreshState();
+    mockArtifactStorage.uploadFileArtifact.mockReturnValue(throwError(() => new Error('Err')));
+    component.onPublishDocs();
+    expect(component.publishedDocsUrl()).toBeNull();
+
+    // Delete docs success & error
+    component.publishedDocsUrl.set('http://localhost:8086/docs/?spec=...');
+    mockArtifactStorage.deleteArtifact.mockReturnValue(of(undefined));
+    component.onDeleteDocs();
+    expect(component.publishedDocsUrl()).toBeNull();
+
+    component.publishedDocsUrl.set('http://localhost:8086/docs/?spec=...');
+    mockArtifactStorage.deleteArtifact.mockReturnValue(throwError(() => new Error('Err')));
+    component.onDeleteDocs();
+    expect(component.publishedDocsUrl()).toBeNull();
+
+    // Clean generation
+    const dispatchSpy = vi.spyOn(store, 'dispatch');
+    component.onCleanGeneration();
+    expect(dispatchSpy).toHaveBeenCalledWith(Actions.executeRunSuccess({ result: [] }));
   });
 
   it('should dispatch executeRun on init', () => {
@@ -357,7 +418,6 @@ describe('WorkspaceComponent', () => {
       (component as { window: unknown }).window = null;
 
       const mousedownEvent = new MouseEvent('mousedown', { clientY: 500 });
-      // Event with no target explicitly mocked to mimic detached element
       Object.defineProperty(mousedownEvent, 'target', { value: null, enumerable: true });
       component.onResizerMouseDown(mousedownEvent);
 
@@ -374,7 +434,6 @@ describe('WorkspaceComponent', () => {
       vi.spyOn(component, 'apiDocsPaneHeight').mockReturnValue(300);
 
       const mousedownEvent = new MouseEvent('mousedown', { clientY: 500 });
-      // Event with no target explicitly mocked to mimic detached element
       Object.defineProperty(mousedownEvent, 'target', { value: null, enumerable: true });
       component.onResizerMouseDown(mousedownEvent);
 
@@ -485,7 +544,6 @@ describe('WorkspaceComponent', () => {
         expect(dispatchSpy).toHaveBeenCalledWith(Actions.executeRun());
       }
 
-      // Swap orientation (from_openapi <-> to_openapi) and run
       dispatchSpy.mockClear();
       component.onSwap();
       expect(dispatchSpy).toHaveBeenCalledWith(Actions.toggleOrientation());

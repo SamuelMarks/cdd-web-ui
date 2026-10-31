@@ -2,7 +2,7 @@
  * Main interactive workspace page component orchestrating the OpenAPI editor, WASM compilers, directory tree, code viewer, and API docs.
  * @module app/pages/workspace/workspace.component
  */
-import { Component, inject, OnInit, OnDestroy, computed } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, computed, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { fromEvent, Subject, takeUntil, tap, finalize } from 'rxjs';
 import { DOCUMENT, NgOptimizedImage } from '@angular/common';
@@ -20,6 +20,8 @@ import { CodeViewerComponent } from '../../components/code-viewer/code-viewer.co
 import { LanguageSelectorComponent } from '../../components/language-selector/language-selector.component';
 import { BottomPanelComponent } from '../../components/bottom-panel/bottom-panel.component';
 import { WINDOW } from '../../tokens';
+import { BackendConfigService } from '../../services/backend-config.service';
+import { ArtifactStorageService } from '../../services/artifact-storage.service';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
@@ -126,7 +128,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               <mat-option value="google_discovery">
                 <div class="format-option">
                   <img
-                    ngSrc="/assets/icons/google.svg"
+                    ngSrc="assets/icons/google.svg"
                     width="20"
                     height="20"
                     alt=""
@@ -182,6 +184,49 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             (targetChanged)="onTargetChanged($event)"
             (optionsChanged)="onOptionsChanged($event)"
           ></app-language-selector>
+
+          @if (config.isOnline()) {
+            <div class="online-workspace-actions">
+              <button
+                mat-stroked-button
+                type="button"
+                class="release-docs-btn"
+                (click)="onPublishDocs()"
+                i18n="@@releaseDocsBtn"
+              >
+                Release Docs
+              </button>
+              @if (publishedDocsUrl()) {
+                <a
+                  [href]="publishedDocsUrl()"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="view-docs-link"
+                  i18n="@@viewDocsLink"
+                >
+                  View Docs
+                </a>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  class="delete-docs-btn"
+                  (click)="onDeleteDocs()"
+                  i18n="@@deleteDocsBtn"
+                >
+                  Delete Docs
+                </button>
+              }
+              <button
+                mat-stroked-button
+                type="button"
+                class="clean-sdks-btn"
+                (click)="onCleanGeneration()"
+                i18n="@@cleanSdksBtn"
+              >
+                Clean SDKs
+              </button>
+            </div>
+          }
         </div>
       </div>
 
@@ -292,6 +337,13 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   /** Router for navigation. */
   private router = inject(Router);
+  /** Backend configuration service. */
+  readonly config = inject(BackendConfigService);
+  /** Artifact storage service for publishing and deleting API Docs in `cdd-storage`. */
+  private readonly artifactStorage = inject(ArtifactStorageService);
+
+  /** Signal holding the public hosted API documentation URL once published. */
+  readonly publishedDocsUrl = signal<string | null>(null);
 
   /** Signal for bottom pane height. Using the existing state selector. */
   apiDocsPaneHeight = this.store.selectSignal(Selectors.selectApiDocsPaneHeight);
@@ -349,7 +401,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
   /**
    * Initializes the workspace and triggers an initial code generation run.
    */
-
   /** ngOnInit */
   ngOnInit(): void {
     this.store.dispatch(Actions.executeRun());
@@ -367,6 +418,46 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    */
   onRun(): void {
     this.store.dispatch(Actions.executeRun());
+  }
+
+  /**
+   * Publishes the current OpenAPI / API Docs JSON artifact to `cdd-storage` and exposes the `cdd-docs-ui` preview link.
+   */
+  onPublishDocs(): void {
+    const content = this.specContent() || '{}';
+    this.artifactStorage
+      .uploadFileArtifact('default', 'workspace', 'latest', 'docs.json', content)
+      .subscribe({
+        next: () => {
+          this.publishedDocsUrl.set(
+            this.artifactStorage.getHostedDocsUrl('default', 'workspace', 'latest', 'docs.json'),
+          );
+        },
+        error: () => {
+          this.publishedDocsUrl.set(null);
+        },
+      });
+  }
+
+  /**
+   * Unpublishes and deletes the hosted documentation artifact from `cdd-storage`.
+   */
+  onDeleteDocs(): void {
+    this.artifactStorage.deleteArtifact('default', 'workspace', 'latest/docs.json').subscribe({
+      next: () => {
+        this.publishedDocsUrl.set(null);
+      },
+      error: () => {
+        this.publishedDocsUrl.set(null);
+      },
+    });
+  }
+
+  /**
+   * Clears generated SDK files from the workspace state.
+   */
+  onCleanGeneration(): void {
+    this.store.dispatch(Actions.executeRunSuccess({ result: [] }));
   }
 
   /**
@@ -504,7 +595,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    * @param content The modified file content string.
    */
   onActiveFileContentChange(content: string): void {
-    // Dispatch action to update active file content
     this.store.dispatch(Actions.updateActiveFileContent({ content }));
   }
 
@@ -513,7 +603,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    * @param event The DOM MouseEvent triggered on the resizer bar.
    */
   onResizerMouseDown(event: MouseEvent): void {
-    event.preventDefault(); // Prevent text selection
+    event.preventDefault();
 
     const startY = event.clientY;
     const startHeight = this.apiDocsPaneHeight();
@@ -524,7 +614,6 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       ? workspaceContent.clientHeight
       : this.window?.innerHeight || 800;
 
-    // Disable pointer events on panes to avoid iframes/editors swallowing mouse events
     if (workspaceContent) {
       workspaceContent.classList.add('resizing');
     }
@@ -533,9 +622,7 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
       tap((e: MouseEvent) => {
         const delta = startY - e.clientY;
         let newHeight = startHeight + delta;
-        // Enforce min/max constraints
         const minHeight = 150;
-        // top-pane has min-height: 300px, resizer is 6px.
         const maxHeight = Math.max(minHeight, containerHeight - 306);
         newHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
 

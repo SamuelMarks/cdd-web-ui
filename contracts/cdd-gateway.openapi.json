@@ -1,0 +1,956 @@
+{
+  "openapi": "3.2.0",
+  "info": {
+    "title": "CDD API Gateway (cdd-gateway)",
+    "version": "0.1.0",
+    "description": "OpenAPI 3.2.0 specification for cdd-gateway HTTP, JSON-RPC 2.0, and MCP endpoints."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8086",
+      "description": "CDD Unified Ingress (cdd-ops)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "api",
+      "description": "ApiService HTTP client operations"
+    },
+    {
+      "name": "artifactStorage",
+      "description": "ArtifactStorageService HTTP client operations"
+    },
+    {
+      "name": "mcpRpc",
+      "description": "McpRpcService JSON-RPC 2.0 and MCP HTTP client operations"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["api"],
+        "operationId": "checkGatewayHealth",
+        "summary": "Check API Gateway health",
+        "responses": {
+          "200": {
+            "description": "Gateway is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "tags": ["api"],
+        "operationId": "getVersion",
+        "summary": "Retrieve gateway and ecosystem compiler versions",
+        "responses": {
+          "200": {
+            "description": "Version details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "register",
+        "summary": "Register a new user via API Gateway",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "login",
+        "summary": "Authenticate user with password via API Gateway",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/github": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "loginGithub",
+        "summary": "Exchange GitHub OAuth code for JWT",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated via GitHub OAuth",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orgs": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "createOrg",
+        "summary": "Create organization via API Gateway",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrgPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Organization created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "createRepo",
+        "summary": "Create repository via API Gateway",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRepoPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Repository created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Repository"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/github/sync": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "syncGithub",
+        "summary": "Synchronize GitHub organizations and repositories",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Synchronization status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/github/webhook": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "sendGithubWebhook",
+        "summary": "Receive HMAC-verified GitHub webhook payload",
+        "parameters": [
+          {
+            "name": "x-hub-signature-256",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook verified",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/github/releases": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "createGithubRelease",
+        "summary": "Create a GitHub release",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GithubReleasePayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Release created"
+          }
+        }
+      }
+    },
+    "/github/actions/dispatch": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "dispatchGithubWorkflow",
+        "summary": "Dispatch a GitHub Actions workflow run",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerWorkflowPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Workflow dispatched"
+          }
+        }
+      }
+    },
+    "/github/actions/workflows/trigger": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "triggerGithubWorkflow",
+        "summary": "Trigger a GitHub Actions workflow run (alias)",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerWorkflowPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Workflow triggered"
+          }
+        }
+      }
+    },
+    "/github/secrets": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "storeGithubSecret",
+        "summary": "Encrypt and upload a GitHub Actions repository secret",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGithubSecretPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Secret stored"
+          }
+        }
+      }
+    },
+    "/github/actions/secrets": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "createGithubSecret",
+        "summary": "Encrypt and upload a GitHub Actions repository secret (alias)",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGithubSecretPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Secret created"
+          }
+        }
+      }
+    },
+    "/rpc": {
+      "post": {
+        "tags": ["mcpRpc"],
+        "operationId": "callRpc",
+        "summary": "Execute a JSON-RPC 2.0 method on cdd-gateway / cdd-engine",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonRpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON-RPC 2.0 response envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonRpcResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp/sse": {
+      "get": {
+        "tags": ["mcpRpc"],
+        "operationId": "connectMcpSse",
+        "summary": "Initiate Model Context Protocol (MCP) SSE stream",
+        "responses": {
+          "200": {
+            "description": "SSE stream yielding endpoint event",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp/message": {
+      "post": {
+        "tags": ["mcpRpc"],
+        "operationId": "callMcp",
+        "summary": "Send an MCP JSON-RPC 2.0 message to cdd-engine",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonRpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "MCP JSON-RPC 2.0 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonRpcResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer_auth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          }
+        }
+      },
+      "VersionResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "gateway": {
+            "type": "string"
+          },
+          "ecosystem": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RegisterPayload": {
+        "type": "object",
+        "required": ["username", "email"],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginPayload": {
+        "type": "object",
+        "required": ["username"],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "OAuthPayload": {
+        "type": "object",
+        "required": ["code"],
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "required": ["token"],
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "OrgRole": {
+        "type": "string",
+        "enum": ["owner", "admin", "member"]
+      },
+      "Organization": {
+        "type": "object",
+        "required": ["id", "login"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "github_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "login": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CreateOrgPayload": {
+        "type": "object",
+        "required": ["login"],
+        "properties": {
+          "login": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "InviteMemberPayload": {
+        "type": "object",
+        "required": ["email", "role"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "role": {
+            "$ref": "#/components/schemas/OrgRole"
+          }
+        }
+      },
+      "Repository": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "organization_id": {
+            "type": "integer"
+          },
+          "github_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CreateRepoPayload": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "organization_id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "Release": {
+        "type": "object",
+        "required": ["id", "repository_id", "tag_name"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "repository_id": {
+            "type": "integer"
+          },
+          "github_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "tag_name": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CreateReleasePayload": {
+        "type": "object",
+        "required": ["tag_name"],
+        "properties": {
+          "tag_name": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        }
+      },
+      "TokenProvider": {
+        "type": "string",
+        "enum": ["github", "npm", "pypi", "cargo"]
+      },
+      "StoreTokenPayload": {
+        "type": "object",
+        "required": ["provider", "token"],
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/TokenProvider"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "AuditActionType": {
+        "type": "string",
+        "enum": [
+          "org_created",
+          "member_added",
+          "repo_created",
+          "release_created",
+          "token_stored",
+          "token_deleted",
+          "sdk_generated",
+          "sdk_published",
+          "publish_failed"
+        ]
+      },
+      "AuditLogRecord": {
+        "type": "object",
+        "required": ["id", "org_id", "user_id", "action", "timestamp"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "org_id": {
+            "type": "integer"
+          },
+          "repo_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "action": {
+            "$ref": "#/components/schemas/AuditActionType"
+          },
+          "metadata_json": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PublishAuditPayload": {
+        "type": "object",
+        "required": ["artifact_id", "registry", "success"],
+        "properties": {
+          "artifact_id": {
+            "type": "string"
+          },
+          "registry": {
+            "type": "string",
+            "enum": ["npm", "pypi", "cargo"]
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "error_message": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SyncStatus": {
+        "type": "object",
+        "required": ["success", "message"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "WebhookResponse": {
+        "type": "object",
+        "required": ["success"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GithubReleasePayload": {
+        "type": "object",
+        "required": ["owner", "repo", "tag_name"],
+        "properties": {
+          "owner": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "tag_name": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        }
+      },
+      "TriggerWorkflowPayload": {
+        "type": "object",
+        "required": ["owner", "repo", "workflow_id", "ref_branch"],
+        "properties": {
+          "owner": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "workflow_id": {
+            "type": "string"
+          },
+          "ref_branch": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateGithubSecretPayload": {
+        "type": "object",
+        "required": ["owner", "repo", "secret_name", "secret_value"],
+        "properties": {
+          "owner": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "secret_name": {
+            "type": "string"
+          },
+          "secret_value": {
+            "type": "string"
+          }
+        }
+      },
+      "JsonRpcRequest": {
+        "type": "object",
+        "required": ["jsonrpc", "id", "method"],
+        "properties": {
+          "jsonrpc": {
+            "type": "string",
+            "enum": ["2.0"]
+          },
+          "id": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "method": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "JsonRpcError": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "JsonRpcResponse": {
+        "type": "object",
+        "required": ["jsonrpc", "id"],
+        "properties": {
+          "jsonrpc": {
+            "type": "string",
+            "enum": ["2.0"]
+          },
+          "id": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "nullable": true
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "error": {
+            "$ref": "#/components/schemas/JsonRpcError"
+          }
+        }
+      },
+      "McpGenerateSdkArguments": {
+        "type": "object",
+        "required": ["target_language"],
+        "properties": {
+          "target_language": {
+            "type": "string"
+          },
+          "input": {
+            "type": "string"
+          },
+          "output": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

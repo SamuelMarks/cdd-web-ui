@@ -1,13 +1,20 @@
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .workspace-container {
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
   height: 100%;
+  min-height: 0;
   width: 100%;
+  overflow: hidden;
 }
 
 .workspace-toolbar {
@@ -124,21 +131,27 @@
 
 /* Docs UI Pane and Resizer Styles */
 .workspace-content {
+  flex: 1 1 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .top-pane {
-  flex-grow: 1;
-  min-height: 300px;
+  flex: 1 1 0;
+  min-height: 220px;
   position: relative;
   overflow: hidden;
 }
 
 .bottom-pane {
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  min-height: 150px;
+  max-height: 50%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background-color: var(--surface-color, #fff);
   border-top: 1px solid var(--border-color, #e0e0e0);
   transition: height 0.2s ease-out; /* Smooth slide down/up unless dragging */

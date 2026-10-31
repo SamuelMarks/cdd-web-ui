@@ -9,7 +9,10 @@ describe('AuthCallbackComponent', () => {
   let fixture: ComponentFixture<AuthCallbackComponent>;
   let mockActivatedRoute: { snapshot: { queryParamMap: { get: ReturnType<typeof vi.fn> } } };
   let mockRouter: { navigate: ReturnType<typeof vi.fn> };
-  let mockAuthService: { setToken: ReturnType<typeof vi.fn> };
+  let mockAuthService: {
+    setToken: ReturnType<typeof vi.fn>;
+    completeGithubOAuth: ReturnType<typeof vi.fn>;
+  };
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
@@ -27,6 +30,7 @@ describe('AuthCallbackComponent', () => {
 
     mockAuthService = {
       setToken: vi.fn(),
+      completeGithubOAuth: vi.fn(),
     };
 
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -53,18 +57,46 @@ describe('AuthCallbackComponent', () => {
   });
 
   it('should set token and navigate to /dashboard if token is present', () => {
-    mockActivatedRoute.snapshot.queryParamMap.get.mockReturnValue('fake-token');
+    mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation((key: string) =>
+      key === 'token' ? 'fake-token' : null,
+    );
 
-    fixture.detectChanges(); // Triggers ngOnInit
+    fixture.detectChanges();
 
     expect(mockAuthService.setToken).toHaveBeenCalledWith('fake-token');
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
   });
 
-  it('should log error and navigate to /login if token is not present', () => {
+  it('should exchange OAuth code and navigate to /dashboard if code is present', async () => {
+    mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation((key: string) =>
+      key === 'code' ? 'oauth-code-123' : null,
+    );
+    mockAuthService.completeGithubOAuth.mockResolvedValue({ token: 'jwt-from-code' });
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(mockAuthService.completeGithubOAuth).toHaveBeenCalledWith('oauth-code-123');
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
+  });
+
+  it('should log error and navigate to /login if OAuth code exchange fails', async () => {
+    mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation((key: string) =>
+      key === 'code' ? 'bad-code' : null,
+    );
+    mockAuthService.completeGithubOAuth.mockRejectedValue(new Error('OAuth failure'));
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('should log error and navigate to /login if neither token nor code is present', () => {
     mockActivatedRoute.snapshot.queryParamMap.get.mockReturnValue(null);
 
-    fixture.detectChanges(); // Triggers ngOnInit
+    fixture.detectChanges();
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Authentication failed: No token received in callback',
