@@ -222,6 +222,85 @@ describe('ApiService', () => {
       expect(ghReq.request.method).toBe('POST');
       ghReq.flush({ token: 't' });
 
+      service.loginGoogle({ code: 'g-code' }).subscribe((res) => {
+        expect(res.token).toBe('g-token');
+      });
+      const googleReq = httpMock.expectOne(`${baseUrl}/auth/google`);
+      expect(googleReq.request.method).toBe('POST');
+      googleReq.flush({ token: 'g-token' });
+
+      service.getMe('mytoken').subscribe((profile) => {
+        expect(profile.username).toBe('alice');
+        expect(profile.github_linked).toBe(true);
+      });
+      const meReq = httpMock.expectOne(`${baseUrl}/api/v1/auth/me`);
+      expect(meReq.request.method).toBe('GET');
+      expect(meReq.request.headers.get('Authorization')).toBe('Bearer mytoken');
+      meReq.flush({
+        id: 1,
+        username: 'alice',
+        email: 'alice@example.com',
+        github_linked: true,
+        google_linked: false,
+        has_password: true,
+      });
+
+      service.connectGithub({ code: 'gh-link' }, 'mytoken').subscribe((profile) => {
+        expect(profile.github_linked).toBe(true);
+      });
+      const connGhReq = httpMock.expectOne(`${baseUrl}/api/v1/auth/me/connect/github`);
+      expect(connGhReq.request.method).toBe('POST');
+      connGhReq.flush({
+        id: 1,
+        username: 'alice',
+        email: 'alice@example.com',
+        github_linked: true,
+        google_linked: false,
+        has_password: true,
+      });
+
+      service.connectGoogle({ code: 'google-link' }, 'mytoken').subscribe((profile) => {
+        expect(profile.google_linked).toBe(true);
+      });
+      const connGoogleReq = httpMock.expectOne(`${baseUrl}/api/v1/auth/me/connect/google`);
+      expect(connGoogleReq.request.method).toBe('POST');
+      connGoogleReq.flush({
+        id: 1,
+        username: 'alice',
+        email: 'alice@example.com',
+        github_linked: true,
+        google_linked: true,
+        has_password: true,
+      });
+
+      service.connectPassword({ password: 'newpassword123' }, 'mytoken').subscribe((profile) => {
+        expect(profile.has_password).toBe(true);
+      });
+      const connPwdReq = httpMock.expectOne(`${baseUrl}/api/v1/auth/me/connect/password`);
+      expect(connPwdReq.request.method).toBe('POST');
+      connPwdReq.flush({
+        id: 1,
+        username: 'alice',
+        email: 'alice@example.com',
+        github_linked: true,
+        google_linked: true,
+        has_password: true,
+      });
+
+      service.disconnectProvider('google', 'mytoken').subscribe((profile) => {
+        expect(profile.google_linked).toBe(false);
+      });
+      const discReq = httpMock.expectOne(`${baseUrl}/api/v1/auth/me/connect/google`);
+      expect(discReq.request.method).toBe('DELETE');
+      discReq.flush({
+        id: 1,
+        username: 'alice',
+        email: 'alice@example.com',
+        github_linked: true,
+        google_linked: false,
+        has_password: true,
+      });
+
       service.deleteAccount('mytoken').subscribe();
       const delReq = httpMock.expectOne(`${baseUrl}/api/v1/auth/me`);
       expect(delReq.request.method).toBe('DELETE');
@@ -315,6 +394,45 @@ describe('ApiService', () => {
       const createOrgRepoReq = httpMock.expectOne(`${baseUrl}/api/v1/orgs/1/repos`);
       expect(createOrgRepoReq.request.method).toBe('POST');
       createOrgRepoReq.flush({ id: 2, organization_id: 1, name: 'repo2' });
+
+      service
+        .updateOrgRepo(1, 2, {
+          name: 'repo2-updated',
+          topology_mode: 'monorepo',
+          languages: ['rust', 'typescript'],
+        })
+        .subscribe((res) => {
+          expect(res.name).toBe('repo2-updated');
+        });
+      const updateRepoReq = httpMock.expectOne(`${baseUrl}/api/v1/orgs/1/repos/2`);
+      expect(updateRepoReq.request.method).toBe('PATCH');
+      updateRepoReq.flush({ id: 2, organization_id: 1, name: 'repo2-updated' });
+
+      service.listGithubOrgs('mytoken').subscribe((orgs) => {
+        expect(orgs.length).toBe(1);
+        expect(orgs[0].login).toBe('offscale');
+      });
+      const ghOrgsReq = httpMock.expectOne(`${baseUrl}/github/orgs`);
+      expect(ghOrgsReq.request.method).toBe('GET');
+      ghOrgsReq.flush([{ id: 100, login: 'offscale' }]);
+
+      service
+        .provisionGithubRepos(
+          {
+            github_org_name: 'offscale',
+            topology_mode: 'monorepo',
+            monorepo_name: 'offscale-sdk',
+            languages: ['rust', 'typescript'],
+          },
+          'mytoken',
+        )
+        .subscribe((repos) => {
+          expect(repos.length).toBe(1);
+          expect(repos[0].name).toBe('offscale-sdk');
+        });
+      const provReq = httpMock.expectOne(`${baseUrl}/github/provision`);
+      expect(provReq.request.method).toBe('POST');
+      provReq.flush([{ id: 99, name: 'offscale-sdk' }]);
 
       service.deleteRepo(1, 2).subscribe();
       const delRepoReq = httpMock.expectOne(`${baseUrl}/api/v1/orgs/1/repos/2`);

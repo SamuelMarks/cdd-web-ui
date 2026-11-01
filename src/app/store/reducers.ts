@@ -49,6 +49,13 @@ export const initialWorkspaceState: WorkspaceState = {
   executionError: null,
   /** isOnlineMode */
   isOnlineMode: false,
+  /** topologyConfig */
+  topologyConfig: {
+    githubOrgName: 'offscale',
+    topologyMode: 'monorepo',
+    monorepoName: 'offscale-sdk',
+    polyrepoNames: {},
+  },
 };
 
 /** Workspace Reducer */
@@ -68,6 +75,11 @@ export const workspaceReducer = createReducer(
   on(Actions.setOnlineMode, (state, { isOnlineMode }): WorkspaceState => ({
     ...state,
     isOnlineMode,
+  })),
+  /** on */
+  on(Actions.setRepoTopologyConfig, (state, { config }): WorkspaceState => ({
+    ...state,
+    topologyConfig: config,
   })),
   /** on */
   on(Actions.setSelectedLanguage, (state, { languageId }): WorkspaceState => {

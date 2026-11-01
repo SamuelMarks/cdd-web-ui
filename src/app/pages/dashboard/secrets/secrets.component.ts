@@ -1,5 +1,5 @@
 /**
- * Dashboard secrets and manual release trigger page component.
+ * Dashboard secrets, PGP signing keys, documentation hosting tokens, and manual release trigger page component.
  * @module app/pages/dashboard/secrets/secrets.component
  */
 import { Component, OnInit, inject, signal } from '@angular/core';
@@ -22,7 +22,20 @@ interface ActionState {
 }
 
 /**
- * Component to manage registry tokens, GitHub Actions secrets, and manually trigger generation or publishing tasks.
+ * Metadata descriptor for a supported Control Plane vault provider.
+ */
+export interface VaultProviderOption {
+  /** Canonical provider ID (`TokenProvider`). */
+  readonly id: TokenProvider;
+  /** Human-readable provider label. */
+  readonly label: string;
+  /** Category grouping (`'vcs' | 'registry' | 'docs' | 'pgp'`). */
+  readonly category: 'vcs' | 'registry' | 'docs' | 'pgp';
+}
+
+/**
+ * Component to manage registry tokens, PGP signing keys, documentation tokens,
+ * GitHub Actions secrets, and manually trigger generation or publishing tasks.
  */
 @Component({
   selector: 'app-secrets',
@@ -30,24 +43,26 @@ interface ActionState {
   template: `
     <div class="page-container">
       <div class="header-actions">
-        <h1 i18n="@@secretsTitle">Secrets & Releases</h1>
+        <h1 i18n="@@secretsTitle">Secrets &amp; Releases</h1>
         <p class="subtitle" i18n="@@secretsSubtitle">
-          Manage your registry tokens and manually trigger SDK releases.
+          Manage your package registry tokens, PGP signing keys, documentation tokens, and manually
+          trigger SDK releases.
         </p>
       </div>
 
       <div class="grid">
-        <!-- Tokens Configuration -->
+        <!-- Tokens & PGP Keys Configuration -->
         <div class="card tokens-card">
-          <h2 i18n="@@registryTokensHeading">Registry Tokens</h2>
+          <h2 i18n="@@registryTokensHeading">Registry, Docs &amp; PGP Vault</h2>
           <p class="section-desc" i18n="@@registryTokensDesc">
-            These tokens are securely stored in the CDD Control Plane Vault.
+            Encrypted with AES-256-GCM in the CDD Control Plane Vault for automated releases across
+            all 13 ecosystems.
           </p>
 
           @if (configuredProviders().length) {
             <div class="configured-tokens" role="region" aria-label="Configured Vault Tokens">
               <span class="configured-label" i18n="@@configuredVaultTokensLabel"
-                >Active Vault Tokens:</span
+                >Active Vault Secrets:</span
               >
               @for (prov of configuredProviders(); track prov) {
                 <span class="token-chip">
@@ -67,7 +82,9 @@ interface ActionState {
 
           <form [formGroup]="tokensForm" (ngSubmit)="onSaveTokens()">
             <div class="form-group">
-              <label for="githubToken" i18n="@@githubTokenLabel">GitHub Token</label>
+              <label for="githubToken" i18n="@@githubTokenLabel"
+                >GitHub Token (GitHub Releases / Packages / Pages)</label
+              >
               <input
                 type="password"
                 id="githubToken"
@@ -79,7 +96,7 @@ interface ActionState {
             </div>
 
             <div class="form-group">
-              <label for="npmToken" i18n="@@npmTokenLabel">npm Token</label>
+              <label for="npmToken" i18n="@@npmTokenLabel">npm Token (TypeScript / JS)</label>
               <input
                 type="password"
                 id="npmToken"
@@ -91,7 +108,7 @@ interface ActionState {
             </div>
 
             <div class="form-group">
-              <label for="pypiToken" i18n="@@pypiTokenLabel">PyPI Token</label>
+              <label for="pypiToken" i18n="@@pypiTokenLabel">PyPI Token (Python)</label>
               <input
                 type="password"
                 id="pypiToken"
@@ -103,7 +120,7 @@ interface ActionState {
             </div>
 
             <div class="form-group">
-              <label for="cargoToken" i18n="@@cargoTokenLabel">Cargo Token (crates.io)</label>
+              <label for="cargoToken" i18n="@@cargoTokenLabel">Cargo Token (Rust crates.io)</label>
               <input
                 type="password"
                 id="cargoToken"
@@ -112,6 +129,34 @@ interface ActionState {
                 placeholder="cio..."
                 i18n-placeholder="@@cargoTokenPlaceholder"
               />
+            </div>
+
+            <div class="form-group">
+              <label for="additionalProviderSelect" i18n="@@additionalProviderLabel">
+                Additional App Store / Registry / Docs / PGP Provider
+              </label>
+              <select
+                id="additionalProviderSelect"
+                formControlName="additionalProvider"
+                class="form-control"
+              >
+                @for (opt of additionalProviderOptions; track opt.id) {
+                  <option [value]="opt.id">{{ opt.label }} ({{ opt.id }})</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="additionalTokenInput" i18n="@@additionalTokenInputLabel">
+                Secret Token or ASCII-Armored PGP Key
+              </label>
+              <textarea
+                id="additionalTokenInput"
+                formControlName="additionalToken"
+                class="form-control"
+                rows="2"
+                placeholder="Paste registry token, Read the Docs token, or -----BEGIN PGP PRIVATE KEY BLOCK-----"
+              ></textarea>
             </div>
 
             <div class="form-actions">
@@ -468,7 +513,7 @@ interface ActionState {
   `,
 })
 /**
- * Component to manage registry tokens and manually trigger generation or publishing tasks.
+ * Component to manage registry tokens, PGP keys, documentation tokens, and manually trigger generation or publishing tasks.
  */
 export class SecretsComponent implements OnInit {
   /** Service to manage authentication and user sessions */
@@ -480,6 +525,22 @@ export class SecretsComponent implements OnInit {
 
   /** Providers that currently have encrypted tokens stored in the Control Plane vault. */
   readonly configuredProviders = signal<TokenProvider[]>([]);
+
+  /** Supported additional vault providers across all 13 language ecosystems, docs hosts, and PGP signing. */
+  readonly additionalProviderOptions: readonly VaultProviderOption[] = [
+    { id: 'maven', label: 'Maven Central (Java / Kotlin)', category: 'registry' },
+    { id: 'nuget', label: 'NuGet Gallery (C# / .NET)', category: 'registry' },
+    { id: 'rubygems', label: 'RubyGems.org (Ruby)', category: 'registry' },
+    { id: 'packagist', label: 'Packagist (PHP)', category: 'registry' },
+    { id: 'conan', label: 'Conan Center (C / C++)', category: 'registry' },
+    { id: 'vcpkg', label: 'vcpkg Registry (C / C++)', category: 'registry' },
+    { id: 'homebrew', label: 'Homebrew Tap (CLI / Shell / Swift)', category: 'registry' },
+    { id: 'readthedocs', label: 'Read the Docs API Token', category: 'docs' },
+    { id: 'pgp_private_key', label: 'PGP Signing Private Key (ASCII-Armored)', category: 'pgp' },
+    { id: 'pgp_passphrase', label: 'PGP Key Passphrase', category: 'pgp' },
+    { id: 'gitlab', label: 'GitLab Personal Access Token', category: 'vcs' },
+    { id: 'bitbucket', label: 'Bitbucket App Password', category: 'vcs' },
+  ];
 
   /**
    * State of the save tokens action
@@ -499,13 +560,15 @@ export class SecretsComponent implements OnInit {
   githubSecretState = signal<ActionState>({ status: 'idle' });
 
   /**
-   * Form group for registry tokens
+   * Form group for registry, documentation, and PGP vault secrets
    */
   tokensForm = new FormGroup({
     github: new FormControl(''),
     npm: new FormControl(''),
     pypi: new FormControl(''),
     cargo: new FormControl(''),
+    additionalProvider: new FormControl<TokenProvider>('pgp_private_key'),
+    additionalToken: new FormControl(''),
   });
 
   /**
@@ -542,24 +605,35 @@ export class SecretsComponent implements OnInit {
   }
 
   /**
-   * Handles saving the registry tokens to the Control Plane vault (`POST /api/v1/tokens`).
+   * Handles saving the registry tokens and PGP keys to the Control Plane vault (`POST /api/v1/tokens`).
    */
   onSaveTokens(): void {
     this.tokensState.set({ status: 'loading' });
 
     if (this.config.isOnline()) {
       const raw = this.tokensForm.getRawValue();
-      const providers: TokenProvider[] = ['github', 'npm', 'pypi', 'cargo'];
+      const primaryProviders: ('github' | 'npm' | 'pypi' | 'cargo')[] = [
+        'github',
+        'npm',
+        'pypi',
+        'cargo',
+      ];
       const calls: Observable<{
         /** Status string returned by the control plane. */
         status: string;
       }>[] = [];
 
-      for (const provider of providers) {
+      for (const provider of primaryProviders) {
         const val = raw[provider]?.trim();
         if (val) {
           calls.push(this.api.storeToken({ provider, token: val }));
         }
+      }
+
+      const extraProvider = raw.additionalProvider;
+      const extraVal = raw.additionalToken?.trim();
+      if (extraProvider && extraVal) {
+        calls.push(this.api.storeToken({ provider: extraProvider, token: extraVal }));
       }
 
       if (calls.length === 0) {

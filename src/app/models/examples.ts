@@ -860,3 +860,97 @@ paths:
               schema:
                 type: string
                 example: Hello, World!`;
+
+/**
+ * A sample Swagger 2.0 specification for legacy OpenAPI/Swagger v2 testing.
+ */
+export const SWAGGER_2_0_SPEC = `{
+  "swagger": "2.0",
+  "info": {
+    "title": "Swagger 2.0 Petstore Sample",
+    "version": "1.0.0"
+  },
+  "basePath": "/v2",
+  "paths": {
+    "/pets": {
+      "get": {
+        "operationId": "listPets",
+        "summary": "List all pets",
+        "responses": {
+          "200": {
+            "description": "A list of pets"
+          }
+        }
+      }
+    }
+  }
+}`;
+
+/**
+ * A sample Arazzo 1.1.0 workflow specification orchestrating multi-step API operations.
+ */
+export const ARAZZO_1_1_0_SPEC = `{
+  "arazzo": "1.1.0",
+  "info": {
+    "title": "CDD Platform Lifecycle Workflow",
+    "version": "1.0.0",
+    "description": "End-to-end Arazzo workflow for provisioning and releasing SDKs."
+  },
+  "sourceDescriptions": [
+    {
+      "name": "cddBackend",
+      "url": "./cdd-backend.openapi.json",
+      "type": "openapi"
+    }
+  ],
+  "workflows": [
+    {
+      "workflowId": "provisionAndReleaseSdk",
+      "summary": "Register, provision repository topology, and trigger signed SDK release",
+      "steps": [
+        {
+          "stepId": "registerUser",
+          "operationId": "register",
+          "successCriteria": [{ "condition": "$statusCode == 201" }]
+        },
+        {
+          "stepId": "provisionRepos",
+          "operationId": "provisionGithubRepos",
+          "successCriteria": [{ "condition": "$statusCode == 201" }]
+        }
+      ]
+    }
+  ]
+}`;
+
+/**
+ * A sample Google Discovery Document v1 specification.
+ */
+export const GOOGLE_DISCOVERY_SPEC = `{
+  "kind": "discovery#restDescription",
+  "discoveryVersion": "v1",
+  "name": "urlshortener",
+  "version": "v1",
+  "title": "URL Shortener API",
+  "description": "Lets you create, inspect, and manage goo.gl short URLs",
+  "protocol": "rest",
+  "baseUrl": "https://www.googleapis.com/urlshortener/v1/",
+  "resources": {
+    "url": {
+      "methods": {
+        "get": {
+          "id": "urlshortener.url.get",
+          "path": "url",
+          "httpMethod": "GET",
+          "parameters": {
+            "shortUrl": {
+              "type": "string",
+              "required": true,
+              "location": "query"
+            }
+          }
+        }
+      }
+    }
+  }
+}`;

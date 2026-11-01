@@ -260,7 +260,7 @@ export class McpRpcService {
     >('initialize', {
       protocolVersion: '2024-11-05',
       capabilities: {},
-      clientInfo: { name: 'cdd-web-ui', version: '0.0.4' },
+      clientInfo: { name: 'cdd-web-ui', version: '0.0.5' },
     });
   }
 

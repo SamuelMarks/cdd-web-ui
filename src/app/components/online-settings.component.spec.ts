@@ -18,6 +18,11 @@ describe('OnlineSettingsComponent', () => {
     login: ReturnType<typeof vi.fn>;
     register: ReturnType<typeof vi.fn>;
     loginGithub: ReturnType<typeof vi.fn>;
+    loginGoogle: ReturnType<typeof vi.fn>;
+    getMe: ReturnType<typeof vi.fn>;
+    connectGithub: ReturnType<typeof vi.fn>;
+    connectGoogle: ReturnType<typeof vi.fn>;
+    disconnectProvider: ReturnType<typeof vi.fn>;
     getVersion: ReturnType<typeof vi.fn>;
     pingBackend: ReturnType<typeof vi.fn>;
     formatPingError: ReturnType<typeof vi.fn>;
@@ -41,6 +46,20 @@ describe('OnlineSettingsComponent', () => {
       login: vi.fn(),
       register: vi.fn(),
       loginGithub: vi.fn(),
+      loginGoogle: vi.fn(),
+      getMe: vi.fn().mockReturnValue(
+        of({
+          id: 1,
+          username: 'user',
+          email: 'user@example.com',
+          github_linked: false,
+          google_linked: false,
+          has_password: true,
+        }),
+      ),
+      connectGithub: vi.fn(),
+      connectGoogle: vi.fn(),
+      disconnectProvider: vi.fn(),
       getVersion: vi.fn().mockReturnValue(of({ gateway: '0.1.0' })),
       pingBackend: vi.fn().mockReturnValue(
         of({
@@ -367,6 +386,96 @@ describe('OnlineSettingsComponent', () => {
     component.onGithubLogin();
     fixture.detectChanges();
     expect(component.errorMsg()).toBe('GitHub OAuth flow failed. Check backend configuration.');
+  });
+
+  it('should handle google login success and failure, and connect/disconnect accounts', async () => {
+    apiSpy.loginGoogle.mockReturnValue(of({ token: 'google-token' }));
+    configSpy.isOnline.set(true);
+    fixture.detectChanges();
+    fixture.debugElement.nativeElement.querySelector('button.google-btn').click();
+    expect(apiSpy.loginGoogle).toHaveBeenCalled();
+    expect(localStorage.getItem('cdd_auth_token')).toBe('google-token');
+    fixture.detectChanges();
+    expect(component.successMsg()).toBe('Google Login successful!');
+
+    apiSpy.loginGoogle.mockReturnValue(throwError(() => new Error('Google Error')));
+    component.onGoogleLogin();
+    fixture.detectChanges();
+    expect(component.errorMsg()).toBe('Google OAuth flow failed. Check backend configuration.');
+
+    // Connect GitHub and Google accounts
+    apiSpy.connectGithub.mockReturnValue(
+      of({
+        id: 1,
+        username: 'user',
+        email: 'user@example.com',
+        github_linked: true,
+        google_linked: false,
+        has_password: true,
+      }),
+    );
+    await component.onConnectAccount('github');
+    expect(component.successMsg()).toBe('GitHub account linked successfully!');
+
+    apiSpy.connectGoogle.mockReturnValue(
+      of({
+        id: 1,
+        username: 'user',
+        email: 'user@example.com',
+        github_linked: true,
+        google_linked: true,
+        has_password: true,
+      }),
+    );
+    await component.onConnectAccount('google');
+    expect(component.successMsg()).toBe('Google account linked successfully!');
+
+    // Connect error (with message and empty message fallback)
+    apiSpy.connectGithub.mockReturnValueOnce(throwError(() => new Error('Connect failed')));
+    await component.onConnectAccount('github');
+    expect(component.errorMsg()).toBe('Connect failed');
+
+    apiSpy.connectGithub.mockReturnValueOnce(throwError(() => new Error('')));
+    await component.onConnectAccount('github');
+    expect(component.errorMsg()).toBe('Failed to link account.');
+
+    // Disconnect Google and GitHub accounts
+    apiSpy.disconnectProvider.mockReturnValueOnce(
+      of({
+        id: 1,
+        username: 'user',
+        email: 'user@example.com',
+        github_linked: true,
+        google_linked: false,
+        has_password: true,
+      }),
+    );
+    await component.onDisconnectAccount('google');
+    expect(component.successMsg()).toBe('Google account disconnected.');
+
+    apiSpy.disconnectProvider.mockReturnValueOnce(
+      of({
+        id: 1,
+        username: 'user',
+        email: 'user@example.com',
+        github_linked: false,
+        google_linked: false,
+        has_password: true,
+      }),
+    );
+    await component.onDisconnectAccount('github');
+    expect(component.successMsg()).toBe('GitHub account disconnected.');
+
+    // Disconnect error (with message and empty message fallback)
+    apiSpy.disconnectProvider.mockReturnValueOnce(throwError(() => new Error('Disconnect err')));
+    // Link github again first so disconnect guard passes
+    await component.onConnectAccount('github');
+    await component.onDisconnectAccount('github');
+    expect(component.errorMsg()).toBe('Disconnect err');
+
+    apiSpy.disconnectProvider.mockReturnValueOnce(throwError(() => new Error('')));
+    await component.onDisconnectAccount('github');
+    expect(component.errorMsg()).toBe('Failed to disconnect account.');
   });
 
   it('should change run mode', () => {

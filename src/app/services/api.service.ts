@@ -10,16 +10,24 @@ import { GLOBAL_DATE } from '../tokens';
 import {
   AuditLogQuery,
   AuditLogRecord,
+  AuthMethod,
+  AuthenticatedUserProfile,
+  ConnectGithubPayload,
+  ConnectGooglePayload,
+  ConnectPasswordPayload,
   CreateGithubSecretPayload,
   CreateOrgPayload,
   CreateReleasePayload,
   CreateRepoPayload,
+  GitHubOrg,
   GithubReleasePayload,
+  GoogleLoginPayload,
   HealthResponse,
   InviteMemberPayload,
   Organization,
   PingFailureError,
   PingResult,
+  ProvisionGithubReposPayload,
   PublishAuditPayload,
   Release,
   Repository,
@@ -27,6 +35,7 @@ import {
   SyncStatus,
   TokenProvider,
   TriggerWorkflowPayload,
+  UpdateRepoConfigPayload,
   VersionResponse,
   WebhookResponse,
 } from '../models/types';
@@ -322,6 +331,15 @@ export class ApiService {
   }
 
   /**
+   * Logs in via Google OAuth (`POST /auth/google`).
+   * @param payload Google OAuth code payload.
+   * @returns Observable emitting the authentication response.
+   */
+  loginGoogle(payload: GoogleLoginPayload): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(this.url('/auth/google'), payload);
+  }
+
+  /**
    * Registers a new user directly against the Control Plane (`POST /api/v1/auth/register`).
    * @param payload Registration details.
    * @returns Observable emitting the authentication response.
@@ -340,12 +358,114 @@ export class ApiService {
   }
 
   /**
+   * Retrieves the currently authenticated user profile and linked-provider state (`GET /api/v1/auth/me`).
+   * @param token Optional bearer authentication token.
+   * @returns Observable emitting the authenticated user profile.
+   */
+  getMe(token?: string): Observable<AuthenticatedUserProfile> {
+    return this.http.get<AuthenticatedUserProfile>(
+      this.controlPlaneUrl('/auth/me'),
+      this.headers(token),
+    );
+  }
+
+  /**
+   * Links a GitHub OAuth account to the currently authenticated user (`POST /api/v1/auth/me/connect/github`).
+   * @param payload GitHub OAuth authorization code payload.
+   * @param token Optional bearer authentication token.
+   * @returns Observable emitting the updated authenticated user profile.
+   */
+  connectGithub(
+    payload: ConnectGithubPayload,
+    token?: string,
+  ): Observable<AuthenticatedUserProfile> {
+    return this.http.post<AuthenticatedUserProfile>(
+      this.controlPlaneUrl('/auth/me/connect/github'),
+      payload,
+      this.headers(token),
+    );
+  }
+
+  /**
+   * Links a Google OAuth account to the currently authenticated user (`POST /api/v1/auth/me/connect/google`).
+   * @param payload Google OAuth authorization code payload.
+   * @param token Optional bearer authentication token.
+   * @returns Observable emitting the updated authenticated user profile.
+   */
+  connectGoogle(
+    payload: ConnectGooglePayload,
+    token?: string,
+  ): Observable<AuthenticatedUserProfile> {
+    return this.http.post<AuthenticatedUserProfile>(
+      this.controlPlaneUrl('/auth/me/connect/google'),
+      payload,
+      this.headers(token),
+    );
+  }
+
+  /**
+   * Sets or links a password credential on the currently authenticated user (`POST /api/v1/auth/me/connect/password`).
+   * @param payload Password credential payload.
+   * @param token Optional bearer authentication token.
+   * @returns Observable emitting the updated authenticated user profile.
+   */
+  connectPassword(
+    payload: ConnectPasswordPayload,
+    token?: string,
+  ): Observable<AuthenticatedUserProfile> {
+    return this.http.post<AuthenticatedUserProfile>(
+      this.controlPlaneUrl('/auth/me/connect/password'),
+      payload,
+      this.headers(token),
+    );
+  }
+
+  /**
+   * Disconnects an authentication provider (`github`, `google`, or `password`) from the currently authenticated user (`DELETE /api/v1/auth/me/connect/{provider}`).
+   * @param provider Authentication provider to disconnect.
+   * @param token Optional bearer authentication token.
+   * @returns Observable emitting the updated authenticated user profile.
+   */
+  disconnectProvider(provider: AuthMethod, token?: string): Observable<AuthenticatedUserProfile> {
+    return this.http.delete<AuthenticatedUserProfile>(
+      this.controlPlaneUrl(`/auth/me/connect/${provider}`),
+      this.headers(token),
+    );
+  }
+
+  /**
    * Deletes the currently authenticated user account (`DELETE /api/v1/auth/me`).
    * @param token Optional bearer authentication token.
    * @returns Observable completing when the account is deleted.
    */
   deleteAccount(token?: string): Observable<void> {
     return this.http.delete<void>(this.controlPlaneUrl('/auth/me'), this.headers(token));
+  }
+
+  /**
+   * Lists GitHub organizations and user namespaces accessible to the authenticated user (`GET /github/orgs`).
+   * @param token Optional bearer authentication token.
+   * @returns Observable emitting the list of GitHub organizations.
+   */
+  listGithubOrgs(token?: string): Observable<GitHubOrg[]> {
+    return this.http.get<GitHubOrg[]>(this.url('/github/orgs'), this.headers(token));
+  }
+
+  /**
+   * Provisions either a single Monorepo (`${GITHUB_ORG_NAME}-sdk`) or per-language Polyrepos (`${GITHUB_ORG_NAME}-sdk-${LANGUAGE}`) (`POST /github/provision`).
+   * @param payload Repository topology provisioning payload.
+   * @param token Optional bearer authentication token.
+   * @returns Observable emitting the list of created/provisioned repositories.
+   */
+  provisionGithubRepos(
+    payload: ProvisionGithubReposPayload,
+    token?: string,
+  ): Observable<Repository[]> {
+    return this.http.post<Repository[]>(
+      this.url('/github/provision'),
+      payload,
+      this.headers(token),
+    );
   }
 
   /**
@@ -467,6 +587,27 @@ export class ApiService {
   createOrgRepo(orgId: number, payload: CreateRepoPayload, token?: string): Observable<Repository> {
     return this.http.post<Repository>(
       this.controlPlaneUrl(`/orgs/${orgId}/repos`),
+      payload,
+      this.headers(token),
+    );
+  }
+
+  /**
+   * Updates configuration for an existing repository within an organization (`PATCH /api/v1/orgs/{org_id}/repos/{repo_id}`).
+   * @param orgId Organization ID.
+   * @param repoId Repository ID.
+   * @param payload Repository configuration update payload.
+   * @param token Optional bearer authentication token.
+   * @returns Observable emitting the updated repository.
+   */
+  updateOrgRepo(
+    orgId: number | string,
+    repoId: number | string,
+    payload: UpdateRepoConfigPayload,
+    token?: string,
+  ): Observable<Repository> {
+    return this.http.patch<Repository>(
+      this.controlPlaneUrl(`/orgs/${orgId}/repos/${repoId}`),
       payload,
       this.headers(token),
     );

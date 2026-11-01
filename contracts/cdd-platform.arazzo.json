@@ -50,6 +50,24 @@
           }
         },
         {
+          "stepId": "linkGithubAccount",
+          "operationId": "connectGithub",
+          "successCriteria": [
+            {
+              "condition": "$statusCode == 200"
+            }
+          ]
+        },
+        {
+          "stepId": "discoverGithubOrgs",
+          "operationId": "listGithubOrgs",
+          "successCriteria": [
+            {
+              "condition": "$statusCode == 200"
+            }
+          ]
+        },
+        {
           "stepId": "createOrganization",
           "operationId": "createOrg",
           "successCriteria": [
@@ -60,6 +78,15 @@
           "outputs": {
             "orgId": "$response.body#/id"
           }
+        },
+        {
+          "stepId": "provisionTopologyRepositories",
+          "operationId": "provisionGithubRepos",
+          "successCriteria": [
+            {
+              "condition": "$statusCode == 201"
+            }
+          ]
         },
         {
           "stepId": "createRepository",

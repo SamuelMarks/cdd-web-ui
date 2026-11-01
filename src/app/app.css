@@ -175,3 +175,17 @@ nav {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
 }
+
+@media (max-width: 768px) {
+  .app-layout {
+    height: auto;
+    min-height: 100vh;
+    max-height: none;
+    overflow-y: auto;
+  }
+
+  .app-main {
+    flex: 1 1 auto;
+    overflow: visible;
+  }
+}

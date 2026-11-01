@@ -1,5 +1,6 @@
 /**
- * Authentication service managing JWT tokens and user session state.
+ * Authentication service managing JWT tokens, multi-provider OAuth (GitHub, Google, Password),
+ * and account linking state.
  * @module app/services/auth.service
  */
 import { Injectable, signal, computed, inject } from '@angular/core';
@@ -8,7 +9,13 @@ import { DOCUMENT } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 import { ApiService, AuthResponse } from './api.service';
 import { BackendConfigService } from './backend-config.service';
-import { JwtClaims } from '../models/types';
+import {
+  AuthenticatedUserProfile,
+  AuthMethod,
+  ConnectedAccounts,
+  JwtClaims,
+  OAuthProvider,
+} from '../models/types';
 import { GLOBAL_DATE } from '../tokens';
 
 /**
@@ -25,6 +32,8 @@ export interface UserProfile {
   name: string;
   /** The URL of the user's avatar image. */
   avatarUrl: string;
+  /** Summary of linked authentication methods on this account. */
+  connectedAccounts?: ConnectedAccounts;
 }
 
 /**
@@ -39,7 +48,7 @@ interface AuthState {
 
 /**
  * Service responsible for handling authentication, managing the JWT session,
- * and storing user profile state.
+ * multi-provider OAuth (GitHub, Google, Password), and account linking.
  */
 @Injectable({
   providedIn: 'root',
@@ -47,6 +56,8 @@ interface AuthState {
 export class AuthService {
   /** Key used for storing the auth token in localStorage. */
   private readonly TOKEN_KEY = 'cdd_auth_token';
+  /** Key used for storing pending OAuth intent in sessionStorage. */
+  private readonly OAUTH_INTENT_KEY = 'cdd_oauth_intent';
   /** Angular Router instance for navigation. */
   private readonly router = inject(Router);
   /** Injected Document instance for safe DOM/window access. */
@@ -73,6 +84,19 @@ export class AuthService {
   readonly profile = computed(() => this.state().profile);
   /** Computed signal indicating whether the user is currently authenticated. */
   readonly isAuthenticated = computed(() => !!this.state().token);
+  /** Computed signal returning the linked authentication providers for the current user. */
+  readonly connectedAccounts = computed<ConnectedAccounts>(() => {
+    const prof = this.state().profile;
+    if (prof?.connectedAccounts) {
+      return prof.connectedAccounts;
+    }
+    const tok = this.state().token;
+    return {
+      github: tok === 'mock-github-jwt-token',
+      google: tok === 'mock-google-jwt-token',
+      password: !!tok && tok !== 'mock-github-jwt-token' && tok !== 'mock-google-jwt-token',
+    };
+  });
 
   /**
    * Initializes the AuthService and loads the user profile if a token exists in storage.
@@ -81,6 +105,29 @@ export class AuthService {
     if (this.token()) {
       this.loadProfile();
     }
+  }
+
+  /**
+   * Maps a backend `AuthenticatedUserProfile` payload into a local `UserProfile` object.
+   * @param backendProfile Backend user profile record from `/api/v1/auth/me` or `/connect/*`.
+   * @returns Normalized `UserProfile` object with `connectedAccounts`.
+   */
+  private mapBackendProfile(backendProfile: AuthenticatedUserProfile): UserProfile {
+    const username = backendProfile.username;
+    return {
+      id: String(backendProfile.id),
+      username,
+      email: backendProfile.email,
+      name: backendProfile.name || username,
+      avatarUrl:
+        backendProfile.avatar_url ||
+        `https://github.com/identicons/${encodeURIComponent(username)}.png`,
+      connectedAccounts: {
+        github: backendProfile.github_linked,
+        google: backendProfile.google_linked,
+        password: backendProfile.has_password,
+      },
+    };
   }
 
   /**
@@ -246,9 +293,189 @@ export class AuthService {
    * @returns A promise resolving to the `AuthResponse`.
    */
   async completeGithubOAuth(code: string): Promise<AuthResponse> {
+    if (!this.config.isOnline()) {
+      const offlineResponse: AuthResponse = { token: 'mock-github-jwt-token' };
+      this.setToken(offlineResponse.token);
+      return offlineResponse;
+    }
     const response = await firstValueFrom(this.api.loginGithub({ code }));
     this.setToken(response.token);
     return response;
+  }
+
+  /**
+   * Completes the Google OAuth code exchange (`POST /auth/google`) and stores the resulting JWT.
+   * @param code The OAuth authorization code returned by Google.
+   * @returns A promise resolving to the `AuthResponse`.
+   */
+  async completeGoogleOAuth(code: string): Promise<AuthResponse> {
+    if (!this.config.isOnline()) {
+      const offlineResponse: AuthResponse = { token: 'mock-google-jwt-token' };
+      this.setToken(offlineResponse.token);
+      return offlineResponse;
+    }
+    const response = await firstValueFrom(this.api.loginGoogle({ code }));
+    this.setToken(response.token);
+    return response;
+  }
+
+  /**
+   * Initiates linking an additional OAuth provider (`github` or `google`) to the currently authenticated account.
+   * Stores the `connect:<provider>` intent in `sessionStorage` and redirects when online, or links immediately in offline demo mode.
+   * @param provider The OAuth provider to link (`'github'` or `'google'`).
+   */
+  connectAccountWithProvider(provider: OAuthProvider): void {
+    sessionStorage.setItem(this.OAUTH_INTENT_KEY, `connect:${provider}`);
+    if (!this.config.isOnline()) {
+      const currentConnected = this.connectedAccounts();
+      const updatedConnected: ConnectedAccounts = {
+        ...currentConnected,
+        [provider]: true,
+      };
+      this.state.update((s) => ({
+        ...s,
+        profile: s.profile
+          ? { ...s.profile, connectedAccounts: updatedConnected }
+          : {
+              id: 'user-123',
+              email: 'user@example.com',
+              name: 'Demo User',
+              avatarUrl: 'https://github.com/identicons/demo.png',
+              connectedAccounts: updatedConnected,
+            },
+      }));
+      sessionStorage.removeItem(this.OAUTH_INTENT_KEY);
+      return;
+    }
+    const baseUrl = this.config.backendUrl() ?? 'http://localhost:3000';
+    this.document.location.href = `${baseUrl}/auth/${provider}`;
+  }
+
+  /**
+   * Completes an OAuth account-linking flow (`POST /api/v1/auth/me/connect/github` or `/google`)
+   * and updates the local user profile state.
+   * @param provider The OAuth provider being linked (`'github'` or `'google'`).
+   * @param code The OAuth authorization code returned by the provider.
+   * @returns A promise resolving to the updated `AuthenticatedUserProfile`.
+   */
+  async completeAccountConnectOAuth(
+    provider: OAuthProvider,
+    code: string,
+  ): Promise<AuthenticatedUserProfile> {
+    sessionStorage.removeItem(this.OAUTH_INTENT_KEY);
+    if (!this.config.isOnline()) {
+      const current = this.connectedAccounts();
+      const next: ConnectedAccounts = { ...current, [provider]: true };
+      const currentProf = this.state().profile;
+      const offlineProfile: AuthenticatedUserProfile = {
+        id: currentProf?.id ?? 'user-123',
+        username: currentProf?.username ?? 'demo',
+        email: currentProf?.email ?? 'user@example.com',
+        name: currentProf?.name ?? 'Demo User',
+        avatar_url: currentProf?.avatarUrl ?? null,
+        github_linked: next.github,
+        google_linked: next.google,
+        has_password: next.password,
+      };
+      this.state.update((s) => ({
+        ...s,
+        profile: this.mapBackendProfile(offlineProfile),
+      }));
+      return offlineProfile;
+    }
+
+    const token = this.token() ?? undefined;
+    const updated =
+      provider === 'github'
+        ? await firstValueFrom(this.api.connectGithub({ code }, token))
+        : await firstValueFrom(this.api.connectGoogle({ code }, token));
+    this.state.update((s) => ({
+      ...s,
+      profile: this.mapBackendProfile(updated),
+    }));
+    return updated;
+  }
+
+  /**
+   * Links or updates a password credential on the currently authenticated account (`POST /api/v1/auth/me/connect/password`).
+   * @param password The plaintext password (`>= 8` characters) to link to the account.
+   * @returns A promise resolving to the updated `AuthenticatedUserProfile`.
+   */
+  async connectPassword(password: string): Promise<AuthenticatedUserProfile> {
+    if (!this.config.isOnline()) {
+      const current = this.connectedAccounts();
+      const next: ConnectedAccounts = { ...current, password: true };
+      const currentProf = this.state().profile;
+      const email = currentProf?.email ?? 'user@example.com';
+      this.offlineRegisteredUsers.set(email.toLowerCase(), password);
+      const offlineProfile: AuthenticatedUserProfile = {
+        id: currentProf?.id ?? 'user-123',
+        username: currentProf?.username ?? 'demo',
+        email,
+        name: currentProf?.name ?? 'Demo User',
+        avatar_url: currentProf?.avatarUrl ?? null,
+        github_linked: next.github,
+        google_linked: next.google,
+        has_password: true,
+      };
+      this.state.update((s) => ({
+        ...s,
+        profile: this.mapBackendProfile(offlineProfile),
+      }));
+      return offlineProfile;
+    }
+
+    const updated = await firstValueFrom(
+      this.api.connectPassword({ password }, this.token() ?? undefined),
+    );
+    this.state.update((s) => ({
+      ...s,
+      profile: this.mapBackendProfile(updated),
+    }));
+    return updated;
+  }
+
+  /**
+   * Disconnects an authentication provider (`github`, `google`, or `password`) from the currently authenticated user.
+   * Rejects if the user attempts to disconnect their sole remaining authentication method.
+   * @param provider Authentication method to disconnect.
+   * @returns A promise resolving to the updated `AuthenticatedUserProfile`.
+   */
+  async disconnectProvider(provider: AuthMethod): Promise<AuthenticatedUserProfile> {
+    const current = this.connectedAccounts();
+    const activeCount = Object.values(current).filter(Boolean).length;
+    if (current[provider] && activeCount <= 1) {
+      throw new Error('Cannot disconnect your only remaining authentication method.');
+    }
+
+    if (!this.config.isOnline()) {
+      const next: ConnectedAccounts = { ...current, [provider]: false };
+      const currentProf = this.state().profile;
+      const offlineProfile: AuthenticatedUserProfile = {
+        id: currentProf?.id ?? 'user-123',
+        username: currentProf?.username ?? 'demo',
+        email: currentProf?.email ?? 'user@example.com',
+        name: currentProf?.name ?? 'Demo User',
+        avatar_url: currentProf?.avatarUrl ?? null,
+        github_linked: next.github,
+        google_linked: next.google,
+        has_password: next.password,
+      };
+      this.state.update((s) => ({
+        ...s,
+        profile: this.mapBackendProfile(offlineProfile),
+      }));
+      return offlineProfile;
+    }
+
+    const updated = await firstValueFrom(
+      this.api.disconnectProvider(provider, this.token() ?? undefined),
+    );
+    this.state.update((s) => ({
+      ...s,
+      profile: this.mapBackendProfile(updated),
+    }));
+    return updated;
   }
 
   /**
@@ -278,6 +505,7 @@ export class AuthService {
    */
   logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
+    sessionStorage.removeItem(this.OAUTH_INTENT_KEY);
     this.state.set({ token: null, profile: null });
     void this.router.navigate(['/login']);
   }
@@ -286,16 +514,19 @@ export class AuthService {
    * Initiates the OAuth login flow by redirecting the browser to the configured backend's auth endpoint.
    * @param provider The OAuth provider to use ('github' or 'google').
    */
-  loginWithProvider(provider: 'github' | 'google'): void {
+  loginWithProvider(provider: OAuthProvider): void {
+    sessionStorage.setItem(this.OAUTH_INTENT_KEY, `login:${provider}`);
     const baseUrl = this.config.backendUrl() ?? 'http://localhost:3000';
     this.document.location.href = `${baseUrl}/auth/${provider}`;
   }
 
   /**
-   * Loads the user's profile from JWT claims if present, or falls back to demo profile data.
+   * Loads the user's profile from `/api/v1/auth/me` when online, JWT claims if present,
+   * or falls back to demo profile data.
    */
   private loadProfile(): void {
-    const claims = this.decodeJwtClaims(this.token() as string);
+    const rawToken = this.token() as string;
+    const claims = this.decodeJwtClaims(rawToken);
     if (claims) {
       this.state.update((state) => ({
         ...state,
@@ -305,21 +536,52 @@ export class AuthService {
           email: claims.username.includes('@') ? claims.username : `${claims.username}@cdd.local`,
           name: claims.username,
           avatarUrl: `https://github.com/identicons/${encodeURIComponent(claims.username)}.png`,
+          connectedAccounts: {
+            github: false,
+            google: false,
+            password: true,
+          },
         },
       }));
+    }
+
+    if (this.config.isOnline()) {
+      this.api.getMe(rawToken).subscribe({
+        next: (meProfile: AuthenticatedUserProfile) => {
+          this.state.update((state) => ({
+            ...state,
+            profile: this.mapBackendProfile(meProfile),
+          }));
+        },
+        error: () => {
+          // Keep decoded JWT claims or fallback profile when /auth/me is unavailable
+        },
+      });
+    }
+
+    if (claims) {
       return;
     }
 
     setTimeout(() => {
-      this.state.update((state) => ({
-        ...state,
-        profile: {
-          id: 'user-123',
-          email: 'user@example.com',
-          name: 'Demo User',
-          avatarUrl: 'https://github.com/identicons/demo.png',
-        },
-      }));
+      if (!this.state().profile) {
+        const isGithubToken = rawToken === 'mock-github-jwt-token';
+        const isGoogleToken = rawToken === 'mock-google-jwt-token';
+        this.state.update((state) => ({
+          ...state,
+          profile: {
+            id: 'user-123',
+            email: 'user@example.com',
+            name: 'Demo User',
+            avatarUrl: 'https://github.com/identicons/demo.png',
+            connectedAccounts: {
+              github: isGithubToken,
+              google: isGoogleToken,
+              password: !isGithubToken && !isGoogleToken,
+            },
+          },
+        }));
+      }
     }, 500);
   }
 }

@@ -27,12 +27,26 @@ describe('Reducers', () => {
       expect(state.orientation).toBe('openapi-right');
     });
 
-    it('should set online mode', () => {
+    it('should set online mode and repo topology config', () => {
       const state = workspaceReducer(
         initialWorkspaceState,
         Actions.setOnlineMode({ isOnlineMode: true }),
       );
       expect(state.isOnlineMode).toBe(true);
+
+      const nextState = workspaceReducer(
+        state,
+        Actions.setRepoTopologyConfig({
+          config: {
+            githubOrgName: 'acme',
+            topologyMode: 'polyrepo',
+            monorepoName: 'acme-sdk',
+            polyrepoNames: { rust: 'acme-sdk-rust' },
+          },
+        }),
+      );
+      expect(nextState.topologyConfig?.githubOrgName).toBe('acme');
+      expect(nextState.topologyConfig?.topologyMode).toBe('polyrepo');
     });
 
     it('should set selected language', () => {

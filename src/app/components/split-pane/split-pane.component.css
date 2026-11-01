@@ -107,7 +107,8 @@
 
   .pane {
     width: 100% !important;
-    transition: height 0.3s ease-in-out;
+    min-height: 0;
+    transition: flex-grow 0.3s ease-in-out;
   }
 
   .pane-left {
@@ -121,12 +122,18 @@
   }
 
   .resizer-wrapper {
+    position: relative;
     width: 100%;
-    height: 12px;
-    left: 0;
-    right: 0;
-    bottom: auto;
+    height: auto;
+    min-height: 44px;
+    flex: 0 0 auto;
+    padding: 4px 10px;
+    box-sizing: border-box;
+    background-color: var(--surface-color);
     flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
   }
 
   .resizer {
@@ -134,10 +141,8 @@
   }
 
   .resizer-action-top {
-    position: absolute;
-    left: 10px; /* Aligns with the left edge of toolbar */
-    top: 50%;
-    transform: translateY(-50%);
+    position: static;
+    transform: none;
   }
 
   .resizer-swap-btn {

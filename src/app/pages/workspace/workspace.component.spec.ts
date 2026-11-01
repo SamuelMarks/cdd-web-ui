@@ -28,7 +28,13 @@ import { CodeViewerComponent } from '../../components/code-viewer/code-viewer.co
 import { LanguageSelectorComponent } from '../../components/language-selector/language-selector.component';
 import { BottomPanelComponent } from '../../components/bottom-panel/bottom-panel.component';
 import { GeneratedFile } from '../../services/wasm-worker.service';
-import { PETSTORE_SPEC, HELLO_WORLD_SPEC } from '../../models/examples';
+import {
+  PETSTORE_SPEC,
+  HELLO_WORLD_SPEC,
+  SWAGGER_2_0_SPEC,
+  ARAZZO_1_1_0_SPEC,
+  GOOGLE_DISCOVERY_SPEC,
+} from '../../models/examples';
 
 // We mock the child components so we just test the orchestration layer without heavy Monaco dependencies
 @Component({ selector: 'app-split-pane', template: '<div></div>' })
@@ -285,6 +291,21 @@ describe('WorkspaceComponent', () => {
     fixture.detectChanges();
     expect(component.selectedExample()).toBe('hello');
 
+    store.overrideSelector(Selectors.selectOpenApiSpecContent, SWAGGER_2_0_SPEC);
+    store.refreshState();
+    fixture.detectChanges();
+    expect(component.selectedExample()).toBe('swagger2');
+
+    store.overrideSelector(Selectors.selectOpenApiSpecContent, ARAZZO_1_1_0_SPEC);
+    store.refreshState();
+    fixture.detectChanges();
+    expect(component.selectedExample()).toBe('arazzo');
+
+    store.overrideSelector(Selectors.selectOpenApiSpecContent, GOOGLE_DISCOVERY_SPEC);
+    store.refreshState();
+    fixture.detectChanges();
+    expect(component.selectedExample()).toBe('discovery');
+
     store.overrideSelector(Selectors.selectOpenApiSpecContent, 'some custom spec');
     store.refreshState();
     fixture.detectChanges();
@@ -299,6 +320,15 @@ describe('WorkspaceComponent', () => {
 
     component.onExampleChange('hello');
     expect(spy).toHaveBeenCalledWith(Actions.updateOpenApiSpec({ content: HELLO_WORLD_SPEC }));
+
+    component.onExampleChange('swagger2');
+    expect(spy).toHaveBeenCalledWith(Actions.updateOpenApiSpec({ content: SWAGGER_2_0_SPEC }));
+
+    component.onExampleChange('arazzo');
+    expect(spy).toHaveBeenCalledWith(Actions.updateOpenApiSpec({ content: ARAZZO_1_1_0_SPEC }));
+
+    component.onExampleChange('discovery');
+    expect(spy).toHaveBeenCalledWith(Actions.updateOpenApiSpec({ content: GOOGLE_DISCOVERY_SPEC }));
 
     spy.mockClear();
     component.onExampleChange('custom');

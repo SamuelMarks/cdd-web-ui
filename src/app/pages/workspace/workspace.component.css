@@ -183,6 +183,25 @@
 }
 
 @media (max-width: 768px) {
+  :host,
+  .workspace-container,
+  .workspace-content {
+    height: auto;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: visible;
+  }
+
+  .top-pane {
+    flex: 0 0 auto;
+    height: 680px;
+    min-height: 680px;
+  }
+
+  .bottom-pane {
+    max-height: none;
+  }
+
   .vertical-resizer {
     display: none;
   }

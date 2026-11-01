@@ -151,6 +151,99 @@
         }
       }
     },
+    "/auth/google": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "loginGoogle",
+        "summary": "Exchange Google OAuth code for JWT",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleLoginPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated via Google OAuth",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/github/orgs": {
+      "get": {
+        "tags": ["api"],
+        "operationId": "listGithubOrgs",
+        "summary": "List GitHub organizations and user namespaces accessible to the user",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Accessible GitHub organizations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GitHubOrg"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/github/provision": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "provisionGithubRepos",
+        "summary": "Provision a single Monorepo (${GITHUB_ORG_NAME}-sdk) or per-language Polyrepos (${GITHUB_ORG_NAME}-sdk-${LANGUAGE})",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionGithubReposPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Provisioned repositories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Repository"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/orgs": {
       "post": {
         "tags": ["api"],
@@ -572,6 +665,28 @@
       }
     },
     "/api/v1/auth/me": {
+      "get": {
+        "tags": ["api"],
+        "operationId": "getMe",
+        "summary": "Retrieve authenticated user profile and linked accounts",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authenticated user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatedUserProfile"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": ["api"],
         "operationId": "deleteAccount",
@@ -584,6 +699,142 @@
         "responses": {
           "204": {
             "description": "Account deleted"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me/connect/github": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "connectGithub",
+        "summary": "Link a GitHub account to the authenticated user",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectGithubPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "GitHub account linked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatedUserProfile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me/connect/google": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "connectGoogle",
+        "summary": "Link a Google account to the authenticated user",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectGooglePayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Google account linked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatedUserProfile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me/connect/password": {
+      "post": {
+        "tags": ["api"],
+        "operationId": "connectPassword",
+        "summary": "Set or link password credentials on the authenticated user",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectPasswordPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password credential linked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatedUserProfile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me/connect/{provider}": {
+      "delete": {
+        "tags": ["api"],
+        "operationId": "disconnectProvider",
+        "summary": "Disconnect an authentication provider from the authenticated user",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AuthMethod"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Provider disconnected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatedUserProfile"
+                }
+              }
+            }
           }
         }
       }
@@ -853,6 +1104,56 @@
         "responses": {
           "200": {
             "description": "Repository details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Repository"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["api"],
+        "operationId": "updateOrgRepo",
+        "summary": "Update repository configuration by ID",
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "repo_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRepoConfigPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Repository updated",
             "content": {
               "application/json": {
                 "schema": {
@@ -1465,6 +1766,260 @@
           }
         }
       },
+      "GoogleLoginPayload": {
+        "type": "object",
+        "required": ["code"],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "redirect_uri": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectGithubPayload": {
+        "type": "object",
+        "required": ["code"],
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectGooglePayload": {
+        "type": "object",
+        "required": ["code"],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "redirect_uri": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectPasswordPayload": {
+        "type": "object",
+        "required": ["password"],
+        "properties": {
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthMethod": {
+        "type": "string",
+        "enum": ["password", "github", "google"]
+      },
+      "AuthenticatedUserProfile": {
+        "type": "object",
+        "required": ["id", "username", "email", "github_linked", "google_linked", "has_password"],
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "github_linked": {
+            "type": "boolean"
+          },
+          "google_linked": {
+            "type": "boolean"
+          },
+          "has_password": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GitHubOrg": {
+        "type": "object",
+        "required": ["id", "login"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "login": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatar_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_personal": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RepoTopologyMode": {
+        "type": "string",
+        "enum": ["monorepo", "polyrepo"]
+      },
+      "PackageRegistryId": {
+        "type": "string",
+        "enum": [
+          "npm",
+          "pypi",
+          "cargo",
+          "maven",
+          "nuget",
+          "rubygems",
+          "packagist",
+          "pkggodev",
+          "swift",
+          "vcpkg",
+          "conan",
+          "homebrew",
+          "github_releases"
+        ]
+      },
+      "DocHostTarget": {
+        "type": "string",
+        "enum": [
+          "official",
+          "github_pages",
+          "readthedocs",
+          "docs_rs",
+          "pkg_go_dev",
+          "javadoc_io",
+          "rubydoc",
+          "spi_docc",
+          "custom",
+          "none"
+        ]
+      },
+      "DocsPublishConfig": {
+        "type": "object",
+        "required": ["enabled", "target"],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "target": {
+            "$ref": "#/components/schemas/DocHostTarget"
+          },
+          "custom_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "github_pages_branch": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ProvisionGithubReposPayload": {
+        "type": "object",
+        "required": ["github_org_name", "topology_mode", "languages"],
+        "properties": {
+          "github_org_name": {
+            "type": "string"
+          },
+          "topology_mode": {
+            "$ref": "#/components/schemas/RepoTopologyMode"
+          },
+          "monorepo_name": {
+            "type": "string"
+          },
+          "polyrepo_names": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "schema_url": {
+            "type": "string"
+          },
+          "release_registries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageRegistryId"
+            }
+          },
+          "enable_pgp_signing": {
+            "type": "boolean"
+          },
+          "docs_config": {
+            "$ref": "#/components/schemas/DocsPublishConfig"
+          },
+          "private": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateRepoConfigPayload": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "schema_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "github_org_name": {
+            "type": "string"
+          },
+          "topology_mode": {
+            "$ref": "#/components/schemas/RepoTopologyMode"
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "release_registries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackageRegistryId"
+            }
+          },
+          "enable_pgp_signing": {
+            "type": "boolean"
+          },
+          "docs_config": {
+            "$ref": "#/components/schemas/DocsPublishConfig"
+          }
+        }
+      },
       "AuthResponse": {
         "type": "object",
         "required": ["token"],
@@ -1605,7 +2160,24 @@
       },
       "TokenProvider": {
         "type": "string",
-        "enum": ["github", "npm", "pypi", "cargo"]
+        "enum": [
+          "github",
+          "gitlab",
+          "bitbucket",
+          "npm",
+          "pypi",
+          "cargo",
+          "maven",
+          "nuget",
+          "rubygems",
+          "packagist",
+          "conan",
+          "vcpkg",
+          "homebrew",
+          "readthedocs",
+          "pgp_private_key",
+          "pgp_passphrase"
+        ]
       },
       "StoreTokenPayload": {
         "type": "object",
@@ -1625,9 +2197,12 @@
           "org_created",
           "member_added",
           "repo_created",
+          "repos_provisioned",
           "release_created",
           "token_stored",
           "token_deleted",
+          "account_connected",
+          "account_disconnected",
           "sdk_generated",
           "sdk_published",
           "publish_failed"

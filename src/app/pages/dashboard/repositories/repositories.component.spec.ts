@@ -18,9 +18,12 @@ describe('RepositoriesComponent', () => {
     listOrgs: ReturnType<typeof vi.fn>;
     listRepos: ReturnType<typeof vi.fn>;
     createOrgRepo: ReturnType<typeof vi.fn>;
+    updateOrgRepo: ReturnType<typeof vi.fn>;
     deleteRepo: ReturnType<typeof vi.fn>;
     listReleases: ReturnType<typeof vi.fn>;
     createOrgRelease: ReturnType<typeof vi.fn>;
+    listGithubOrgs: ReturnType<typeof vi.fn>;
+    provisionGithubRepos: ReturnType<typeof vi.fn>;
   };
   let mockConfig: {
     isOnline: ReturnType<typeof signal<boolean>>;
@@ -33,9 +36,12 @@ describe('RepositoriesComponent', () => {
       listOrgs: vi.fn(),
       listRepos: vi.fn(),
       createOrgRepo: vi.fn(),
+      updateOrgRepo: vi.fn(),
       deleteRepo: vi.fn(),
       listReleases: vi.fn(),
       createOrgRelease: vi.fn(),
+      listGithubOrgs: vi.fn().mockReturnValue(of([{ id: 1, login: 'offscale' }])),
+      provisionGithubRepos: vi.fn(),
     };
     mockConfig = {
       isOnline: signal(false),
@@ -64,7 +70,7 @@ describe('RepositoriesComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should toggle create form', () => {
+  it('should toggle create form and topology wizard', () => {
     expect(component.showCreateForm()).toBe(false);
     component.toggleCreateForm();
     expect(component.showCreateForm()).toBe(true);
@@ -73,6 +79,72 @@ describe('RepositoriesComponent', () => {
     component.toggleCreateForm();
     expect(component.showCreateForm()).toBe(false);
     expect(component.createRepoForm.value.name).toBeNull();
+
+    expect(component.showTopologyWizard()).toBe(false);
+    component.toggleTopologyWizard();
+    expect(component.showTopologyWizard()).toBe(true);
+    component.toggleTopologyWizard();
+    expect(component.showTopologyWizard()).toBe(false);
+  });
+
+  it('should manage Monorepo vs. Polyrepo Wizard state and provision repositories in offline mode', () => {
+    component.onSyncGithubOrgs();
+    expect(component.statusMessage()).toBe('Loaded local GitHub organization presets.');
+
+    // Changing GitHub org updates default monorepoName and polyrepoNames reactively
+    component.onGithubOrgChange('acme-corp');
+    expect(component.topologyConfig().githubOrgName).toBe('acme-corp');
+    expect(component.topologyConfig().monorepoName).toBe('acme-corp-sdk');
+    expect(component.defaultMonorepoPreview()).toBe('acme-corp-sdk');
+    expect(component.getPolyrepoNameForLanguage('TypeScript')).toBe('acme-corp-sdk-ts');
+    expect(component.getPolyrepoNameForLanguage('Kotlin')).toBe('acme-corp-sdk-kotlin');
+
+    // Custom monorepo name is preserved on org change until resetMonorepoName() is called
+    component.onMonorepoNameChange('custom-acme-monorepo');
+    component.onGithubOrgChange('beta-inc');
+    expect(component.topologyConfig().monorepoName).toBe('custom-acme-monorepo');
+    component.resetMonorepoName();
+    expect(component.topologyConfig().monorepoName).toBe('beta-inc-sdk');
+
+    // Custom polyrepo name is preserved on org change until resetPolyrepoNames() is called
+    component.onSetTopologyMode('polyrepo');
+    expect(component.topologyConfig().topologyMode).toBe('polyrepo');
+    component.onPolyrepoNameChange('Rust', 'custom-rust-sdk');
+    component.onGithubOrgChange('gamma-org');
+    expect(component.getPolyrepoNameForLanguage('Rust')).toBe('custom-rust-sdk');
+    expect(component.getPolyrepoNameForLanguage('TypeScript')).toBe('gamma-org-sdk-ts');
+    component.resetPolyrepoNames();
+    expect(component.getPolyrepoNameForLanguage('Rust')).toBe('gamma-org-sdk-rust');
+
+    // Wizard language selection helpers
+    component.toggleWizardLanguage('Go');
+    expect(component.wizardLanguages()).toContain('Go');
+    component.toggleWizardLanguage('Go');
+    expect(component.wizardLanguages()).not.toContain('Go');
+
+    component.selectAllWizardLanguages();
+    expect(component.wizardLanguages().length).toBe(13);
+
+    component.clearWizardLanguages();
+    expect(component.wizardLanguages().length).toBe(0);
+    // Provisioning with 0 languages is a no-op
+    const countBefore = component.repositories().length;
+    component.onProvisionTopologyRepos();
+    expect(component.repositories().length).toBe(countBefore);
+
+    // Offline Monorepo provisioning (with blank monorepoName fallback and custom monorepoName)
+    component.toggleWizardLanguage('TypeScript');
+    component.toggleWizardLanguage('Rust');
+    component.onSetTopologyMode('monorepo');
+    component.onMonorepoNameChange('   ');
+    component.onProvisionTopologyRepos();
+    expect(component.repositories().length).toBe(countBefore + 1);
+    expect(component.repositories()[countBefore].name).toBe('gamma-org/gamma-org-sdk');
+
+    // Offline Polyrepo provisioning creates 1 repo per selected language
+    component.onSetTopologyMode('polyrepo');
+    component.onProvisionTopologyRepos();
+    expect(component.repositories().length).toBe(countBefore + 3);
   });
 
   it('should create repo when form is valid in offline mode', () => {
@@ -112,30 +184,51 @@ describe('RepositoriesComponent', () => {
     expect(component.repositories().length).toBe(initialCount);
   });
 
-  it('should handle schema config', () => {
+  it('should handle schema config and multi-spec format auto-detection', () => {
+    expect(component.detectSpecFormatFromUrl('https://example.com/workflow.arazzo.json')).toBe(
+      'arazzo',
+    );
+    expect(
+      component.detectSpecFormatFromUrl(
+        'https://www.googleapis.com/discovery/v1/apis/compute/v1/rest',
+      ),
+    ).toBe('google_discovery');
+    expect(component.detectSpecFormatFromUrl('https://petstore.swagger.io/v2/swagger.json')).toBe(
+      'swagger',
+    );
+    expect(component.detectSpecFormatFromUrl('https://api.example.com/openapi.yaml')).toBe(
+      'openapi',
+    );
+
     const repo = component.repositories()[0];
     component.openSchemaConfig(repo);
     expect(component.selectedRepoForSchema()).toEqual(repo);
+
+    component.onSchemaUrlInput('https://example.com/platform.arazzo.json');
+    expect(component.schemaForm.controls.specFormat.value).toBe('arazzo');
 
     component.schemaForm.controls.schemaUrl.setValue('http://new-schema');
     component.onSaveSchema();
 
     expect(component.repositories()[0].schemaUrl).toBe('http://new-schema');
+    expect(component.repositories()[0].specFormat).toBe('arazzo');
     expect(component.selectedRepoForSchema()).toBeNull();
   });
 
-  it('should handle schema config when repo has no schemaUrl and schemaForm has falsy url', () => {
+  it('should handle schema config when repo has no schemaUrl/specFormat and schemaForm has falsy values', () => {
     const repo = component.repositories()[0];
-    const repoWithoutSchema = { ...repo, schemaUrl: undefined };
+    const repoWithoutSchema = { ...repo, schemaUrl: undefined, specFormat: undefined };
 
     component.openSchemaConfig(repoWithoutSchema);
     expect(component.schemaForm.value.schemaUrl).toBe('');
+    expect(component.schemaForm.value.specFormat).toBe('openapi');
 
     component.schemaForm.controls.schemaUrl.clearValidators();
-    component.schemaForm.controls.schemaUrl.setValue(null);
+    component.schemaForm.setValue({ schemaUrl: null, specFormat: null });
     component.onSaveSchema();
 
     expect(component.repositories()[0].schemaUrl).toBe('');
+    expect(component.repositories()[0].specFormat).toBe('openapi');
   });
 
   it('should handle schema config when selectedRepoForSchema is null', () => {
@@ -163,13 +256,33 @@ describe('RepositoriesComponent', () => {
     expect(component.selectedRepoForSchema()).toBeNull();
   });
 
-  it('should handle language config open/close', () => {
+  it('should handle language config open/close, selectAll, clearAll, and per-language CLI/MCP options', () => {
     const repo = component.repositories()[0];
     component.openLangConfig(repo);
     expect(component.selectedRepoForLang()).toEqual(repo);
 
-    component.closeLangConfig();
+    component.selectAllRepoLanguages();
+    expect(component.selectedRepoForLang()?.languages.length).toBe(13);
+
+    expect(component.getRepoLangOption('TypeScript', 'cli')).toBe(false);
+    component.toggleRepoLangOption('TypeScript', 'cli');
+    expect(component.getRepoLangOption('TypeScript', 'cli')).toBe(true);
+    component.toggleRepoLangOption('TypeScript', 'mcp');
+    expect(component.getRepoLangOption('TypeScript', 'mcp')).toBe(true);
+    component.toggleRepoLangOption('TypeScript', 'cli');
+    expect(component.getRepoLangOption('TypeScript', 'cli')).toBe(false);
+
+    component.clearRepoLanguages();
+    expect(component.selectedRepoForLang()?.languages.length).toBe(0);
+
+    component.onSaveLangConfig();
     expect(component.selectedRepoForLang()).toBeNull();
+
+    // No-op guards when selectedRepoForLang is null
+    component.selectAllRepoLanguages();
+    component.clearRepoLanguages();
+    component.toggleRepoLangOption('TypeScript', 'cli');
+    expect(component.getRepoLangOption('TypeScript', 'cli')).toBe(false);
   });
 
   it('should toggle language', () => {
@@ -198,7 +311,7 @@ describe('RepositoriesComponent', () => {
     expect(component.isLangSelected('Go')).toBe(false);
   });
 
-  it('should delete repo, open in workspace, and create release in offline mode', () => {
+  it('should delete repo, open in workspace, and create release with registries, PGP, and docs in offline mode', () => {
     const dispatchSpy = vi.spyOn(store, 'dispatch');
     const repo = component.repositories()[0];
     component.openInWorkspace(repo);
@@ -213,6 +326,24 @@ describe('RepositoriesComponent', () => {
     dispatchSpy.mockClear();
     component.openInWorkspace({ ...repo, schemaUrl: undefined });
     expect(dispatchSpy).not.toHaveBeenCalled();
+
+    // Release modal toggles (registries, PGP, docs)
+    component.toggleReleaseRegistry('maven');
+    expect(component.selectedReleaseRegistries()).toContain('maven');
+    component.toggleReleaseRegistry('maven');
+    expect(component.selectedReleaseRegistries()).not.toContain('maven');
+
+    component.togglePgpSigning();
+    expect(component.enablePgpSigning()).toBe(false);
+    component.togglePgpSigning();
+    expect(component.enablePgpSigning()).toBe(true);
+
+    component.toggleDocsPublish();
+    expect(component.docsPublishEnabled()).toBe(false);
+    component.toggleDocsPublish();
+    expect(component.docsPublishEnabled()).toBe(true);
+    component.onDocsTargetChange('readthedocs');
+    expect(component.docsPublishTarget()).toBe('readthedocs');
 
     // Release modal in offline mode
     component.openReleaseModal(repo);
@@ -247,7 +378,7 @@ describe('RepositoriesComponent', () => {
       mockConfig.isOnline.set(true);
     });
 
-    it('should load remote organizations and repositories on ngOnInit and handle errors', () => {
+    it('should load remote organizations, repositories, and GitHub orgs on ngOnInit and handle errors', () => {
       mockApi.listOrgs.mockReturnValue(
         of([
           { id: 10, login: 'acme' },
@@ -266,10 +397,18 @@ describe('RepositoriesComponent', () => {
               },
             ]),
       );
+      mockApi.listGithubOrgs.mockReturnValue(of([{ id: 1, login: 'acme-gh' }]));
 
       component.ngOnInit();
       expect(component.availableOrgs().length).toBe(2);
       expect(component.repositories().length).toBe(2);
+      expect(component.githubOrgs()[0].login).toBe('acme-gh');
+
+      // Empty github orgs and error branch
+      mockApi.listGithubOrgs.mockReturnValueOnce(of([]));
+      component.onSyncGithubOrgs();
+      mockApi.listGithubOrgs.mockReturnValueOnce(throwError(() => new Error('GH orgs err')));
+      component.onSyncGithubOrgs();
 
       // Empty orgs list branch
       mockApi.listOrgs.mockReturnValue(of([]));
@@ -285,6 +424,56 @@ describe('RepositoriesComponent', () => {
       mockApi.listOrgs.mockReturnValue(throwError(() => new Error('Org error')));
       component.loadRemoteRepositories();
       expect(component.errorMessage()).toBe('Failed to load organizations from backend.');
+    });
+
+    it('should provision monorepo or polyrepos online via ApiService and handle errors', () => {
+      component.onSetTopologyMode('monorepo');
+      mockApi.provisionGithubRepos.mockReturnValueOnce(
+        of([{ id: 500, name: 'offscale-sdk', organization_id: 1, languages: ['TypeScript'] }]),
+      );
+      component.onProvisionTopologyRepos();
+      expect(mockApi.provisionGithubRepos).toHaveBeenCalled();
+      expect(component.statusMessage()).toContain('monorepo');
+
+      component.onSetTopologyMode('polyrepo');
+      mockApi.provisionGithubRepos.mockReturnValueOnce(of([{ id: 501, name: 'offscale-sdk-ts' }]));
+      component.onProvisionTopologyRepos();
+      expect(component.statusMessage()).toContain('polyrepo');
+
+      mockApi.provisionGithubRepos.mockReturnValueOnce(
+        throwError(() => new Error('Provision failed')),
+      );
+      component.onProvisionTopologyRepos();
+      expect(component.errorMessage()).toBe('Failed to provision GitHub repositories on backend.');
+    });
+
+    it('should update schema and language configs online via updateOrgRepo and handle errors', () => {
+      const repo = { ...component.repositories()[0], organizationId: undefined };
+      component.openSchemaConfig(repo);
+      mockApi.updateOrgRepo.mockReturnValueOnce(of({ id: 1, name: repo.name }));
+      component.schemaForm.setValue({
+        schemaUrl: 'https://example.com/spec.json',
+        specFormat: 'openapi',
+      });
+      component.onSaveSchema();
+      expect(mockApi.updateOrgRepo).toHaveBeenCalled();
+      expect(component.statusMessage()).toContain('Updated specification');
+
+      component.openSchemaConfig(repo);
+      mockApi.updateOrgRepo.mockReturnValueOnce(throwError(() => new Error('Schema update err')));
+      component.onSaveSchema();
+      expect(component.errorMessage()).toContain('Failed to update specification');
+
+      // Language config online save & error
+      component.openLangConfig(repo);
+      mockApi.updateOrgRepo.mockReturnValueOnce(of({ id: 1, name: repo.name }));
+      component.onSaveLangConfig();
+      expect(component.statusMessage()).toContain('Saved language configuration');
+
+      component.openLangConfig(repo);
+      mockApi.updateOrgRepo.mockReturnValueOnce(throwError(() => new Error('Lang save err')));
+      component.onSaveLangConfig();
+      expect(component.errorMessage()).toContain('Failed to save language configuration');
     });
 
     it('should create and delete repository via ApiService when online', () => {
@@ -333,11 +522,16 @@ describe('RepositoriesComponent', () => {
       );
       component.releaseForm.setValue({ tag_name: 'v1.0.0', name: '1.0', body: 'Body' });
       component.onCreateRelease();
-      expect(mockApi.createOrgRelease).toHaveBeenCalledWith(1, 10, {
-        tag_name: 'v1.0.0',
-        name: '1.0',
-        body: 'Body',
-      });
+      expect(mockApi.createOrgRelease).toHaveBeenCalledWith(
+        1,
+        10,
+        expect.objectContaining({
+          tag_name: 'v1.0.0',
+          name: '1.0',
+          body: 'Body',
+          enable_pgp_signing: true,
+        }),
+      );
       expect(component.repoReleases()['10'].length).toBe(2);
 
       // Also test when repoReleases[repo.id] was not initialized and listReleases fails

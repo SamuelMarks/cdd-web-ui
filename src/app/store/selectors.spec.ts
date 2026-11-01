@@ -52,8 +52,28 @@ describe('Selectors', () => {
     expect(Selectors.selectSelectedLanguageId(mockState)).toBe('rust');
   });
 
-  it('should select isOnlineMode', () => {
+  it('should select isOnlineMode and selectRepoTopologyConfig (default and configured)', () => {
     expect(Selectors.selectIsOnlineMode(mockState)).toBe(true);
+    expect(Selectors.selectRepoTopologyConfig(mockState)).toEqual({
+      githubOrgName: 'offscale',
+      topologyMode: 'monorepo',
+      monorepoName: 'offscale-sdk',
+      polyrepoNames: {},
+    });
+
+    const customState: AppState = {
+      ...mockState,
+      workspace: {
+        ...mockState.workspace,
+        topologyConfig: {
+          githubOrgName: 'acme',
+          topologyMode: 'polyrepo',
+          monorepoName: 'acme-sdk',
+          polyrepoNames: { rust: 'acme-sdk-rust' },
+        },
+      },
+    };
+    expect(Selectors.selectRepoTopologyConfig(customState).githubOrgName).toBe('acme');
   });
 
   it('should select generated files', () => {

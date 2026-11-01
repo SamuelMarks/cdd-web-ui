@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { AuthService } from '../services/auth.service';
 import { BackendConfigService } from '../services/backend-config.service';
-import { PingFailureError, RunMode } from '../models/types';
+import { AuthMethod, OAuthProvider, PingFailureError, RunMode } from '../models/types';
 import { ApiService } from '../services/api.service';
 import { LoggingService } from '../services/logging.service';
 
@@ -247,16 +247,85 @@ import { LoggingService } from '../services/logging.service';
             <div class="divider">
               <span i18n="@@orDivider">OR</span>
             </div>
-            <button
-              mat-flat-button
-              type="button"
-              class="github-btn full-width"
-              (click)="onGithubLogin()"
-            >
-              <mat-icon class="github-icon" aria-hidden="true">code</mat-icon>
-              <span i18n="@@loginWithGithubBtn">Login with GitHub</span>
-            </button>
+            <div class="oauth-btn-stack">
+              <button
+                mat-flat-button
+                type="button"
+                class="github-btn full-width"
+                (click)="onGithubLogin()"
+              >
+                <mat-icon class="github-icon" aria-hidden="true">code</mat-icon>
+                <span i18n="@@loginWithGithubBtn">Login with GitHub</span>
+              </button>
+              <button
+                mat-stroked-button
+                type="button"
+                class="google-btn full-width"
+                (click)="onGoogleLogin()"
+              >
+                <mat-icon class="github-icon" aria-hidden="true">public</mat-icon>
+                <span i18n="@@loginWithGoogleBtn">Login with Google</span>
+              </button>
+            </div>
           </div>
+
+          @if (authService.isAuthenticated()) {
+            <div class="connected-accounts-section" aria-label="Connected Accounts">
+              <h4 i18n="@@connectedAccountsHeading">Connected Accounts</h4>
+              <div class="connected-row">
+                <span
+                  >GitHub:
+                  {{ authService.connectedAccounts().github ? 'Connected' : 'Not Linked' }}</span
+                >
+                @if (authService.connectedAccounts().github) {
+                  <button
+                    mat-button
+                    color="warn"
+                    type="button"
+                    class="disconnect-github-btn"
+                    (click)="onDisconnectAccount('github')"
+                  >
+                    Disconnect
+                  </button>
+                } @else {
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    class="connect-github-btn"
+                    (click)="onConnectAccount('github')"
+                  >
+                    Connect GitHub
+                  </button>
+                }
+              </div>
+              <div class="connected-row">
+                <span
+                  >Google:
+                  {{ authService.connectedAccounts().google ? 'Connected' : 'Not Linked' }}</span
+                >
+                @if (authService.connectedAccounts().google) {
+                  <button
+                    mat-button
+                    color="warn"
+                    type="button"
+                    class="disconnect-google-btn"
+                    (click)="onDisconnectAccount('google')"
+                  >
+                    Disconnect
+                  </button>
+                } @else {
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    class="connect-google-btn"
+                    (click)="onConnectAccount('google')"
+                  >
+                    Connect Google
+                  </button>
+                }
+              </div>
+            </div>
+          }
         </div>
       }
 
@@ -367,7 +436,13 @@ import { LoggingService } from '../services/logging.service';
         font-size: 0.875rem;
         font-weight: 500;
       }
-      .github-btn {
+      .oauth-btn-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .github-btn,
+      .google-btn {
         display: flex;
         align-items: center;
         justify-content: center;
@@ -381,6 +456,22 @@ import { LoggingService } from '../services/logging.service';
         align-items: center;
         justify-content: center;
       }
+      .connected-accounts-section {
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        border-top: 1px dashed var(--border-color, #ccc);
+      }
+      .connected-accounts-section h4 {
+        margin: 0 0 0.5rem;
+        font-size: 0.875rem;
+      }
+      .connected-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 0.8125rem;
+      }
     `,
   ],
 })
@@ -389,8 +480,8 @@ import { LoggingService } from '../services/logging.service';
  * and handle authentication with the remote service.
  */
 export class OnlineSettingsComponent {
-  /** Authentication service for user session. */
-  private readonly authService = inject(AuthService);
+  /** Authentication service for user session and account linking. */
+  readonly authService = inject(AuthService);
   /** Access to backend config state. */
   readonly config = inject(BackendConfigService);
   /** Form builder instance for reactive forms. */
@@ -651,5 +742,57 @@ export class OnlineSettingsComponent {
         this.successMsg.set('');
       },
     });
+  }
+
+  /** Initiates Google OAuth Flow (`POST /auth/google`). */
+  onGoogleLogin(): void {
+    const mockCode = 'mock_google_oauth_code_' + Math.floor(Math.random() * 10000);
+
+    this.api.loginGoogle({ code: mockCode }).subscribe({
+      next: (res) => {
+        this.authService.setToken(res.token);
+        this.successMsg.set('Google Login successful!');
+        this.errorMsg.set('');
+      },
+      error: () => {
+        this.errorMsg.set('Google OAuth flow failed. Check backend configuration.');
+        this.successMsg.set('');
+      },
+    });
+  }
+
+  /**
+   * Links a GitHub or Google OAuth identity to the currently authenticated user.
+   * @param provider The OAuth provider to connect (`'github'` or `'google'`).
+   */
+  async onConnectAccount(provider: OAuthProvider): Promise<void> {
+    try {
+      const mockCode = `connect_${provider}_code_${Math.floor(Math.random() * 10000)}`;
+      await this.authService.completeAccountConnectOAuth(provider, mockCode);
+      this.successMsg.set(
+        `${provider === 'google' ? 'Google' : 'GitHub'} account linked successfully!`,
+      );
+      this.errorMsg.set('');
+    } catch (err) {
+      const error = err as Error;
+      this.errorMsg.set(error.message || 'Failed to link account.');
+      this.successMsg.set('');
+    }
+  }
+
+  /**
+   * Disconnects an authentication provider (`github` or `google`) from the currently authenticated user.
+   * @param provider Authentication provider to disconnect.
+   */
+  async onDisconnectAccount(provider: AuthMethod): Promise<void> {
+    try {
+      await this.authService.disconnectProvider(provider);
+      this.successMsg.set(`${provider === 'google' ? 'Google' : 'GitHub'} account disconnected.`);
+      this.errorMsg.set('');
+    } catch (err) {
+      const error = err as Error;
+      this.errorMsg.set(error.message || 'Failed to disconnect account.');
+      this.successMsg.set('');
+    }
   }
 }

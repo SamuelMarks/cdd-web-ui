@@ -53,6 +53,18 @@ export const selectIsOnlineMode = createSelector(
   (state: WorkspaceState) => state.isOnlineMode,
 );
 
+/** Selects the active GitHub Organization & Monorepo vs. Polyrepo topology configuration */
+export const selectRepoTopologyConfig = createSelector(
+  selectWorkspaceFeature,
+  (state: WorkspaceState) =>
+    state.topologyConfig ?? {
+      githubOrgName: 'offscale',
+      topologyMode: 'monorepo' as const,
+      monorepoName: 'offscale-sdk',
+      polyrepoNames: {},
+    },
+);
+
 /** Selects the currently selected language ID */
 export const selectSelectedLanguageId = createSelector(
   selectWorkspaceFeature,

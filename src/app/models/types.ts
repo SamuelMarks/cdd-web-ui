@@ -19,12 +19,267 @@ export type Ecosystem =
   | 'cdd-ts'
   | 'cdd-sh';
 
+/** Canonical language identifiers across all 13 supported target ecosystems. */
+export type CanonicalLanguageId =
+  | 'c'
+  | 'cpp'
+  | 'csharp'
+  | 'go'
+  | 'java'
+  | 'kotlin'
+  | 'php'
+  | 'python'
+  | 'ruby'
+  | 'rust'
+  | 'sh'
+  | 'swift'
+  | 'typescript';
+
 /** The target output format for the code generator. */
 export type Target =
   'to_sdk' | 'to_sdk_cli' | 'to_server' | 'to_openapi_3_2_0' | 'to_orm' | 'to_mcp';
 
+/** Canonical detected API specification family. */
+export type SpecFormat = 'openapi' | 'swagger' | 'arazzo' | 'google_discovery';
+
 /** The supported input formats for the API specification. */
-export type InputFormat = 'openapi_3_2_0' | 'openapi_older' | 'google_discovery' | 'c_source';
+export type InputFormat =
+  | 'openapi_3_2_0'
+  | 'openapi_older'
+  | 'swagger_2_0'
+  | 'arazzo_1_1_0'
+  | 'google_discovery'
+  | 'c_source';
+
+/**
+ * Result of parsing and validating an API specification document (OpenAPI 3.x, Swagger 2.0, Arazzo 1.x, or Google Discovery v1).
+ */
+export interface SpecValidationResult {
+  /** Whether the specification passed structural validation. */
+  readonly isValid: boolean;
+  /** The parsed JSON/YAML specification payload, if valid syntax. */
+  readonly parsed: unknown;
+  /** List of human-readable syntax or structural validation errors. */
+  readonly errors: string[];
+  /** Detected canonical specification format, or null if unrecognized. */
+  readonly detectedFormat: SpecFormat | null;
+  /** Detected specification version string (e.g., `'3.2.0'`, `'2.0'`, `'1.1.0'`, `'v1'`), or null. */
+  readonly version: string | null;
+  /** Extracted specification title or API name, or null. */
+  readonly title: string | null;
+}
+
+/** Supported OAuth 2.0 identity providers for account creation and account linking. */
+export type OAuthProvider = 'github' | 'google';
+
+/** Supported authentication methods that can be linked to an account. */
+export type AuthMethod = 'password' | 'github' | 'google';
+
+/**
+ * Payload for Google OAuth code exchange (`POST /auth/google`).
+ */
+export interface GoogleLoginPayload {
+  /** OAuth 2.0 authorization code returned from Google. */
+  readonly code: string;
+  /** Optional redirect URI used during the OAuth flow. */
+  readonly redirect_uri?: string;
+}
+
+/**
+ * Payload for linking a GitHub account to an authenticated user (`POST /api/v1/auth/me/connect/github`).
+ */
+export interface ConnectGithubPayload {
+  /** OAuth 2.0 authorization code returned from GitHub. */
+  readonly code: string;
+}
+
+/**
+ * Payload for linking a Google account to an authenticated user (`POST /api/v1/auth/me/connect/google`).
+ */
+export interface ConnectGooglePayload {
+  /** OAuth 2.0 authorization code returned from Google. */
+  readonly code: string;
+  /** Optional redirect URI used during the OAuth flow. */
+  readonly redirect_uri?: string;
+}
+
+/**
+ * Payload for setting or linking password credentials on an authenticated account (`POST /api/v1/auth/me/connect/password`).
+ */
+export interface ConnectPasswordPayload {
+  /** Plaintext password (`>= 8` characters) to hash and store for the user. */
+  readonly password: string;
+}
+
+/**
+ * Summary of authentication providers currently linked to the user's account.
+ */
+export interface ConnectedAccounts {
+  /** Whether a GitHub OAuth identity is linked. */
+  readonly github: boolean;
+  /** Whether a Google OAuth identity is linked. */
+  readonly google: boolean;
+  /** Whether a local email/username password credential is set. */
+  readonly password: boolean;
+}
+
+/**
+ * Authenticated user profile and linked-identity record returned by `GET /api/v1/auth/me`.
+ */
+export interface AuthenticatedUserProfile {
+  /** Primary user identifier. */
+  readonly id: number | string;
+  /** Unique username handle. */
+  readonly username: string;
+  /** Primary verified email address. */
+  readonly email: string;
+  /** Optional human-readable display name. */
+  readonly name?: string;
+  /** Optional profile avatar URL. */
+  readonly avatar_url?: string | null;
+  /** Whether a GitHub account is linked to this user. */
+  readonly github_linked: boolean;
+  /** Whether a Google account is linked to this user. */
+  readonly google_linked: boolean;
+  /** Whether password authentication is configured for this user. */
+  readonly has_password: boolean;
+}
+
+/**
+ * GitHub organization or user namespace returned by `GET /github/orgs`.
+ */
+export interface GitHubOrg {
+  /** Numeric GitHub organization or user ID. */
+  readonly id: number;
+  /** GitHub organization slug / login handle (`${GITHUB_ORG_NAME}`). */
+  readonly login: string;
+  /** Optional display name of the GitHub organization. */
+  readonly name?: string | null;
+  /** Optional organization description. */
+  readonly description?: string | null;
+  /** Optional organization avatar URL. */
+  readonly avatar_url?: string | null;
+  /** Whether this entry represents the user's personal GitHub namespace. */
+  readonly is_personal?: boolean;
+}
+
+/** Repository structure mode: single monorepo (`${ORG}-sdk`) vs. individual polyrepos (`${ORG}-sdk-${LANG}`). */
+export type RepoTopologyMode = 'monorepo' | 'polyrepo';
+
+/**
+ * Configuration state for the GitHub Organization and Monorepo vs. Polyrepo naming wizard.
+ */
+export interface RepoTopologyConfig {
+  /** Target GitHub organization or user handle (`${GITHUB_ORG_NAME}`). */
+  readonly githubOrgName: string;
+  /** Selected repository layout topology (`'monorepo'` or `'polyrepo'`). */
+  readonly topologyMode: RepoTopologyMode;
+  /** Repository name when `topologyMode === 'monorepo'` (defaults to `${GITHUB_ORG_NAME}-sdk`). */
+  readonly monorepoName: string;
+  /** Map of canonical language IDs to repository names when `topologyMode === 'polyrepo'` (defaults to `${GITHUB_ORG_NAME}-sdk-${LANGUAGE}`). */
+  readonly polyrepoNames: Readonly<Record<string, string>>;
+}
+
+/** Supported app store and package registry targets across all 13 language ecosystems. */
+export type PackageRegistryId =
+  | 'npm'
+  | 'pypi'
+  | 'cargo'
+  | 'maven'
+  | 'nuget'
+  | 'rubygems'
+  | 'packagist'
+  | 'pkggodev'
+  | 'swift'
+  | 'vcpkg'
+  | 'conan'
+  | 'homebrew'
+  | 'github_releases';
+
+/** Supported API documentation hosting targets for generated SDKs and OpenAPI specs. */
+export type DocHostTarget =
+  | 'official'
+  | 'github_pages'
+  | 'readthedocs'
+  | 'docs_rs'
+  | 'pkg_go_dev'
+  | 'javadoc_io'
+  | 'rubydoc'
+  | 'spi_docc'
+  | 'custom'
+  | 'none';
+
+/**
+ * Configuration for publishing generated API & SDK documentation.
+ */
+export interface DocsPublishConfig {
+  /** Whether documentation generation and publishing are enabled. */
+  readonly enabled: boolean;
+  /** Selected documentation hosting provider or target. */
+  readonly target: DocHostTarget;
+  /** Optional custom documentation base URL when `target === 'custom'`. */
+  readonly custom_url?: string | null;
+  /** Optional GitHub Pages branch name (e.g., `'gh-pages'` or `'main'`) when `target === 'github_pages'`. */
+  readonly github_pages_branch?: string | null;
+}
+
+/**
+ * Payload for provisioning either a single Monorepo (`${GITHUB_ORG_NAME}-sdk`) or per-language Polyrepos (`${GITHUB_ORG_NAME}-sdk-${LANGUAGE}`) via `POST /github/provision`.
+ */
+export interface ProvisionGithubReposPayload {
+  /** Target GitHub organization or user handle (`${GITHUB_ORG_NAME}`). */
+  readonly github_org_name: string;
+  /** Selected repository topology (`'monorepo'` or `'polyrepo'`). */
+  readonly topology_mode: RepoTopologyMode;
+  /** Monorepo name when `topology_mode === 'monorepo'`. */
+  readonly monorepo_name?: string;
+  /** Map of language IDs to repository names when `topology_mode === 'polyrepo'`. */
+  readonly polyrepo_names?: Readonly<Record<string, string>>;
+  /** List of enabled target languages (any subset or all 13). */
+  readonly languages: readonly string[];
+  /** Optional per-language code generation options (`Angular`, `CLI`, `MCP`, etc.). */
+  readonly language_options?: Readonly<Record<string, LanguageOptions>>;
+  /** Optional remote specification URL (OpenAPI, Swagger, Arazzo, or Google Discovery). */
+  readonly schema_url?: string;
+  /** Optional detected specification format. */
+  readonly spec_format?: SpecFormat;
+  /** Optional list of package registries enabled for automated releases. */
+  readonly release_registries?: readonly PackageRegistryId[];
+  /** Whether PGP artifact signing (`.asc`) is enabled for releases. */
+  readonly enable_pgp_signing?: boolean;
+  /** Optional documentation hosting configuration. */
+  readonly docs_config?: DocsPublishConfig;
+  /** Whether created GitHub repositories should be private. */
+  readonly private?: boolean;
+}
+
+/**
+ * Payload for updating an existing repository's configuration in `cdd-control-plane` (`PATCH /api/v1/orgs/{org_id}/repos/{repo_id}`).
+ */
+export interface UpdateRepoConfigPayload {
+  /** Updated repository name. */
+  readonly name?: string;
+  /** Updated repository description. */
+  readonly description?: string | null;
+  /** Updated remote specification URL. */
+  readonly schema_url?: string | null;
+  /** Updated specification format. */
+  readonly spec_format?: SpecFormat;
+  /** Updated GitHub organization handle. */
+  readonly github_org_name?: string;
+  /** Updated repository topology mode. */
+  readonly topology_mode?: RepoTopologyMode;
+  /** Updated list of target languages. */
+  readonly languages?: readonly string[];
+  /** Updated per-language generation options. */
+  readonly language_options?: Readonly<Record<string, LanguageOptions>>;
+  /** Updated target package registries. */
+  readonly release_registries?: readonly PackageRegistryId[];
+  /** Whether PGP signing is enabled for releases. */
+  readonly enable_pgp_signing?: boolean;
+  /** Updated documentation publishing configuration. */
+  readonly docs_config?: DocsPublishConfig;
+}
 
 /** The active input mode tab in the OpenAPI specification pane. */
 export type OpenApiInputMode = 'editor' | 'urls';
@@ -140,7 +395,10 @@ export interface LanguageOptions {
   noImports?: boolean;
   /** Whether to omit wrapping blocks in docs json target. */
   noWrapping?: boolean;
-
+  /** Whether to generate a CLI (`to_sdk_cli`) alongside or for the language. */
+  cli?: boolean;
+  /** Optional target mode override for this specific language. */
+  target?: Target;
   /** Whether to upgrade the OpenAPI spec automatically. */
   upgradeOpenApi?: boolean;
   /** Whether to skip generating GitHub Actions. */
@@ -225,6 +483,14 @@ export interface Repository {
   organization_id?: number;
   /** Display name or login of the owning organization. */
   organization?: string;
+  /** Optional GitHub organization handle (`${GITHUB_ORG_NAME}`). */
+  githubOrgName?: string;
+  /** Optional repository topology mode (`'monorepo'` or `'polyrepo'`). */
+  topologyMode?: RepoTopologyMode;
+  /** Optional monorepo repository name (`${GITHUB_ORG_NAME}-sdk`). */
+  monorepoName?: string;
+  /** Optional per-language polyrepo names (`${GITHUB_ORG_NAME}-sdk-${LANGUAGE}`). */
+  polyrepoNames?: Record<string, string>;
   /** Optional GitHub repository ID from `cdd-control-plane`. */
   github_id?: number | null;
   /** A brief description of the repository. */
@@ -235,8 +501,18 @@ export interface Repository {
   specUrl?: string;
   /** Alias for the remote OpenAPI schema URL used in the dashboard. */
   schemaUrl?: string;
+  /** Detected or configured specification format (`openapi`, `swagger`, `arazzo`, `google_discovery`). */
+  specFormat?: SpecFormat;
   /** Target SDK languages configured for this repository. */
   languages?: string[];
+  /** Per-language code generation options (`Angular`, `CLI`, `MCP`, etc.). */
+  languageOptions?: Record<string, LanguageOptions>;
+  /** Enabled package registries for automated releases. */
+  releaseRegistries?: PackageRegistryId[];
+  /** Whether PGP artifact signing is enabled for releases. */
+  enablePgpSigning?: boolean;
+  /** Documentation hosting and publishing configuration. */
+  docsConfig?: DocsPublishConfig;
 }
 
 /**
@@ -279,18 +555,42 @@ export interface CreateReleasePayload {
   name?: string;
   /** Optional release notes body. */
   body?: string;
+  /** Optional subset or all 13 target languages to build and release. */
+  target_languages?: readonly string[];
+  /** Optional target package registries / app stores to publish to. */
+  release_registries?: readonly PackageRegistryId[];
+  /** Whether to sign release artifacts with the stored PGP key (`.asc`). */
+  enable_pgp_signing?: boolean;
+  /** Optional documentation release configuration. */
+  docs_config?: DocsPublishConfig;
 }
 
-/** Supported third-party registry and VCS token providers in `cdd-control-plane` and `cdd-publisher`. */
-export type TokenProvider = 'github' | 'npm' | 'pypi' | 'cargo';
+/** Supported third-party registry, VCS, documentation, and PGP vault secret providers in `cdd-control-plane` and `cdd-publisher`. */
+export type TokenProvider =
+  | 'github'
+  | 'gitlab'
+  | 'bitbucket'
+  | 'npm'
+  | 'pypi'
+  | 'cargo'
+  | 'maven'
+  | 'nuget'
+  | 'rubygems'
+  | 'packagist'
+  | 'conan'
+  | 'vcpkg'
+  | 'homebrew'
+  | 'readthedocs'
+  | 'pgp_private_key'
+  | 'pgp_passphrase';
 
 /**
  * Payload for storing an encrypted token in the Control Plane vault (`POST /api/v1/tokens`).
  */
 export interface StoreTokenPayload {
-  /** Target registry or VCS provider. */
+  /** Target registry, VCS, documentation, or PGP secret provider. */
   provider: TokenProvider;
-  /** Plaintext secret token to encrypt and store. */
+  /** Plaintext secret token or ASCII-armored PGP key to encrypt and store. */
   token: string;
 }
 
@@ -353,9 +653,12 @@ export type AuditActionType =
   | 'org_created'
   | 'member_added'
   | 'repo_created'
+  | 'repos_provisioned'
   | 'release_created'
   | 'token_stored'
   | 'token_deleted'
+  | 'account_connected'
+  | 'account_disconnected'
   | 'sdk_generated'
   | 'sdk_published'
   | 'publish_failed';
@@ -379,7 +682,7 @@ export interface InviteMemberPayload {
 }
 
 /** Supported target package registries in `cdd-publisher`. */
-export type PublisherRegistry = 'npm' | 'pypi' | 'cargo';
+export type PublisherRegistry = PackageRegistryId;
 
 /**
  * Audit telemetry payload reported by `cdd-publisher` to `POST /api/v1/audit/publish`.
@@ -387,7 +690,7 @@ export type PublisherRegistry = 'npm' | 'pypi' | 'cargo';
 export interface PublishAuditPayload {
   /** Identifier of the published artifact. */
   artifact_id: string;
-  /** Target package registry (`'npm'`, `'pypi'`, or `'cargo'`). */
+  /** Target package registry (`'npm'`, `'pypi'`, `'cargo'`, etc.). */
   registry: PublisherRegistry;
   /** Whether the package publish succeeded. */
   success: boolean;

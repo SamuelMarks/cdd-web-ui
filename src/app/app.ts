@@ -184,7 +184,7 @@ export class App implements OnInit {
   /** The application title. */
   title = 'cdd-web-ui';
   /** The current application version. */
-  readonly appVersion = '0.0.4';
+  readonly appVersion = '0.0.5';
 
   /** Backend configuration service instance. */
   readonly config = inject(BackendConfigService);

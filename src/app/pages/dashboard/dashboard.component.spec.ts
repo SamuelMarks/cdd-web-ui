@@ -6,12 +6,17 @@ import { MatDialog } from '@angular/material/dialog';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { ConnectedAccounts } from '../../models/types';
 
 describe('DashboardComponent', () => {
   let component: DashboardComponent;
   let fixture: ComponentFixture<DashboardComponent>;
   let mockAuthService: {
     profile: ReturnType<typeof signal>;
+    connectedAccounts: ReturnType<typeof signal<ConnectedAccounts>>;
+    connectAccountWithProvider: ReturnType<typeof vi.fn>;
+    connectPassword: ReturnType<typeof vi.fn>;
+    disconnectProvider: ReturnType<typeof vi.fn>;
     logout: ReturnType<typeof vi.fn>;
     deleteAccount: ReturnType<typeof vi.fn>;
   };
@@ -27,6 +32,22 @@ describe('DashboardComponent', () => {
         name: 'Test User',
         email: 'test@example.com',
         avatarUrl: 'http://avatar.com/test.png',
+      }),
+      connectedAccounts: signal<ConnectedAccounts>({
+        github: false,
+        google: false,
+        password: true,
+      }),
+      connectAccountWithProvider: vi.fn((provider: 'github' | 'google') => {
+        mockAuthService.connectedAccounts.update((c) => ({ ...c, [provider]: true }));
+      }),
+      connectPassword: vi.fn().mockImplementation(() => {
+        mockAuthService.connectedAccounts.update((c) => ({ ...c, password: true }));
+        return Promise.resolve(undefined);
+      }),
+      disconnectProvider: vi.fn().mockImplementation((provider: 'github' | 'google') => {
+        mockAuthService.connectedAccounts.update((c) => ({ ...c, [provider]: false }));
+        return Promise.resolve(undefined);
       }),
       logout: vi.fn(),
       deleteAccount: vi.fn().mockResolvedValue(undefined),
@@ -78,6 +99,67 @@ describe('DashboardComponent', () => {
     dialogSpy.mockImplementation(() => ({}) as never);
     component.openBackendSettings();
     expect(dialogSpy).toHaveBeenCalled();
+  });
+
+  it('should connect and disconnect GitHub, Google, and Password accounts in DashboardComponent', async () => {
+    // Offline connect GitHub and Google sets accountMessage
+    component.onConnectProvider('github');
+    expect(mockAuthService.connectAccountWithProvider).toHaveBeenCalledWith('github');
+    expect(component.accountMessage()).toBe('GitHub account linked.');
+
+    component.onConnectProvider('google');
+    expect(mockAuthService.connectAccountWithProvider).toHaveBeenCalledWith('google');
+    expect(component.accountMessage()).toBe('Google account linked.');
+
+    // Online connect does not set immediate offline message
+    mockConfigService.isOnline.set(true);
+    component.accountMessage.set(null);
+    component.onConnectProvider('github');
+    expect(component.accountMessage()).toBeNull();
+
+    // Disconnect GitHub and Google
+    await component.onDisconnectProvider('github');
+    expect(mockAuthService.disconnectProvider).toHaveBeenCalledWith('github');
+    expect(component.accountMessage()).toBe('GitHub account disconnected.');
+
+    await component.onDisconnectProvider('google');
+    expect(mockAuthService.disconnectProvider).toHaveBeenCalledWith('google');
+    expect(component.accountMessage()).toBe('Google account disconnected.');
+
+    // Disconnect failure displays accountError
+    mockAuthService.disconnectProvider.mockRejectedValueOnce(
+      new Error('Cannot disconnect your only remaining authentication method.'),
+    );
+    await component.onDisconnectProvider('github');
+    expect(component.accountError()).toBe(
+      'Cannot disconnect your only remaining authentication method.',
+    );
+
+    // Toggle password form open and closed
+    component.togglePasswordForm();
+    expect(component.showPasswordForm()).toBe(true);
+    component.togglePasswordForm();
+    expect(component.showPasswordForm()).toBe(false);
+
+    // Invalid password form does nothing
+    component.togglePasswordForm();
+    component.passwordForm.controls.password.setValue('short');
+    await component.onConnectPassword();
+    expect(mockAuthService.connectPassword).not.toHaveBeenCalled();
+
+    // Valid password form links password
+    component.passwordForm.controls.password.setValue('ValidPass123');
+    await component.onConnectPassword();
+    expect(mockAuthService.connectPassword).toHaveBeenCalledWith('ValidPass123');
+    expect(component.accountMessage()).toBe('Password credential configured.');
+    expect(component.showPasswordForm()).toBe(false);
+
+    // Password connect error displays accountError
+    component.togglePasswordForm();
+    component.passwordForm.controls.password.setValue('ValidPass123');
+    mockAuthService.connectPassword.mockRejectedValueOnce(new Error('Password update failed'));
+    await component.onConnectPassword();
+    expect(component.accountError()).toBe('Password update failed');
   });
 
   it('should call authService.logout on logout and deleteAccount on onDeleteAccount', async () => {

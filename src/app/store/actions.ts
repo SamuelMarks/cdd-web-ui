@@ -5,7 +5,13 @@
 import { createAction, props } from '@ngrx/store';
 import { GeneratedFile } from '../services/wasm-worker.service';
 import { LayoutOrientation } from './state';
-import { Target, LanguageOptions, InputFormat, OpenApiInputMode } from '../models/types';
+import {
+  Target,
+  LanguageOptions,
+  InputFormat,
+  OpenApiInputMode,
+  RepoTopologyConfig,
+} from '../models/types';
 
 /** Toggles the split pane layout orientation. */
 export const toggleOrientation = createAction('[Workspace] Toggle Orientation');
@@ -135,6 +141,15 @@ export const setOnlineMode = createAction(
   props<{
     /** True if online mode is active. */
     isOnlineMode: boolean;
+  }>(),
+);
+
+/** Sets the GitHub Organization and Monorepo vs. Polyrepo topology configuration. */
+export const setRepoTopologyConfig = createAction(
+  '[Workspace] Set Repo Topology Config',
+  props<{
+    /** Repository topology configuration (`githubOrgName`, `topologyMode`, `monorepoName`, `polyrepoNames`). */
+    config: RepoTopologyConfig;
   }>(),
 );
 

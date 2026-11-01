@@ -10,6 +10,7 @@ import {
   InputFormat,
   OpenApiInputMode,
   OpenApiUrlEntry,
+  RepoTopologyConfig,
 } from '../models/types';
 
 /**
@@ -52,6 +53,8 @@ export interface WorkspaceState {
   docsJsonFiles?: GeneratedFile[];
   /** Language ID that produced the currently stored docsJsonFiles. */
   docsJsonLanguageId?: string;
+  /** Optional GitHub Organization and Monorepo vs. Polyrepo topology configuration. */
+  topologyConfig?: RepoTopologyConfig;
 }
 
 /**

@@ -45,7 +45,8 @@ import { WINDOW } from '../../tokens';
       <div
         class="pane pane-left"
         [style.width]="isMobile() ? '100%' : splitPos() + '%'"
-        [style.height]="isMobile() ? splitPos() + '%' : '100%'"
+        [style.height]="isMobile() ? null : '100%'"
+        [style.flex]="isMobile() ? splitPos() + ' 1 0' : null"
       >
         <ng-container *ngTemplateOutlet="leftTemplate() || null"></ng-container>
       </div>
@@ -53,8 +54,8 @@ import { WINDOW } from '../../tokens';
       <!-- Resizer & Central Action Controls -->
       <div
         class="resizer-wrapper"
-        [style.left]="isMobile() ? '0' : 'calc(' + splitPos() + '% - 6px)'"
-        [style.top]="isMobile() ? 'calc(' + splitPos() + '% - 6px)' : '0'"
+        [style.left]="isMobile() ? null : 'calc(' + splitPos() + '% - 6px)'"
+        [style.top]="isMobile() ? null : '0'"
       >
         <div
           class="resizer"
@@ -108,7 +109,8 @@ import { WINDOW } from '../../tokens';
       <div
         class="pane pane-right"
         [style.width]="isMobile() ? '100%' : 100 - splitPos() + '%'"
-        [style.height]="isMobile() ? 100 - splitPos() + '%' : '100%'"
+        [style.height]="isMobile() ? null : '100%'"
+        [style.flex]="isMobile() ? 100 - splitPos() + ' 1 0' : null"
       >
         <ng-container *ngTemplateOutlet="rightTemplate() || null"></ng-container>
       </div>

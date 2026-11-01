@@ -135,17 +135,19 @@ describe('SecretsComponent', () => {
       component.onSaveTokens();
       expect(component.tokensState().status).toBe('success');
 
-      // Populated form success
+      // Populated form success (including additionalProvider / PGP key)
       mockApi.storeToken.mockReturnValue(of({ status: 'ok' }));
-      mockApi.listTokens.mockReturnValue(of(['npm', 'cargo']));
+      mockApi.listTokens.mockReturnValue(of(['npm', 'cargo', 'pgp_private_key']));
       component.tokensForm.setValue({
         github: '',
         npm: 'npm_123',
         pypi: '',
         cargo: 'cio_456',
+        additionalProvider: 'pgp_private_key',
+        additionalToken: '-----BEGIN PGP PRIVATE KEY BLOCK-----',
       });
       component.onSaveTokens();
-      expect(mockApi.storeToken).toHaveBeenCalledTimes(2);
+      expect(mockApi.storeToken).toHaveBeenCalledTimes(3);
       expect(component.tokensState().status).toBe('success');
 
       // Error branch

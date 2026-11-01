@@ -11,7 +11,13 @@ import { AppState } from '../../store/state';
 import * as Actions from '../../store/actions';
 import * as Selectors from '../../store/selectors';
 import { Target, LanguageOptions, InputFormat, OpenApiInputMode } from '../../models/types';
-import { PETSTORE_SPEC, HELLO_WORLD_SPEC } from '../../models/examples';
+import {
+  PETSTORE_SPEC,
+  HELLO_WORLD_SPEC,
+  SWAGGER_2_0_SPEC,
+  ARAZZO_1_1_0_SPEC,
+  GOOGLE_DISCOVERY_SPEC,
+} from '../../models/examples';
 
 import { SplitPaneComponent } from '../../components/split-pane/split-pane.component';
 import { OpenApiEditorComponent } from '../../components/openapi-editor/openapi-editor.component';
@@ -86,6 +92,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                       @case ('google_discovery') {
                         <ng-container i18n="@@formatGoogleDiscovery">Google Discovery</ng-container>
                       }
+                      @case ('arazzo_1_1_0') {
+                        <ng-container i18n="@@formatArazzo110">Arazzo 1.1.0</ng-container>
+                      }
+                      @case ('swagger_2_0') {
+                        <ng-container i18n="@@formatSwagger20">Swagger 2.0</ng-container>
+                      }
                       @case ('openapi_older') {
                         <ng-container i18n="@@formatOpenApiOlder"
                           >Swagger / OpenAPI &lt; 3.2.0</ng-container
@@ -123,6 +135,30 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                     class="format-icon"
                   />
                   <span class="format-name" i18n>Swagger / OpenAPI &lt; 3.2.0</span>
+                </div>
+              </mat-option>
+              <mat-option value="swagger_2_0">
+                <div class="format-option">
+                  <img
+                    ngSrc="assets/icons/openapi.svg"
+                    width="20"
+                    height="20"
+                    alt=""
+                    class="format-icon"
+                  />
+                  <span class="format-name" i18n>Swagger 2.0</span>
+                </div>
+              </mat-option>
+              <mat-option value="arazzo_1_1_0">
+                <div class="format-option">
+                  <img
+                    ngSrc="assets/icons/openapi.svg"
+                    width="20"
+                    height="20"
+                    alt=""
+                    class="format-icon"
+                  />
+                  <span class="format-name" i18n>Arazzo 1.1.0</span>
                 </div>
               </mat-option>
               <mat-option value="google_discovery">
@@ -166,6 +202,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             >
               <mat-option value="petstore" i18n>Petstore</mat-option>
               <mat-option value="hello" i18n>Hello World</mat-option>
+              <mat-option value="swagger2" i18n>Swagger 2.0</mat-option>
+              <mat-option value="arazzo" i18n>Arazzo 1.1.0</mat-option>
+              <mat-option value="discovery" i18n>Google Discovery</mat-option>
               <mat-option value="custom" [disabled]="true" i18n>Custom</mat-option>
             </mat-select>
           </mat-form-field>
@@ -391,12 +430,17 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
 
   /** Computed selected example based on spec content. */
   /** Computed signal for selected example matching spec content. */
-  selectedExample = computed<'petstore' | 'hello' | 'custom'>(() => {
-    const content = this.specContent();
-    if (content === PETSTORE_SPEC) return 'petstore';
-    if (content === HELLO_WORLD_SPEC) return 'hello';
-    return 'custom';
-  });
+  selectedExample = computed<'petstore' | 'hello' | 'swagger2' | 'arazzo' | 'discovery' | 'custom'>(
+    () => {
+      const content = this.specContent();
+      if (content === PETSTORE_SPEC) return 'petstore';
+      if (content === HELLO_WORLD_SPEC) return 'hello';
+      if (content === SWAGGER_2_0_SPEC) return 'swagger2';
+      if (content === ARAZZO_1_1_0_SPEC) return 'arazzo';
+      if (content === GOOGLE_DISCOVERY_SPEC) return 'discovery';
+      return 'custom';
+    },
+  );
 
   /**
    * Initializes the workspace and triggers an initial code generation run.
@@ -512,13 +556,29 @@ export class WorkspaceComponent implements OnInit, OnDestroy {
    * Handles example dropdown changes.
    * @param example The selected example ID.
    */
-  onExampleChange(example: 'petstore' | 'hello' | 'custom'): void {
+  onExampleChange(
+    example: 'petstore' | 'hello' | 'swagger2' | 'arazzo' | 'discovery' | 'custom',
+  ): void {
     if (example === 'petstore') {
       this.store.dispatch(Actions.setOpenApiInputMode({ mode: 'editor' }));
+      this.store.dispatch(Actions.setInputFormat({ format: 'openapi_3_2_0' }));
       this.store.dispatch(Actions.updateOpenApiSpec({ content: PETSTORE_SPEC }));
     } else if (example === 'hello') {
       this.store.dispatch(Actions.setOpenApiInputMode({ mode: 'editor' }));
+      this.store.dispatch(Actions.setInputFormat({ format: 'openapi_3_2_0' }));
       this.store.dispatch(Actions.updateOpenApiSpec({ content: HELLO_WORLD_SPEC }));
+    } else if (example === 'swagger2') {
+      this.store.dispatch(Actions.setOpenApiInputMode({ mode: 'editor' }));
+      this.store.dispatch(Actions.setInputFormat({ format: 'swagger_2_0' }));
+      this.store.dispatch(Actions.updateOpenApiSpec({ content: SWAGGER_2_0_SPEC }));
+    } else if (example === 'arazzo') {
+      this.store.dispatch(Actions.setOpenApiInputMode({ mode: 'editor' }));
+      this.store.dispatch(Actions.setInputFormat({ format: 'arazzo_1_1_0' }));
+      this.store.dispatch(Actions.updateOpenApiSpec({ content: ARAZZO_1_1_0_SPEC }));
+    } else if (example === 'discovery') {
+      this.store.dispatch(Actions.setOpenApiInputMode({ mode: 'editor' }));
+      this.store.dispatch(Actions.setInputFormat({ format: 'google_discovery' }));
+      this.store.dispatch(Actions.updateOpenApiSpec({ content: GOOGLE_DISCOVERY_SPEC }));
     }
   }
 
