@@ -124,6 +124,7 @@ GOTO :EOF
 :build_local
 CALL make.bat build_wasm_local
 call npx ng build
+call node scripts/postbuild-spa-routes.mjs
 GOTO :EOF
 
 :serve_local
@@ -147,6 +148,7 @@ GOTO :EOF
 :e2e_local
 CALL make.bat build_wasm_local
 call npx ng build
+call node scripts/postbuild-spa-routes.mjs
 set CI=1
 call npx playwright test
 GOTO :EOF

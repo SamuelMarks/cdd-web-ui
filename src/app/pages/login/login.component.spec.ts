@@ -2,9 +2,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { LoginComponent } from './login.component';
 import { AuthService } from '../../services/auth.service';
 import { BackendConfigService } from '../../services/backend-config.service';
+import { ApiService } from '../../services/api.service';
 import { Router } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { signal } from '@angular/core';
+import { of, throwError } from 'rxjs';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 describe('LoginComponent', () => {
@@ -19,6 +21,11 @@ describe('LoginComponent', () => {
     backendUrl: ReturnType<typeof signal<string | null>>;
     isOnline: ReturnType<typeof signal<boolean>>;
     setOnlineMode: ReturnType<typeof vi.fn>;
+    setConnectionStatus: ReturnType<typeof vi.fn>;
+  };
+  let mockApiService: {
+    pingBackend: ReturnType<typeof vi.fn>;
+    formatPingError: ReturnType<typeof vi.fn>;
   };
   let mockRouter: { navigate: ReturnType<typeof vi.fn> };
 
@@ -32,7 +39,25 @@ describe('LoginComponent', () => {
     mockConfigService = {
       backendUrl: signal<string | null>(null),
       isOnline: signal<boolean>(false),
-      setOnlineMode: vi.fn(),
+      setOnlineMode: vi.fn((url: string) => {
+        mockConfigService.backendUrl.set(url);
+        mockConfigService.isOnline.set(true);
+      }),
+      setConnectionStatus: vi.fn(),
+    };
+
+    mockApiService = {
+      pingBackend: vi.fn().mockReturnValue(
+        of({
+          status: 'ok',
+          latencyMs: 8,
+          endpoint: 'http://localhost:8086/health',
+        }),
+      ),
+      formatPingError: vi.fn(
+        (endpoint: string, err: unknown) =>
+          `GET ${endpoint} -> ${err instanceof Error ? err.message : 'failed'}`,
+      ),
     };
 
     mockRouter = {
@@ -44,6 +69,7 @@ describe('LoginComponent', () => {
       providers: [
         { provide: AuthService, useValue: mockAuthService },
         { provide: BackendConfigService, useValue: mockConfigService },
+        { provide: ApiService, useValue: mockApiService },
         { provide: Router, useValue: mockRouter },
       ],
     }).compileComponents();
@@ -72,25 +98,57 @@ describe('LoginComponent', () => {
     expect(emailControl.hasError('email')).toBe(true);
   });
 
-  it('should connect to backend URL and handle invalid URL errors', () => {
+  it('should connect to backend URL, ping the server, and show diagnostic logs when ping or URL validation fails', () => {
     component.backendUrlForm.controls.url.setValue('http://localhost:8086');
     component.onConnectBackend();
     expect(mockConfigService.setOnlineMode).toHaveBeenCalledWith('http://localhost:8086');
-    expect(component.backendStatusMessage()).toBe('Connected!');
+    expect(mockApiService.pingBackend).toHaveBeenCalledWith('http://localhost:8086');
+    expect(component.backendStatusMessage()).toBe('Connected! (ping: ok in 8ms)');
+    expect(component.backendPingLog()).toEqual([]);
 
-    mockConfigService.isOnline.set(true);
-    mockConfigService.backendUrl.set('http://localhost:8086');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.online-pill')?.textContent).toContain(
       'http://localhost:8086',
     );
 
+    // Structured PingFailureError shows diagnostic log lines
+    mockApiService.pingBackend.mockReturnValueOnce(
+      throwError(() => ({
+        message: 'Ping failed for http://localhost:8086. Ensure the backend server is running.',
+        logs: [
+          'GET http://localhost:8086/health -> HTTP 0 (Unknown Error) - Network error, connection refused, or CORS blocked',
+          'GET http://localhost:8086/api/v1/health -> HTTP 0 (Unknown Error) - Network error, connection refused, or CORS blocked',
+        ],
+      })),
+    );
+    component.onConnectBackend();
+    fixture.detectChanges();
+    expect(component.backendStatusMessage()).toBeNull();
+    expect(component.errorMessage()).toContain('Ping failed for http://localhost:8086');
+    expect(component.backendPingLog().length).toBe(2);
+    const logPre = fixture.nativeElement.querySelector('pre.ping-log') as HTMLElement;
+    expect(logPre).toBeTruthy();
+    expect(logPre.textContent).toContain('GET http://localhost:8086/health -> HTTP 0');
+
+    // Generic error without logs array and when backendUrl() returns null
+    mockConfigService.setOnlineMode.mockImplementationOnce(() => {
+      mockConfigService.backendUrl.set(null);
+    });
+    mockApiService.pingBackend.mockReturnValueOnce(throwError(() => ({})));
+    component.onConnectBackend();
+    expect(component.errorMessage()).toBe('Ping failed for http://localhost:8086');
+    expect(component.backendPingLog()).toEqual(['GET http://localhost:8086/health -> failed']);
+
+    // Synchronous invalid URL error
     mockConfigService.setOnlineMode.mockImplementation(() => {
       throw new Error('Invalid URL provided for backend config.');
     });
     component.onConnectBackend();
     expect(component.errorMessage()).toBe('Invalid URL provided for backend config.');
     expect(component.backendStatusMessage()).toBeNull();
+    expect(component.backendPingLog()).toEqual([
+      'Invalid URL: Invalid URL provided for backend config.',
+    ]);
 
     // Empty URL does nothing
     mockConfigService.setOnlineMode.mockClear();

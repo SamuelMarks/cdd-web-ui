@@ -12,8 +12,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { AuthService } from '../services/auth.service';
 import { BackendConfigService } from '../services/backend-config.service';
-import { RunMode } from '../models/types';
+import { PingFailureError, RunMode } from '../models/types';
 import { ApiService } from '../services/api.service';
+import { LoggingService } from '../services/logging.service';
 
 /**
  * Dialog for configuring online mode, backend server URL, service endpoint overrides,
@@ -69,6 +70,15 @@ import { ApiService } from '../services/api.service';
             </p>
           }
           <div class="actions">
+            <button
+              mat-stroked-button
+              type="button"
+              class="ping-btn"
+              (click)="onPingBackend()"
+              i18n="@@pingBackendBtn"
+            >
+              Ping
+            </button>
             <button
               mat-stroked-button
               type="button"
@@ -253,6 +263,14 @@ import { ApiService } from '../services/api.service';
       @if (errorMsg()) {
         <p class="error" role="alert" aria-live="assertive">{{ errorMsg() }}</p>
       }
+      @if (pingLog().length > 0) {
+        <pre class="ping-log" role="log" aria-label="Ping failure diagnostic log">{{
+          pingLog().join(
+            '
+'
+          )
+        }}</pre>
+      }
       @if (successMsg()) {
         <p class="success" role="status" aria-live="polite">{{ successMsg() }}</p>
       }
@@ -312,6 +330,18 @@ import { ApiService } from '../services/api.service';
       .error {
         color: var(--error-text);
       }
+      .ping-log {
+        background: var(--bg-color, #1e1e1e);
+        color: var(--error-text, #d93025);
+        border: 1px solid var(--border-color, #dadce0);
+        border-radius: 4px;
+        padding: 0.5rem 0.75rem;
+        font-family: monospace;
+        font-size: 0.75rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0.5rem 0;
+      }
       .success {
         color: var(--success-text);
       }
@@ -369,11 +399,15 @@ export class OnlineSettingsComponent {
   private readonly dialogRef = inject(MatDialogRef<OnlineSettingsComponent>);
   /** API service for backend communication. */
   private readonly api = inject(ApiService);
+  /** Application logging service for recording ping results and diagnostic failure logs. */
+  private readonly logger = inject(LoggingService);
 
   /** Signal for error message. */
   readonly errorMsg = signal<string>('');
   /** Signal for success message. */
   readonly successMsg = signal<string>('');
+  /** Signal holding diagnostic log lines when a backend ping fails. */
+  readonly pingLog = signal<string[]>([]);
   /** Signal tracking whether the URL editor is open while online. */
   readonly showEditUrl = signal<boolean>(false);
   /** Signal tracking whether the advanced service endpoint overrides section is expanded. */
@@ -458,20 +492,61 @@ export class OnlineSettingsComponent {
     }
   }
 
-  /** Sets the backend URL and optionally probes `/version` in the background. */
+  /** Sets the backend URL, pings the server to verify connectivity, and probes `/version`. */
   onSetUrl(): void {
     if (this.urlForm.valid && this.urlForm.value.url) {
       try {
         this.config.setOnlineMode(this.urlForm.value.url);
         this.showEditUrl.set(false);
         this.errorMsg.set('');
-        this.successMsg.set('Connected!');
+        this.pingLog.set([]);
         this.probeBackendVersion();
+        this.onPingBackend();
       } catch (err) {
         const error = err as Error;
         this.errorMsg.set(error.message);
+        this.pingLog.set([`Invalid URL: ${error.message}`]);
+        this.successMsg.set('');
       }
     }
+  }
+
+  /**
+   * Pings the currently configured backend server, reporting round-trip latency on success
+   * or a detailed diagnostic log on failure.
+   */
+  onPingBackend(): void {
+    const targetUrl = this.config.backendUrl();
+    if (!targetUrl) {
+      return;
+    }
+    this.config.setConnectionStatus('connecting');
+    this.api.pingBackend(targetUrl).subscribe({
+      next: (res) => {
+        this.config.setConnectionStatus('connected');
+        const msg = `Connected! (ping: ${res.status} in ${res.latencyMs}ms)`;
+        this.successMsg.set(msg);
+        this.errorMsg.set('');
+        this.pingLog.set([]);
+        this.logger.info(`Backend ping succeeded: ${res.endpoint} (${res.latencyMs}ms)`);
+      },
+      error: (err: unknown) => {
+        this.config.setConnectionStatus('error');
+        const failure = err as Partial<PingFailureError>;
+        const message =
+          typeof failure.message === 'string' && failure.message.length > 0
+            ? failure.message
+            : `Ping failed for ${targetUrl}`;
+        const logs =
+          Array.isArray(failure.logs) && failure.logs.length > 0
+            ? failure.logs
+            : [this.api.formatPingError(`${targetUrl}/health`, err)];
+        this.successMsg.set('');
+        this.errorMsg.set(message);
+        this.pingLog.set(logs);
+        this.logger.error(message, logs);
+      },
+    });
   }
 
   /**
@@ -498,6 +573,7 @@ export class OnlineSettingsComponent {
     this.showEditUrl.set(false);
     this.successMsg.set('Now offline.');
     this.errorMsg.set('');
+    this.pingLog.set([]);
   }
 
   /** Logs into the backend. */

@@ -388,10 +388,11 @@ test.describe('Online Backend Integration, Dashboard & Accessibility E2E Tests',
     await backendUrlInput.fill(MOCK_BACKEND_URL);
     await dialog.getByRole('button', { name: 'Connect', exact: true }).click();
 
-    // Verify online status & probed gateway version
+    // Verify online status, ping latency, & probed gateway version
     await expect(dialog.locator('.online-status-banner')).toContainText(
       `Currently Online: ${MOCK_BACKEND_URL}`,
     );
+    await expect(dialog.locator('p.success')).toContainText(/Connected! \(ping: ok in \d+ms\)/);
     await expect(dialog.locator('.version-badge')).toContainText('Gateway Version: 0.1.0');
 
     // Register via Online Settings dialog
@@ -458,6 +459,7 @@ test.describe('Online Backend Integration, Dashboard & Accessibility E2E Tests',
     await urlInput.fill(MOCK_BACKEND_URL);
     await page.locator('.connect-backend-btn').click();
     await expect(page.locator('.online-pill')).toContainText(MOCK_BACKEND_URL);
+    await expect(page.locator('.backend-status')).toContainText(/Connected! \(ping: ok in \d+ms\)/);
 
     // 3. Register and sign in via Login page
     await page.locator('.toggle-mode-btn').click();

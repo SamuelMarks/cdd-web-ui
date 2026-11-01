@@ -78,6 +78,28 @@ export interface HealthResponse {
 }
 
 /**
+ * Result of pinging a backend server endpoint.
+ */
+export interface PingResult {
+  /** Health status string returned by the server (`'ok'`). */
+  status: string;
+  /** Round-trip ping latency in milliseconds. */
+  latencyMs: number;
+  /** The specific health endpoint URL that responded. */
+  endpoint: string;
+}
+
+/**
+ * Structured error information when pinging a backend server fails.
+ */
+export interface PingFailureError {
+  /** Human-readable summary of the connection failure. */
+  message: string;
+  /** Detailed diagnostic log lines explaining why each ping probe failed. */
+  logs: string[];
+}
+
+/**
  * Version information response returned by `GET /version` or JSON-RPC `version`.
  */
 export interface VersionResponse {

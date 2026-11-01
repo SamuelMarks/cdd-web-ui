@@ -11,7 +11,7 @@ import {
   provideZoneChangeDetection,
   ErrorHandler,
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
@@ -58,7 +58,14 @@ export const appConfig: ApplicationConfig = {
     /** provideBrowserGlobalErrorListeners */
     provideBrowserGlobalErrorListeners(),
     /** provideRouter */
-    provideRouter(routes),
+    provideRouter(
+      routes,
+      withComponentInputBinding(),
+      withInMemoryScrolling({
+        scrollPositionRestoration: 'enabled',
+        anchorScrolling: 'enabled',
+      }),
+    ),
     /** provideAnimationsAsync */
     provideAnimationsAsync(),
     /** provideHttpClient */

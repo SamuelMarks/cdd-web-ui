@@ -4,8 +4,9 @@
  */
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, catchError, map, throwError } from 'rxjs';
 import { BackendConfigService } from './backend-config.service';
+import { GLOBAL_DATE } from '../tokens';
 import {
   AuditLogQuery,
   AuditLogRecord,
@@ -17,6 +18,8 @@ import {
   HealthResponse,
   InviteMemberPayload,
   Organization,
+  PingFailureError,
+  PingResult,
   PublishAuditPayload,
   Release,
   Repository,
@@ -116,6 +119,91 @@ export class ApiService {
   private readonly http = inject(HttpClient);
   /** The backend configuration service instance. */
   private readonly config = inject(BackendConfigService);
+  /** The injected Date constructor for measuring ping latency. */
+  private readonly globalDate = inject(GLOBAL_DATE);
+
+  /**
+   * Formats a single HTTP or network error from a ping probe into a diagnostic log line.
+   * @param endpoint The full endpoint URL that was probed.
+   * @param err The error returned by the failed HTTP probe.
+   * @returns Formatted diagnostic log entry string.
+   */
+  formatPingError(endpoint: string, err: unknown): string {
+    if (err instanceof Error) {
+      return `GET ${endpoint} -> ${err.message}`;
+    }
+    if (err && typeof err === 'object') {
+      const rec = err as Record<string, unknown>;
+      const status = typeof rec['status'] === 'number' ? rec['status'] : null;
+      const statusText =
+        typeof rec['statusText'] === 'string' && rec['statusText'].trim().length > 0
+          ? rec['statusText'].trim()
+          : 'Unknown Error';
+      const detail =
+        typeof rec['error'] === 'string' && rec['error'].trim().length > 0
+          ? `: ${rec['error'].trim()}`
+          : typeof rec['message'] === 'string' && rec['message'].trim().length > 0
+            ? `: ${rec['message'].trim()}`
+            : '';
+      if (status === 0) {
+        return `GET ${endpoint} -> HTTP 0 (${statusText}) - Network error, connection refused, or CORS blocked${detail}`;
+      }
+      if (status !== null) {
+        return `GET ${endpoint} -> HTTP ${status} (${statusText})${detail}`;
+      }
+      if (typeof rec['message'] === 'string' && rec['message'].trim().length > 0) {
+        return `GET ${endpoint} -> ${rec['message'].trim()}`;
+      }
+    }
+    return `GET ${endpoint} -> Unknown connection error`;
+  }
+
+  /**
+   * Pings the backend server (`GET /health` with fallback to `GET /api/v1/health`),
+   * measuring round-trip latency and collecting diagnostic failure logs if unreachable.
+   * @param baseUrl Optional base URL override to ping.
+   * @returns Observable emitting the `PingResult` or throwing a `PingFailureError`.
+   */
+  pingBackend(baseUrl?: string): Observable<PingResult> {
+    const rawBase = baseUrl ?? this.config.backendUrl();
+    if (!rawBase) {
+      throw new Error('Offline mode active. Cannot call API.');
+    }
+    const resolvedBase = rawBase.replace(/\/+$/, '');
+    const gatewayEndpoint = `${resolvedBase}/health`;
+    const cpEndpoint = resolvedBase.endsWith('/api/v1')
+      ? `${resolvedBase}/health`
+      : `${resolvedBase}/api/v1/health`;
+    const startMs = this.globalDate.now();
+
+    return this.checkGatewayHealth(resolvedBase).pipe(
+      map((res) => ({
+        status: res.status || 'ok',
+        latencyMs: Math.max(0, this.globalDate.now() - startMs),
+        endpoint: gatewayEndpoint,
+      })),
+      catchError((gwErr: unknown) => {
+        const gwLog = this.formatPingError(gatewayEndpoint, gwErr);
+        const cpStartMs = this.globalDate.now();
+        return this.checkControlPlaneHealth(resolvedBase).pipe(
+          map((cpRes) => ({
+            status: cpRes.status || 'ok',
+            latencyMs: Math.max(0, this.globalDate.now() - cpStartMs),
+            endpoint: cpEndpoint,
+          })),
+          catchError((cpErr: unknown) => {
+            const cpLog = this.formatPingError(cpEndpoint, cpErr);
+            const logs = gatewayEndpoint === cpEndpoint ? [gwLog] : [gwLog, cpLog];
+            const failure: PingFailureError = {
+              message: `Ping failed for ${resolvedBase}. Ensure the backend server is running and accessible.`,
+              logs,
+            };
+            return throwError(() => failure);
+          }),
+        );
+      }),
+    );
+  }
 
   /**
    * Helper to construct the full URL against the configured backend base URL.

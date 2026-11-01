@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 import angular from '@analogjs/vite-plugin-angular';
 
@@ -6,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       'cdd-browser-sdk': '/tests/mocks/cdd-browser-sdk.ts',
+      'cdd-docs-ui': path.resolve(process.cwd(), '../cdd-docs-ui/dist/bundle.js'),
     },
   },
   optimizeDeps: {

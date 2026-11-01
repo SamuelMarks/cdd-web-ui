@@ -32,5 +32,17 @@ RUN npm run build:prod
 # Serve statically
 FROM nginx:mainline-bullseye
 COPY --from=builder /app/dist/cdd-web-ui/browser /usr/share/nginx/html/
+
+# Add a default nginx config for Angular routing
+RUN echo 'server { \
+    listen 80; \
+    server_name localhost; \
+    root /usr/share/nginx/html; \
+    index index.html index.htm; \
+    location / { \
+        try_files $uri $uri/ /index.html; \
+    } \
+}' > /etc/nginx/conf.d/default.conf
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

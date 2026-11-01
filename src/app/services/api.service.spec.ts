@@ -63,6 +63,109 @@ describe('ApiService', () => {
     req4.flush('OK');
   });
 
+  it('should format ping errors across Error instances, HTTP status 0, HTTP status codes, message objects, and unknown values', () => {
+    expect(service.formatPingError('http://localhost:8086/health', new Error('Timeout'))).toBe(
+      'GET http://localhost:8086/health -> Timeout',
+    );
+    expect(
+      service.formatPingError('http://localhost:8086/health', {
+        status: 0,
+        statusText: '',
+        error: 'ECONNREFUSED',
+      }),
+    ).toBe(
+      'GET http://localhost:8086/health -> HTTP 0 (Unknown Error) - Network error, connection refused, or CORS blocked: ECONNREFUSED',
+    );
+    expect(
+      service.formatPingError('http://localhost:8086/health', {
+        status: 502,
+        statusText: 'Bad Gateway',
+        message: 'Upstream down',
+      }),
+    ).toBe('GET http://localhost:8086/health -> HTTP 502 (Bad Gateway): Upstream down');
+    expect(
+      service.formatPingError('http://localhost:8086/health', {
+        status: 404,
+        statusText: 'Not Found',
+      }),
+    ).toBe('GET http://localhost:8086/health -> HTTP 404 (Not Found)');
+    expect(
+      service.formatPingError('http://localhost:8086/health', {
+        message: 'Custom error object',
+      }),
+    ).toBe('GET http://localhost:8086/health -> Custom error object');
+    expect(service.formatPingError('http://localhost:8086/health', {})).toBe(
+      'GET http://localhost:8086/health -> Unknown connection error',
+    );
+    expect(service.formatPingError('http://localhost:8086/health', 'raw string')).toBe(
+      'GET http://localhost:8086/health -> Unknown connection error',
+    );
+  });
+
+  it('should ping backend via gateway health, fallback to control plane health, and collect failure logs when both fail', () => {
+    // 1. Direct gateway health success (with status and empty status fallback)
+    service.pingBackend('http://localhost:8086/').subscribe((res) => {
+      expect(res.status).toBe('ok');
+      expect(res.endpoint).toBe('http://localhost:8086/health');
+      expect(res.latencyMs).toBeGreaterThanOrEqual(0);
+    });
+    httpMock.expectOne('http://localhost:8086/health').flush({ status: '' });
+
+    // 2. Gateway health fails, Control Plane health succeeds (with empty status fallback)
+    service.pingBackend('http://localhost:8081').subscribe((res) => {
+      expect(res.status).toBe('ok');
+      expect(res.endpoint).toBe('http://localhost:8081/api/v1/health');
+    });
+    httpMock
+      .expectOne('http://localhost:8081/health')
+      .flush('Not Found', { status: 404, statusText: 'Not Found' });
+    httpMock.expectOne('http://localhost:8081/api/v1/health').flush({ status: '' });
+
+    // 3. Both gateway and control plane health fail on distinct endpoints
+    let capturedErr: { message: string; logs: string[] } | undefined;
+    service.pingBackend('http://localhost:8086').subscribe({
+      error: (err: { message: string; logs: string[] }) => {
+        capturedErr = err;
+      },
+    });
+    httpMock
+      .expectOne('http://localhost:8086/health')
+      .flush('Service Unavailable', { status: 503, statusText: 'Service Unavailable' });
+    httpMock
+      .expectOne('http://localhost:8086/api/v1/health')
+      .flush('Bad Gateway', { status: 502, statusText: 'Bad Gateway' });
+    expect(capturedErr?.message).toContain('Ping failed for http://localhost:8086');
+    expect(capturedErr?.logs.length).toBe(2);
+    expect(capturedErr?.logs[0]).toContain('HTTP 503');
+    expect(capturedErr?.logs[1]).toContain('HTTP 502');
+
+    // 4. Base URL ending with /api/v1 deduplicates identical endpoint log line
+    let capturedCpErr: { message: string; logs: string[] } | undefined;
+    service.pingBackend('http://localhost:8081/api/v1').subscribe({
+      error: (err: { message: string; logs: string[] }) => {
+        capturedCpErr = err;
+      },
+    });
+    httpMock
+      .expectOne('http://localhost:8081/api/v1/health')
+      .flush('Gateway Timeout', { status: 504, statusText: 'Gateway Timeout' });
+    httpMock
+      .expectOne('http://localhost:8081/api/v1/health')
+      .flush('Gateway Timeout', { status: 504, statusText: 'Gateway Timeout' });
+    expect(capturedCpErr?.logs.length).toBe(1);
+
+    // 5. Using configured backendUrl when baseUrl param is omitted
+    config.setOnlineMode('http://localhost:8086');
+    service.pingBackend().subscribe((res) => {
+      expect(res.status).toBe('healthy');
+    });
+    httpMock.expectOne('http://localhost:8086/health').flush({ status: 'healthy' });
+
+    // 6. Calling pingBackend with empty baseUrl while offline
+    config.setOfflineMode();
+    expect(() => service.pingBackend('')).toThrowError('Offline mode active. Cannot call API.');
+  });
+
   describe('when online', () => {
     const baseUrl = 'http://localhost:8080';
 

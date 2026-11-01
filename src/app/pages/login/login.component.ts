@@ -12,6 +12,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../services/auth.service';
 import { BackendConfigService } from '../../services/backend-config.service';
+import { ApiService } from '../../services/api.service';
+import { LoggingService } from '../../services/logging.service';
+import { PingFailureError } from '../../models/types';
 
 /**
  * Component that displays the login page with Backend URL configuration, OAuth options, and Email/Password/Registration.
@@ -70,6 +73,14 @@ import { BackendConfigService } from '../../services/backend-config.service';
             <p class="backend-status" role="status" aria-live="polite">
               {{ backendStatusMessage() }}
             </p>
+          }
+          @if (backendPingLog().length > 0) {
+            <pre class="ping-log" role="log" aria-label="Backend ping failure log">{{
+              backendPingLog().join(
+                '
+'
+              )
+            }}</pre>
           }
         </form>
 
@@ -215,6 +226,19 @@ import { BackendConfigService } from '../../services/backend-config.service';
       font-size: 0.8125rem;
       color: var(--text-secondary);
     }
+    .ping-log {
+      background-color: var(--bg-color, #1e1e1e);
+      color: var(--error-text, #d93025);
+      border: 1px solid var(--border-color, #dadce0);
+      border-radius: 4px;
+      padding: 0.5rem 0.75rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0.5rem 0 0;
+      text-align: left;
+    }
     .error-message {
       background-color: var(--error-bg);
       color: var(--error-text);
@@ -298,6 +322,10 @@ export class LoginComponent {
   private readonly authService = inject(AuthService);
   /** The backend configuration service for setting the server URL. */
   readonly config = inject(BackendConfigService);
+  /** The API service for pinging the backend server. */
+  private readonly api = inject(ApiService);
+  /** The logging service for recording ping events and failure diagnostics. */
+  private readonly logger = inject(LoggingService);
   /** The form builder. */
   private readonly fb = inject(FormBuilder);
   /** The router to navigate after login. */
@@ -311,6 +339,8 @@ export class LoginComponent {
   readonly isRegisterMode = signal(false);
   /** Signal to track backend URL connection feedback. */
   readonly backendStatusMessage = signal<string | null>(null);
+  /** Signal holding diagnostic log lines when pinging the backend fails. */
+  readonly backendPingLog = signal<string[]>([]);
 
   /** Form group for configuring the backend server URL on the login page. */
   readonly backendUrlForm = this.fb.nonNullable.group({
@@ -325,7 +355,8 @@ export class LoginComponent {
   });
 
   /**
-   * Connects to the specified backend server URL and enables online mode.
+   * Connects to the specified backend server URL, enables online mode, and pings the server
+   * to verify connectivity or display a diagnostic failure log.
    */
   onConnectBackend(): void {
     const rawUrl = this.backendUrlForm.controls.url.value;
@@ -335,11 +366,39 @@ export class LoginComponent {
     try {
       this.config.setOnlineMode(rawUrl);
       this.errorMessage.set(null);
-      this.backendStatusMessage.set('Connected!');
+      this.backendPingLog.set([]);
+      const normalizedUrl = this.config.backendUrl() ?? rawUrl;
+      this.config.setConnectionStatus('connecting');
+      this.api.pingBackend(normalizedUrl).subscribe({
+        next: (res) => {
+          this.config.setConnectionStatus('connected');
+          this.backendStatusMessage.set(`Connected! (ping: ${res.status} in ${res.latencyMs}ms)`);
+          this.errorMessage.set(null);
+          this.backendPingLog.set([]);
+          this.logger.info(`Backend ping succeeded: ${res.endpoint} (${res.latencyMs}ms)`);
+        },
+        error: (err: unknown) => {
+          this.config.setConnectionStatus('error');
+          const failure = err as Partial<PingFailureError>;
+          const message =
+            typeof failure.message === 'string' && failure.message.length > 0
+              ? failure.message
+              : `Ping failed for ${normalizedUrl}`;
+          const logs =
+            Array.isArray(failure.logs) && failure.logs.length > 0
+              ? failure.logs
+              : [this.api.formatPingError(`${normalizedUrl}/health`, err)];
+          this.backendStatusMessage.set(null);
+          this.errorMessage.set(message);
+          this.backendPingLog.set(logs);
+          this.logger.error(message, logs);
+        },
+      });
     } catch (err) {
       const error = err as Error;
       this.errorMessage.set(error.message);
       this.backendStatusMessage.set(null);
+      this.backendPingLog.set([`Invalid URL: ${error.message}`]);
     }
   }
 

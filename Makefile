@@ -52,6 +52,7 @@ build_wasm_local:
 
 build_local: build_wasm_local
 	npx ng build
+	node scripts/postbuild-spa-routes.mjs
 
 serve_local: build_wasm_local
 	npx ng serve --port 8083
@@ -67,5 +68,6 @@ test_local: build_wasm_local
 
 e2e_local: build_wasm_local
 	npx ng build
+	node scripts/postbuild-spa-routes.mjs
 	CI=1 npx playwright test
 
