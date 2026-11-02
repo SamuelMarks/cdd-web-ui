@@ -257,6 +257,11 @@ export const fileTreeReducer = createReducer(
         /build\.gradle$/i,
         /tsconfig\.json$/i,
         /docs\.json$/i,
+        /bpkg\.json$/i,
+        /makefile$/i,
+        /(?:^|\/)formula\//i,
+        /(?:^|\/)docs\/index\.(?:md|html)$/i,
+        /(?:^|\/)\.github\//i,
       ];
 
       const candidateFiles = files.filter((f) => !ignorePatterns.some((p) => p.test(f.path)));

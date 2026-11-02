@@ -1212,5 +1212,64 @@ describe('wasm-worker.worker.ts', () => {
         } as unknown as MessageEvent);
       }
     });
+
+    it('should patch embedded cdd-sh WASI shell slices and preserve unpatched buffers', async () => {
+      const { CddWasmSdk } = await import('cdd-browser-sdk');
+      const { indexOfBytes, patchEmbeddedShellSlice, patchCddShWasiBinary, handleMessage } =
+        await import('./wasm-worker.worker');
+
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder();
+
+      const hay = encoder.encode('prefix_hello_world_suffix');
+      expect(indexOfBytes(hay, encoder.encode('hello'), 0)).toBe(7);
+      expect(indexOfBytes(hay, encoder.encode('missing'), 0)).toBe(-1);
+
+      // Missing start marker
+      const noStart = encoder.encode('unrelated content');
+      expect(patchEmbeddedShellSlice(noStart, 'START', 'END', 'rep')).toBe(false);
+
+      // Present start marker, missing end marker
+      const noEnd = encoder.encode('START_without_end');
+      expect(patchEmbeddedShellSlice(noEnd, 'START', 'END', 'rep')).toBe(false);
+
+      // Present start and end markers
+      const withBoth = encoder.encode('xxSTART_body_text_ENDyy');
+      expect(patchEmbeddedShellSlice(withBoth, 'START', 'END', 'REPLACED')).toBe(true);
+      expect(decoder.decode(withBoth)).toBe('xxREPLACED           yy');
+
+      // patchCddShWasiBinary on buffer without markers returns original reference
+      const plainBuf = new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]).buffer;
+      expect(patchCddShWasiBinary(plainBuf)).toBe(plainBuf);
+
+      // patchCddShWasiBinary on buffer containing a cdd-sh marker returns a patched clone
+      const markerText =
+        '# emit_installable_package_files emits bpkg.json' + 'x'.repeat(6000) + 'EOF\n}';
+      const markerBuf = encoder.encode(markerText).buffer;
+      const patchedBuf = patchCddShWasiBinary(markerBuf);
+      expect(patchedBuf).not.toBe(markerBuf);
+      expect(patchedBuf.byteLength).toBe(markerBuf.byteLength);
+      expect(decoder.decode(new Uint8Array(patchedBuf))).toContain(
+        'emit_installable_package_files()',
+      );
+
+      // handleMessage with ecosystem === 'cdd-sh' and ArrayBuffer wasmBinary
+      vi.spyOn(CddWasmSdk, 'fromOpenApi').mockResolvedValueOnce([
+        { path: 'src/routes.sh', content: encoder.encode('#!/bin/sh\n') },
+      ]);
+      await handleMessage({
+        data: {
+          action: 'generateSdk',
+          jobId: 'sh-wasm-buf',
+          payload: {
+            ecosystem: 'cdd-sh',
+            target: 'to_sdk',
+            specContent: '{"openapi":"3.2.0","info":{"title":"T","version":"1"},"paths":{}}',
+            wasmBinary: markerBuf,
+          },
+        },
+      } as unknown as MessageEvent);
+      expect(CddWasmSdk.fromOpenApi).toHaveBeenCalled();
+    });
   });
 });
