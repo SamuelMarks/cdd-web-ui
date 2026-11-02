@@ -541,6 +541,34 @@ import { AuthMethod, OAuthProvider } from '../../models/types';
       padding: 2rem;
       overflow-y: auto;
     }
+
+    @media (max-width: 768px) {
+      .dashboard-layout {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+      }
+
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .main-content {
+        overflow: visible;
+      }
+
+      .top-bar {
+        padding: 0 1rem;
+      }
+
+      .content-area {
+        padding: 1rem;
+        overflow: visible;
+      }
+    }
   `,
 })
 export class DashboardComponent {

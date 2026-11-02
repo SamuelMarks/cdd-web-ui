@@ -149,9 +149,26 @@ async function setupBackendAndWasmMocks(page: Page): Promise<void> {
     });
   });
 
-  // Mock cdd-control-plane account deletion
+  // Mock cdd-control-plane authenticated profile & account deletion
   await page.route(`${MOCK_BACKEND_URL}/api/v1/auth/me`, async (route) => {
-    await route.fulfill({ status: 204, body: '' });
+    if (route.request().method() === 'DELETE') {
+      await route.fulfill({ status: 204, body: '' });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 1,
+        username: 'alice',
+        email: 'alice@example.com',
+        name: 'Alice',
+        avatar_url: 'https://github.com/identicons/alice.png',
+        github_linked: true,
+        google_linked: false,
+        has_password: true,
+      }),
+    });
   });
 
   // Mock cdd-control-plane & cdd-gateway Organizations
